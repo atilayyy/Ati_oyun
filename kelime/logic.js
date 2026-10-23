@@ -25,16 +25,28 @@ const Kelime = (() => {
     if (on.every(p => s.boards[p.id].done)) finish(s);
   }
   function finish(s) {
+    if (s.phase !== 'play') return;
     s.phase = 'roundEnd';
+    if (s.setterId) { // sırayla modda bulamayan her oyuncu için seçen +2
+      const miss = Object.values(s.boards).filter(b => b.done !== 'solved').length;
+      s.setterPts = miss * 2;
+      const sp = s.players.find(p => p.id === s.setterId); if (sp) sp.score += s.setterPts;
+    }
     s.history = (s.history || []).concat([{ round: s.round, word: s.secret }]).slice(-20);
   }
-  async function startRound(s, n) {
-    const L = await list(n);
-    const used = new Set((s.history || []).map(h => h.word));
-    let w; for (let k = 0; k < 50; k++) { w = L.a[Math.floor(Math.random() * L.a.length)]; if (!used.has(w)) break }
+  function promote(s) {
     if (s.watchers) { for (const x of s.watchers) if (!s.players.find(p => p.id === x.id)) s.players.push({ id: x.id, name: x.name, online: true, score: 0 }); s.watchers = [] }
-    s.round++; s.len = n; s.max = maxFor(n); s.secret = w; s.phase = 'play'; s.first = null;
-    s.boards = {}; for (const p of s.players) s.boards[p.id] = { rows: [], done: null, pts: 0 };
+  }
+  async function startRound(s, n, word) {
+    let w = word;
+    if (!w) {
+      const L = await list(n);
+      const used = new Set((s.history || []).map(h => h.word));
+      for (let k = 0; k < 50; k++) { w = L.a[Math.floor(Math.random() * L.a.length)]; if (!used.has(w)) break }
+    }
+    promote(s);
+    s.round++; s.len = n; s.max = maxFor(n); s.secret = w; s.phase = 'play'; s.first = null; s.setterPts = 0;
+    s.boards = {}; for (const p of s.players) if (p.id !== s.setterId) s.boards[p.id] = { rows: [], done: null, pts: 0 };
   }
   async function act(s0, pid, a) {
     const s = clone(s0);
@@ -43,8 +55,24 @@ const Kelime = (() => {
     const isHost = pid === s.hostId;
     if (a.type === 'start' && isHost && s.phase !== 'play') {
       const n = Math.min(10, Math.max(4, a.len | 0 || 5));
-      if (a.reset) s.players.forEach(p => p.score = 0);
+      if (a.mode === 'sira' || a.mode === 'rastgele') s.mode = a.mode;
+      if (s.mode === 'sira') {
+        promote(s);
+        if (s.players.length < 2) return s;
+        const i = s.players.findIndex(p => p.id === s.setterId);
+        s.setterId = s.players[(i + 1) % s.players.length].id;
+        s.phase = 'pick'; s.pickErr = null; delete s.secret;
+        return s;
+      }
+      s.setterId = null;
       await startRound(s, n); return s;
+    }
+    if (a.type === 'setword' && s.phase === 'pick' && pid === s.setterId) {
+      const w = String(a.w || '').trim().toLocaleLowerCase('tr'), n = Array.from(w).length;
+      if (n < 4 || n > 10 || Array.from(w).some(c => !ALPHA.includes(c))) { s.pickErr = '4 ile 10 harf arası, sadece Türkçe harfler.'; return s }
+      const L = await list(n);
+      if (!L.v.has(w)) { s.pickErr = 'Bu kelime listede yok, başka bir tane dene.'; return s }
+      await startRound(s, n, w); return s;
     }
     if (a.type === 'end' && isHost && s.phase === 'play') { finish(s); return s }
     if (a.type === 'guess' && s.phase === 'play') {
@@ -67,7 +95,8 @@ const Kelime = (() => {
   }
   function view(s, pid) {
     const v = clone(s);
-    if (v.phase === 'play') {
+    if (v.phase === 'pick') delete v.secret;
+    if (v.phase === 'play' && pid !== v.setterId) {
       delete v.secret;
       for (const id in v.boards) if (id !== pid) v.boards[id].rows = v.boards[id].rows.map(r => ({ r: r.r }));
     }

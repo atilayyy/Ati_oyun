@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sen Hangi Tipsin?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.q{font-family:var(--display);font-weight:800;font-size:1.45rem;line-height:1.25;text-wrap:balance}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{font:inherit;text-align:left;padding:14px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;font-weight:700}
+.opt:hover{border-color:var(--accent)}
+.prog{display:flex;flex-direction:column;gap:6px}
+.prow{display:grid;grid-template-columns:minmax(0,8em) 1fr 3em;gap:10px;align-items:center;font-size:.9rem}
+.prow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{height:8px;border-radius:4px;background:var(--edge);overflow:hidden}
+.track i{display:block;height:100%;background:var(--accent)}
+.types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.types{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tbtn{font:inherit;font-weight:800;font-size:.9rem;padding:10px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;text-align:left}
+.tbtn.on{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 22%,var(--table))}
+.card{border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--table);border:2px solid var(--tc)}
+.card h3{font-size:1.5rem;color:var(--tc)}
+.bars{display:flex;flex-direction:column;gap:4px;font-size:.82rem}
+.bar{display:grid;grid-template-columns:9em 1fr;gap:8px;align-items:center}
+.bar b{display:block;height:8px;border-radius:4px;background:var(--tc)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.ok{color:var(--good);font-weight:800} .no{color:var(--bad);font-weight:800}
+.gblock{display:flex;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Sen Hangi Tipsin?</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, T = Kisilik.TYPES, Q = Kisilik.QS;
+let gdraft = {}, V, C;
+function progress(v) {
+  return `<div class="prog">${v.players.map(p => { const n = v.ans[p.id].length; return `<div class="prow"><span class="nm">${esc(p.name)}</span><span class="track"><i style="width:${n / Q.length * 100}%"></i></span><span class="muted">${n}/${Q.length}</span></div>` }).join('')}</div>`;
+}
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  const scores = `<div class="row">${P.map(p => `<span class="pill">${esc(p.name)} ${p.score}</span>`).join('')}</div>`;
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `<button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Herkes ${Q.length} komik soruya kendi hızında cevap verir. Sonra herkes, arkadaşlarının hangi tip çıkacağını tahmin eder. Sonuçlar açılır, doğru tahmin 1 puan.</p>
+      <div class="row">${T.map(t => `<span class="pill" style="border-color:${t[2]}">${t[0]}</span>`).join('')}</div></section>`;
+    Ati.wireShare(app, ctx);
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  if (!mine) { app.innerHTML = `${scores}<section class="panel"><p class="muted">Bu tur izliyorsun.</p>${v.ans ? progress(v) : ''}</section>`; return }
+  if (v.phase === 'answer') {
+    const n = v.ans[me].length;
+    if (n < Q.length) {
+      const q = Q[n];
+      app.innerHTML = `${scores}<section class="panel"><span class="label">Soru ${n + 1} / ${Q.length}</span><div class="q">${esc(q[0])}</div>
+        <div class="opts">${q[1].map((o, k) => `<button class="opt" data-k="${k}">${esc(o[0])}</button>`).join('')}</div></section>
+        <section class="panel"><span class="label">Kim nerede</span>${progress(v)}</section>`;
+      app.querySelectorAll('.opt').forEach(b => b.onclick = () => { app.querySelectorAll('.opt').forEach(x => x.disabled = true); ctx.act({ type: 'answer', k: +b.dataset.k }) });
+    } else {
+      app.innerHTML = `${scores}<section class="panel"><h2>Bitti! Diğerleri bekleniyor...</h2><p class="muted">Herkes bitirince tahmin zamanı.</p>${progress(v)}</section>`;
+    }
+    return;
+  }
+  if (v.phase === 'guess') {
+    if (v.guess[me]) {
+      const left = P.filter(p => !v.guess[p.id]).map(p => esc(p.name)).join(', ');
+      app.innerHTML = `${scores}<section class="panel"><h2>Tahminlerin kilitlendi</h2><p class="muted">Bekleniyor: ${left}</p></section>`;
+      return;
+    }
+    const others = P.filter(p => p.id !== me);
+    app.innerHTML = `${scores}<section class="panel"><h2>Sence kim hangi tip çıktı?</h2>
+      ${others.map(p => `<div class="gblock"><span class="label">${esc(p.name)}</span><div class="types">${T.map((t, i) => `<button class="tbtn ${gdraft[p.id] === i ? 'on' : ''}" style="--tc:${t[2]}" data-p="${esc(p.id)}" data-t="${i}">${t[0]}</button>`).join('')}</div></div>`).join('')}
+      <button class="btn" id="lock" ${others.every(p => gdraft[p.id] !== undefined) ? '' : 'disabled'}>Tahminleri kilitle</button></section>`;
+    app.querySelectorAll('.tbtn').forEach(b => b.onclick = () => { gdraft[b.dataset.p] = +b.dataset.t; render(V, C) });
+    app.querySelector('#lock').onclick = () => { ctx.act({ type: 'guess', g: gdraft }); gdraft = {} };
+    return;
+  }
+  // reveal
+  const cards = P.map(p => {
+    const r = v.result[p.id], t = T[r.type], total = Q.length;
+    const guessed = P.filter(o => o.id !== p.id).map(o => { const g = v.guess[o.id][p.id], hit = g === r.type;
+      return `<div>${esc(o.name)}: ${T[g][0]} <span class="${hit ? 'ok' : 'no'}">${hit ? '✓ +1' : '✗'}</span></div>` }).join('');
+    const bars = r.cnt.map((c, i) => c ? `<div class="bar" style="--tc:${T[i][2]}"><span>${T[i][0]} %${Math.round(c / total * 100)}</span><b style="width:${c / total * 100}%"></b></div>` : '').join('');
+    return `<div class="card" style="--tc:${t[2]}"><span class="label">${esc(p.name)}${p.id === me ? ' (sen)' : ''}</span><h3>${t[0]}</h3><p>${t[1]}</p>
+      <div class="bars">${bars}</div><div><span class="label">Tahminler</span>${guessed}</div></div>`;
+  }).join('');
+  app.innerHTML = `${scores}<section class="cards">${cards}</section>
+    <section class="panel">${ctx.isHost ? '<button class="btn" id="again">Tekrar oyna</button>' : '<p class="muted">Ev sahibi yeni tur başlatabilir.</p>'}</section>`;
+  const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start' });
+}
+Ati.start({ game: 'kisilik', el: app, logic: Kisilik, render });
+</script>
+</body>
+</html>

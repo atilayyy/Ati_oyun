@@ -15,9 +15,16 @@
 .lab{font-size:.68rem;color:var(--muted);display:grid;place-items:center;font-weight:800}
 .cell{aspect-ratio:1;border:0;padding:0;border-radius:4px;background:var(--sea);position:relative;display:grid;place-items:center}
 button.cell{cursor:crosshair} button.cell:hover{background:var(--sea2);outline:2px solid var(--accent);outline-offset:-2px}
-.cell.ship{background:var(--ship)}
-.cell.sunk{background:#6b2a35}
-.cell.hit::after{content:"";width:55%;height:55%;border-radius:50%;background:var(--hit);box-shadow:0 0 8px var(--hit)}
+/* gemi parçaları: pruva (sivri uç), gövde (taret), kıç (köşeli). Dikeyde 90° döner. */
+.cell.ship::before,.cell.sunk::before{content:"";position:absolute;inset:0 -1px;
+  background:radial-gradient(circle at 50% 50%,#5b6690 0 17%,#3e4870 18% 22%,transparent 23%),linear-gradient(#d3d9ef,#8f9ac0 55%,#6d78a0)}
+.cell.sunk::before{background:radial-gradient(circle at 50% 50%,#3a141b 0 17%,transparent 18%),linear-gradient(#a14a58,#6b2a35 60%,#4a1a23)}
+.cell.p-mid::before{clip-path:polygon(0 18%,100% 18%,100% 82%,0 82%)}
+.cell.p-bow::before{inset:0 -1px 0 0;clip-path:polygon(4% 50%,45% 18%,100% 18%,100% 82%,45% 82%);background-image:linear-gradient(#d3d9ef,#8f9ac0 55%,#6d78a0)}
+.cell.p-stern::before{inset:0 0 0 -1px;clip-path:polygon(0 18%,80% 18%,94% 32%,94% 68%,80% 82%,0 82%);background-image:radial-gradient(circle at 40% 50%,#ffffff55 0 10%,transparent 11%),linear-gradient(#d3d9ef,#8f9ac0 55%,#6d78a0)}
+.cell.sunk.p-bow::before,.cell.sunk.p-stern::before{background-image:linear-gradient(#a14a58,#6b2a35 60%,#4a1a23)}
+.cell.o-v::before{transform:rotate(90deg)}
+.cell.hit::after{content:"";width:55%;height:55%;border-radius:50%;background:var(--hit);box-shadow:0 0 8px var(--hit);position:relative;z-index:1}
 .cell.miss::after{content:"";width:22%;height:22%;border-radius:50%;background:var(--miss)}
 .cell.last{outline:2px solid #fff;outline-offset:-2px}
 .status{font-family:var(--display);font-weight:800;font-size:1.25rem}
@@ -31,18 +38,27 @@ button.cell{cursor:crosshair} button.cell:hover{background:var(--sea2);outline:2
   <main id="app"></main>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
 <script src="../assets/net.js"></script>
 <script src="logic.js"></script>
 <script>
 const app = document.getElementById('app'), esc = Ati.esc, L = 'ABCDEFGHIJ';
 function gridHtml(b, { own, clickable, last }) {
-  const shipAt = {}; b.ships.forEach((sh, i) => { const s = sh.cells.every(([r, c]) => b.recv[r + ',' + c] === 1); sh.cells.forEach(([r, c]) => shipAt[r + ',' + c] = s ? 'sunk' : 'ship') });
+  const shipAt = {};
+  b.ships.forEach(sh => {
+    const s = sh.cells.every(([r, c]) => b.recv[r + ',' + c] === 1);
+    const vert = sh.cells.length > 1 && sh.cells[0][1] === sh.cells[1][1];
+    sh.cells.forEach(([r, c], i) => {
+      const part = i === 0 ? 'p-bow' : i === sh.cells.length - 1 ? 'p-stern' : 'p-mid';
+      shipAt[r + ',' + c] = (s ? 'sunk ' : 'ship ') + part + (vert ? ' o-v' : '');
+    });
+  });
   let h = '<span></span>' + [...L].map(x => `<span class="lab">${x}</span>`).join('');
   for (let r = 0; r < 10; r++) {
     h += `<span class="lab">${r + 1}</span>`;
     for (let c = 0; c < 10; c++) {
       const key = r + ',' + c, shot = b.recv[key], st = shipAt[key];
-      const cls = ['cell', st && (own || st === 'sunk') ? st : '', shot === 1 ? 'hit' : shot === 0 ? 'miss' : '', last && last.r === r && last.c === c ? 'last' : ''].join(' ');
+      const cls = ['cell', st && (own || st.startsWith('sunk')) ? st : '', shot === 1 ? 'hit' : shot === 0 ? 'miss' : '', last && last.r === r && last.c === c ? 'last' : ''].join(' ');
       h += clickable && shot === undefined ? `<button class="${cls}" data-r="${r}" data-c="${c}" aria-label="${L[c]}${r + 1}"></button>` : `<div class="${cls}"></div>`;
     }
   }
@@ -74,11 +90,11 @@ function render(v, ctx) {
   const myTurn = v.phase === 'play' && v.turn === idx;
   const ls = v.lastShot;
   const status = v.phase === 'over' ? (v.winner === idx ? 'Kazandın! Bütün filoyu batırdın.' : esc(opp.name) + ' kazandı.')
-    : myTurn ? (ls && ls.by === idx && ls.hit ? 'İsabet! Tekrar at.' : 'Sıra sende, rakibin denizine ateş et.') : `Sıra ${esc(opp.name)}'da...`;
+    : myTurn ? (ls && ls.by === idx && ls.hit ? 'İsabet! Tekrar at.' : 'Sıra sende, rakibin denizine ateş et.') : `Sıra ${ek(esc(opp.name),'de')}...`;
   app.innerHTML = `${score}<section class="panel"><div class="status">${status}</div>
     ${v.phase === 'over' ? '<button class="btn" id="again">Tekrar oyna</button>' : ''}</section>
     <section class="seas">
-      <div class="panel sea"><span class="label">${esc(opp.name)}'ın denizi${v.phase === 'play' ? ' · kalan gemi ' + ob.left : ''}</span>${gridHtml(ob, { own: v.phase === 'over', clickable: myTurn, last: ls && ls.by === idx ? ls : null })}</div>
+      <div class="panel sea"><span class="label">${ek(esc(opp.name),'in')} denizi${v.phase === 'play' ? ' · kalan gemi ' + ob.left : ''}</span>${gridHtml(ob, { own: v.phase === 'over', clickable: myTurn, last: ls && ls.by === idx ? ls : null })}</div>
       <div class="panel sea"><span class="label">Senin denizin</span>${gridHtml(mb, { own: true, last: ls && ls.by !== idx ? ls : null })}</div>
     </section>
     <section class="panel"><span class="label">Atışlar</span><div class="log">${(v.log || []).slice().reverse().map(l => `<div>${esc(l)}</div>`).join('')}</div></section>`;

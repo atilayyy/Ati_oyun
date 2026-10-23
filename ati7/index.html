@@ -46,6 +46,7 @@ td.n,th.n{text-align:right}
   <main id="app"></main>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
 <script src="../assets/net.js"></script>
 <script src="logic.js"></script>
 <script>
@@ -115,10 +116,7 @@ function render(v, ctx) {
       } else controls = `<p class="muted">${esc(pl(v.pending.by).name)}, ${esc(Ati7.cardName(v.pending.card))} kartının kime gideceğini seçiyor...</p>`;
     } else if (v.turn === me) {
       controls = `<div class="controls"><button class="btn" id="hit">Kart çek</button><button class="btn ghost" id="stay">Dur (${v.hands[me].pts} puan)</button></div>`;
-    } else if (v.turn) controls = `<p class="muted">Sıra ${esc(pl(v.turn).name)}'da...</p>`;
-    const waitOn = v.pending ? v.pending.by : v.turn;
-    if (isHost && waitOn && waitOn !== me && pl(waitOn).online === false)
-      controls += `<div class="controls"><span class="muted">${esc(pl(waitOn).name)} bağlı değil.</span><button class="btn ghost small" id="skip">Onu atla</button></div>`;
+    } else if (v.turn) controls = `<p class="muted">Sıra ${ek(esc(pl(v.turn).name),'de')}...</p>`;
   } else if (v.phase === 'roundEnd') {
     const why = v.lastRound.why === 'ati7' ? 'Biri ATI7 yaptı, el bitti!' : 'Herkes durdu, dondu ya da patladı.';
     controls = `<div class="controls"><strong>${why}</strong>${isHost ? '<button class="btn" id="next">Sonraki el</button>' : '<span class="muted">Ev sahibi sonraki eli başlatacak.</span>'}</div>`;
@@ -136,7 +134,7 @@ function render(v, ctx) {
     <details class="panel"><summary>Kurallar</summary>${RULES}</details>`;
   const lg = app.querySelector('#log'); lg.scrollTop = lg.scrollHeight;
   const on = (sel, a) => { const b = app.querySelector(sel); if (b) b.onclick = () => ctx.act(a) };
-  on('#hit', { type: 'hit' }); on('#stay', { type: 'stay' }); on('#next', { type: 'next' }); on('#again', { type: 'start' }); on('#skip', { type: 'skip' });
+  on('#hit', { type: 'hit' }); on('#stay', { type: 'stay' }); on('#next', { type: 'next' }); on('#again', { type: 'start' });
   app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => ctx.act({ type: 'target', id: b.dataset.t }));
 }
 

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>En Çok Neye Sinir Olur?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--rage:#ff6b4a}
+.q{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1.25;text-wrap:balance}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{font:inherit;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;font-weight:700}
+.opt:hover{border-color:var(--rage)}
+.opt.subj{border-color:var(--rage);background:color-mix(in srgb,var(--rage) 20%,var(--table))}
+.opt.guess{border-style:dashed;border-color:var(--accent)}
+.opt.both{border-color:var(--good);background:color-mix(in srgb,var(--good) 20%,var(--table))}
+.opt:disabled{cursor:default}
+.who{display:inline-flex;align-self:flex-start;padding:4px 12px;border-radius:999px;background:color-mix(in srgb,var(--rage) 22%,var(--table));color:var(--rage);font-weight:800;font-size:.85rem}
+.meter{display:flex;gap:4px}
+.meter i{flex:1;height:8px;border-radius:4px;background:var(--edge)}
+.meter i.done{background:var(--rage)}
+.meter i.now{background:var(--accent)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:2px solid var(--rage)}
+.legend span.g::before{border:2px dashed var(--accent)}
+.legend span.b::before{border-color:var(--good)}
+.big{font-family:var(--display);font-weight:800;font-size:2.6rem;font-variant-numeric:tabular-nums;color:var(--rage)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>En Çok Neye Sinir Olur?</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="sorular.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let per = 6;
+function render(v, ctx) {
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2 kişilik)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `<div class="field"><label class="label" for="per">Kişi başı soru</label>
+        <select id="per">${[4, 6, 8, 12].map(n => `<option value="${n}" ${n === per ? 'selected' : ''}>${n} soru (toplam ${n * 2})</option>`).join('')}</select></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Önce ikiniz de ${esc(P[0].name)} hakkındaki soruları cevaplarsınız: ${esc(P[0].name)} kendisini en çok neyin sinir edeceğini seçer, diğeri tahmin eder. Sonra aynı sorular ${esc(P[1] ? P[1].name : '2. oyuncu')} için sorulur. Doğru tahmin 1 puan.</p></section>`;
+    Ati.wireShare(app, ctx);
+    const s = app.querySelector('#per'); if (s) s.onchange = () => per = +s.value;
+    const b = app.querySelector('#start'); if (b) b.onclick = () => ctx.act({ type: 'start', per });
+    return;
+  }
+  const sc = v.scores;
+  const head = `<div class="row">${P.map(p => `<span class="pill">${esc(p.name)} ${sc[p.id]}</span>`).join('')}</div>`;
+  if (v.phase === 'over') {
+    const [a, b] = P, w = sc[a.id] === sc[b.id] ? 'Berabere! İkiniz de birbirinizin sinir noktalarını aynı derecede biliyorsunuz.' : (sc[a.id] > sc[b.id] ? a.name : b.name) + ', karşısındakinin sinir noktalarını daha iyi biliyor.';
+    const pct = Math.round((sc[a.id] + sc[b.id]) / (v.per * 2) * 100);
+    app.innerHTML = `${head}<section class="panel"><span class="label">Oyun bitti</span><h2>${esc(w)}</h2>
+      <div><span class="label">Sinir uyumu</span><div class="big">%${pct}</div></div>
+      <p class="muted">${pct >= 75 ? 'Birbirinizin damarına basmayı çok iyi biliyorsunuz. Dikkatli olun.' : pct >= 40 ? 'Bazı sinir noktaları hâlâ sürpriz.' : 'Birbirinizi sinir etmeyi daha öğrenmeniz lazım.'}</p>
+      ${ctx.isHost ? '<button class="btn" id="again">Yeni oyun</button>' : ''}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', per: v.per });
+    return;
+  }
+  const subj = P[v.subject], guesser = P[1 - v.subject], iAmSubj = subj.id === me;
+  const q = SINIR[v.qs[v.step % v.per]], cur = v.ans[v.step];
+  const meter = `<div class="meter">${Array.from({ length: v.per * 2 }, (_, i) => `<i class="${i < v.step ? 'done' : i === v.step ? 'now' : ''}"></i>`).join('')}</div>`;
+  const tag = `<span class="who">${esc(subj.name)} hakkında · ${v.step % v.per + 1}/${v.per}</span>`;
+  if (!mine) { app.innerHTML = `${head}${meter}<section class="panel">${tag}<div class="q">${esc(q[0])}</div><p class="muted">İzliyorsun.</p></section>`; return }
+  const myA = cur[me], both = P.every(p => cur[p.id] !== undefined && cur[p.id] !== -1);
+  let body;
+  if (myA === undefined) {
+    const prompt = iAmSubj ? 'Seni en çok hangisi sinir eder? Dürüst ol.' : `Sence ${ek(esc(subj.name), 'i')} en çok hangisi sinir eder?`;
+    body = `${tag}<div class="q">${esc(q[0])}</div>
+      <p><strong>${prompt}</strong></p>
+      <div class="opts">${q[1].map((t, k) => `<button class="opt" data-k="${k}">${esc(t)}</button>`).join('')}</div>`;
+  } else if (!both) {
+    body = `${tag}<div class="q">${esc(q[0])}</div><p class="muted">Cevabın kilitlendi. ${esc((iAmSubj ? guesser : subj).name)} bekleniyor...</p>`;
+  } else {
+    const sa = cur[subj.id], ga = cur[guesser.id], hit = sa === ga;
+    body = `${tag}<div class="q">${esc(q[0])}</div>
+      <div class="opts">${q[1].map((t, k) => `<button class="opt ${k === sa && k === ga ? 'both' : k === sa ? 'subj' : k === ga ? 'guess' : ''}" disabled>${esc(t)}</button>`).join('')}</div>
+      <div class="legend"><span>${ek(esc(subj.name), 'in')} cevabı</span><span class="g">${ek(esc(guesser.name), 'in')} tahmini</span><span class="b">İkisi aynı</span></div>
+      <p><strong style="color:var(${hit ? '--good' : '--bad'})">${hit ? esc(guesser.name) + ' bildi! +1' : esc(guesser.name) + ' bilemedi.'}</strong></p>
+      <button class="btn" id="next">${v.step + 1 >= v.per * 2 ? 'Sonuçları gör' : v.step + 1 === v.per ? 'Sıra ' + ek(esc(guesser.name), 'de') + ', devam' : 'Sonraki soru'}</button>`;
+  }
+  app.innerHTML = `${head}${meter}<section class="panel">${body}</section>`;
+  app.querySelectorAll('.opt[data-k]').forEach(b => b.onclick = () => ctx.act({ type: 'answer', k: +b.dataset.k }));
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+}
+Ati.start({ game: 'sinir', el: app, logic: Sinir, render });
+</script>
+</body>
+</html>

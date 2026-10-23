@@ -28,6 +28,7 @@
   <main id="app"></main>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
 <script src="../assets/net.js"></script>
 <script src="logic.js"></script>
 <script>
@@ -47,7 +48,7 @@ function render(v, ctx) {
   const P = v.players, win = new Set((v.line || []).map(([r, c]) => r + ',' + c));
   let status;
   if (v.phase === 'over') status = v.winner === -1 ? 'Berabere!' : `${disc(v.winner)} ${esc(P[v.winner].name)} kazandı!`;
-  else status = v.turn === idx ? `${disc(idx)} Sıra sende` : `${disc(v.turn)} Sıra ${esc(P[v.turn].name)}'da`;
+  else status = v.turn === idx ? `${disc(idx)} Sıra sende` : `${disc(v.turn)} Sıra ${ek(esc(P[v.turn].name),'de')}`;
   const canPlay = v.phase === 'play' && v.turn === idx;
   let cols = '';
   for (let c = 0; c < 7; c++) {

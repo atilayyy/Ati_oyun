@@ -45,6 +45,7 @@
   <main id="app"></main>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
 <script src="../assets/net.js"></script>
 <script src="logic.js"></script>
 <script>
@@ -101,39 +102,78 @@ document.addEventListener('keydown', e => {
   else if (e.key.length === 1) { const k = e.key === 'I' ? 'ı' : e.key === 'İ' ? 'i' : e.key.toLocaleLowerCase('tr'); press(k) }
 });
 
+let chosenMode = null, pickDraft = '';
+function modeHtml(m) {
+  return `<div class="lens" style="flex-wrap:wrap"><button data-mode="rastgele" class="${m === 'rastgele' ? 'on' : ''}" style="width:auto;padding:0 14px">Rastgele kelime</button>
+    <button data-mode="sira" class="${m === 'sira' ? 'on' : ''}" style="width:auto;padding:0 14px">Sırayla biz seçelim</button></div>`;
+}
+function hostSetup(v, isLobby) {
+  const m = chosenMode || v.mode || 'rastgele', n = chosenLen || v.len || 5;
+  const label = isLobby ? 'Başlat' : 'Sonraki tur';
+  if (m === 'sira') {
+    const i = v.players.findIndex(p => p.id === v.setterId), nx = v.players[(i + 1) % v.players.length];
+    return `<div><span class="label">Kelimeyi kim seçsin?</span>${modeHtml(m)}</div>
+      <p class="muted">Her tur biriniz kelime seçer, diğerleri bulmaya çalışır. Bulamayan her oyuncu için seçen +2 puan alır.</p>
+      <button class="btn" id="start" ${v.players.length < 2 ? 'disabled' : ''}>${label} (sıra ${nx ? ek(esc(nx.name),'de') : ''})</button>
+      ${v.players.length < 2 ? '<p class="muted">Bu mod için en az 2 kişi lazım.</p>' : ''}`;
+  }
+  return `<div><span class="label">Kelimeyi kim seçsin?</span>${modeHtml(m)}</div>
+    <div><span class="label">Kaç harfli?</span>${lensHtml(n)}</div><button class="btn" id="start">${label} (${n} harf)</button>`;
+}
+
 function draw(shake) {
   const v = V, ctx = C, me = ctx.me, isHost = ctx.isHost;
+  const pl = id => v.players.find(p => p.id === id) || { name: '?' };
   if (v.phase === 'lobby') {
-    const n = chosenLen || 5;
     app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
       <div><span class="label">Oyuncular</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
-      ${isHost ? `<div><span class="label">Kaç harfli?</span>${lensHtml(n)}</div><button class="btn" id="start">Başlat (${n} harf)</button>
-        <p class="muted">Tek başına da başlatabilirsin, sonradan gelenler bir sonraki tura katılır.</p>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      ${isHost ? hostSetup(v, true) : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
     </section>
-    <section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Herkes aynı gizli kelimeyi aynı anda bulmaya çalışır. Yeşil: harf doğru yerde. Sarı: kelimede var ama başka yerde. Lacivert: kelimede yok. Rakiplerinin sadece renklerini görürsün, harflerini değil. Az tahminde bulan çok puan alır, ilk bulan +2 bonus kazanır.</p></section>`;
-    Ati.wireShare(app, ctx); wireHostControls(n); return;
+    <section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Yeşil: harf doğru yerde. Sarı: kelimede var ama başka yerde. Lacivert: kelimede yok. Rakiplerinin sadece renklerini görürsün, harflerini değil. Az tahminde bulan çok puan alır, ilk bulan +2 bonus kazanır. İstersen kelimeyi bilgisayar seçer, istersen sırayla siz seçersiniz.</p></section>`;
+    Ati.wireShare(app, ctx); wireHostControls(); return;
   }
-  const n = v.len, b = v.boards[me];
+  if (v.phase === 'pick') {
+    const mine = v.setterId === me;
+    app.innerHTML = `<section class="panel">${mine ? `<h2>Kelimeyi sen seçiyorsun</h2>
+        <p class="muted">4 ile 10 harf arası bir Türkçe kelime yaz. Diğerleri bulmaya çalışacak, bulamayan her kişi için +2 puan alırsın.</p>
+        <div class="row"><input id="pw" maxlength="10" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.15em;font-weight:800;flex:1 1 200px" value="${esc(pickDraft)}" placeholder="KELİME">
+        <button class="btn" id="pick">Bu kelime olsun</button></div>
+        ${v.pickErr ? `<p class="err">${esc(v.pickErr)}</p>` : ''}
+        <p class="muted">Kimse görmüyor, rahat ol.</p>`
+      : `<h2>${esc(pl(v.setterId).name)} kelime seçiyor...</h2><p class="muted">Hazır olunca tur başlayacak.</p>`}
+      ${isHost && !mine ? '<button class="btn ghost small" id="start">Sırayı atla</button>' : ''}</section>
+      <section class="panel"><span class="label">Puanlar</span>${scoresHtml(v)}</section>`;
+    const inp = app.querySelector('#pw');
+    if (inp) {
+      inp.oninput = () => pickDraft = inp.value;
+      const go = () => { const w = inp.value.trim().toLocaleLowerCase('tr'); if (w) { ctx.act({ type: 'setword', w }); pickDraft = '' } };
+      app.querySelector('#pick').onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go() };
+      inp.focus();
+    }
+    wireHostControls(); return;
+  }
+  const n = v.len, b = v.boards[me], iSet = v.setterId === me;
   const key = v.round + ':' + n; if (key !== roundKey) { roundKey = key; typed = ''; msg = ''; ensureList(n) }
   const others = v.players.filter(p => p.id !== me && v.boards[p.id]).map(p => {
     const ob = v.boards[p.id];
+    const full = v.phase !== 'play' || iSet;
     return `<div class="opp"><div class="score"><span>${esc(p.name)}</span><span class="muted">${ob.done === 'solved' ? 'buldu, +' + ob.pts : ob.done === 'out' ? 'bulamadı' : ob.rows.length + '/' + v.max}</span></div>
-      ${v.phase === 'play' ? miniHtml(ob.rows, n) : boardHtml(ob.rows, n, ob.rows.length, null).replace('class="board"', 'class="board" style="--n:' + n + ';max-width:' + n * 26 + 'px"')}</div>`;
+      ${full ? boardHtml(ob.rows, n, ob.rows.length, null).replace('class="board"', 'class="board" style="--n:' + n + ';max-width:' + n * 26 + 'px"') : miniHtml(ob.rows, n)}</div>`;
   }).join('');
 
   let mainTop = '';
+  const setterLine = v.setterId ? `<p class="muted" style="text-align:center">Kelimeyi ${esc(pl(v.setterId).name)} seçti${v.phase !== 'play' ? `, +${v.setterPts || 0} puan aldı` : ''}.</p>` : '';
   if (v.phase === 'play') {
-    if (!b) mainTop = '<p class="muted">Bu tur izliyorsun, bir sonraki tura katılacaksın.</p>';
+    if (iSet) mainTop = `<div style="text-align:center"><span class="label">Senin kelimen</span><div class="reveal">${esc(UP(v.secret))}</div></div><p class="muted" style="text-align:center">Diğerlerinin tahminlerini canlı izliyorsun.</p>`;
+    else if (!b) mainTop = '<p class="muted">Bu tur izliyorsun, bir sonraki tura katılacaksın.</p>';
     else if (b.done === 'solved') mainTop = `<p class="msg" style="color:var(--good)">Buldun! +${b.pts} puan. Diğerleri bekleniyor...</p>`;
     else if (b.done === 'out') mainTop = '<p class="msg" style="color:var(--bad)">Hakların bitti. Diğerleri bekleniyor...</p>';
-    else mainTop = `<p class="msg">${esc(msg)}</p>`;
+    else mainTop = `${setterLine}<p class="msg">${esc(msg)}</p>`;
   } else {
-    mainTop = `<div style="text-align:center"><span class="label">Kelime</span><div class="reveal">${esc(UP(v.secret))}</div></div>`;
+    mainTop = `<div style="text-align:center"><span class="label">Kelime</span><div class="reveal">${esc(UP(v.secret))}</div></div>${setterLine}`;
   }
 
-  const host = isHost ? (v.phase === 'play'
-    ? '<button class="btn ghost small" id="end">Turu bitir</button>'
-    : `<div><span class="label">Sonraki tur kaç harfli?</span>${lensHtml(chosenLen || n)}</div><button class="btn" id="start">Sonraki tur (${chosenLen || n} harf)</button>`)
+  const host = isHost ? (v.phase === 'play' ? '<button class="btn ghost small" id="end">Turu bitir</button>' : hostSetup(v, false))
     : (v.phase === 'roundEnd' ? '<p class="muted">Ev sahibi sonraki turu başlatacak.</p>' : '');
 
   app.innerHTML = `<div class="row"><span class="pill">${v.round}. tur</span><span class="pill">${n} harf · ${v.max} hak</span>${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>
@@ -142,17 +182,19 @@ function draw(shake) {
         ${b && v.phase === 'play' && !b.done ? kbHtml(b.rows) : ''}</section>
       <aside class="side">
         <section class="panel"><span class="label">Puanlar</span>${scoresHtml(v)}</section>
-        ${others ? `<section class="panel"><span class="label">Rakipler</span>${others}</section>` : ''}
+        ${others ? `<section class="panel"><span class="label">${iSet ? 'Tahmin edenler' : 'Rakipler'}</span>${others}</section>` : ''}
         ${host ? `<section class="panel">${host}</section>` : ''}
       </aside></div>`;
   if (shake) { const r = app.querySelector('.brow.cur'); if (r) r.classList.add('shake') }
   app.querySelectorAll('.k').forEach(x => x.onclick = () => press(x.dataset.k));
   const e = app.querySelector('#end'); if (e) e.onclick = () => ctx.act({ type: 'end' });
-  wireHostControls(chosenLen || n);
+  wireHostControls();
 }
-function wireHostControls(n) {
+function wireHostControls() {
   app.querySelectorAll('[data-len]').forEach(x => x.onclick = () => { chosenLen = +x.dataset.len; draw() });
-  const s = app.querySelector('#start'); if (s) s.onclick = () => { s.disabled = true; C.act({ type: 'start', len: n }) };
+  app.querySelectorAll('[data-mode]').forEach(x => x.onclick = () => { chosenMode = x.dataset.mode; draw() });
+  const s = app.querySelector('#start');
+  if (s) s.onclick = () => { s.disabled = true; C.act({ type: 'start', len: chosenLen || V.len || 5, mode: chosenMode || V.mode || 'rastgele' }) };
 }
 
 Ati.start({ game: 'kelime', el: app, logic: Kelime, render: (v, ctx) => { V = v; C = ctx; draw() } });

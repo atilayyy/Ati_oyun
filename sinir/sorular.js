@@ -1,0 +1,27 @@
+const SINIR = [
+["Hangisi seni en çok sinir eder?",["Sormadan tabağımdan yemek alınması","Sinemada arkamda konuşulması","Toplu taşımada hoparlörden video izlenmesi","Mesajımın görülüp cevaplanmaması"]],
+["Trafikte en çok hangisine sinir olursun?",["Sinyal vermeden şerit değiştirene","Yeşil yanınca hemen korna çalana","Emniyet şeridinden geçene","Önümde yavaş yavaş giden aracı"]],
+["Evde en çok hangisi seni çıldırtır?",["Lavaboda bırakılan bulaşık","Açık bırakılan dolap kapakları","Bitip yerine konmayan tuvalet kâğıdı","Kumandanın kaybolması"]],
+["Toplantıda en çok hangisine dayanamazsın?",["Bir e-postayla geçecek toplantıya","Geç başlayıp geç bitmesine","Herkesin aynı şeyi tekrar söylemesine","Kameranın açık olmasının istenmesine"]],
+["Bir restoranda en çok hangisi sinirini bozar?",["Siparişin geç gelmesi","Garsonun hiç uğramaması","Yemeğin soğuk gelmesi","Hesabın yanlış gelmesi"]],
+["Mesajlaşırken en çok hangisi seni sinir eder?",["Sadece 'ok' yazılması","Uzun sesli mesajlar","Tek kelimelik 5 ayrı mesaj","Saatler sonra gelen 'ne diyordun?'"]],
+["Sabah en çok hangisi moralini bozar?",["Alarmı duymamak","Kahvenin bitmiş olması","Şarjın %10'da olması","Yağmurda şemsiyesiz kalmak"]],
+["Bir arkadaşın hangisini yaparsa en çok sinir olursun?",["Sürekli geç kalması","Her şeyin sonunu söylemesi (spoiler)","Planı son dakika iptal etmesi","Telefondan başını kaldırmaması"]],
+["Hangi ses seni en çok rahatsız eder?",["Ağzı açık sakız çiğneme","Tırnakla tahtaya sürtme","Komşunun matkabı","Birinin parmaklarını çıtlatması"]],
+["Alışverişte en çok hangisine sinir olursun?",["Kasada uzun kuyruğa","Etiketteki fiyatla kasadakinin farklı olmasına","Bedenimin kalmamasına","Peşimden dolaşan satış görevlisine"]],
+["Tatilde en çok hangisi seni sinir eder?",["Otelin fotoğraftakinden farklı çıkması","Valizin kaybolması","Yağmurlu geçen günler","Herkesin her anı fotoğraflamak istemesi"]],
+["Telefonla ilgili en çok hangisi seni çıldırtır?",["Kırık ekran","Bitmeyen güncellemeler","Kablonun kısa olması","Sürekli gelen reklam aramaları"]],
+["Bir dizi izlerken en çok hangisi sinirini bozar?",["Sezon finalinde kesilen hikâye","Sevdiğim karakterin ölmesi","Biri yanımda sürekli soru sorarsa","Dizinin iptal edilmesi"]],
+["İş yerinde en çok hangisine katlanamazsın?",["Mikrodalgada balık ısıtılmasına","Masamdan izinsiz bir şey alınmasına","Herkesi bilgiye ekleyip 'tümünü yanıtla'ya","Cuma 17:55'te gelen işe"]],
+["Yemekle ilgili en çok hangisi seni sinir eder?",["Pizzanın üstünde ananas","Tuzsuz yemek","Çayın soğuk gelmesi","Son lokmanın kapılması"]],
+["Hangi alışkanlık seni en çok sinir eder?",["Sürekli 'aslında' demek","Her şeye 'bilmem' demek","Lafı hep kendine getirmek","Konuşurken araya girmek"]],
+["Uykuyla ilgili en çok hangisi seni çıldırtır?",["Horlayan biri","Gece yanan küçük bir LED ışık","Sivrisinek vızıltısı","Erken sabah gelen kargo zili"]],
+["Sosyal medyada en çok hangisine sinir olursun?",["Her yemeğin fotoğrafını paylaşanlara","Gizemli 'anlayan anladı' paylaşımlarına","Sonsuz reklamlara","Beni etiketlediği kötü fotoğraflara"]],
+["Bir buluşmada en çok hangisi sinirini bozar?",["Karşımdakinin telefonla ilgilenmesi","Sürekli geç gelmesi","Hesabı kimin ödeyeceği muhabbeti","Mekânın çok gürültülü olması"]],
+["Hava durumuyla ilgili hangisi seni en çok sinir eder?",["Nemli sıcak","Rüzgârlı yağmur","Bir sıcak bir soğuk havalar","Güneş varken yağan yağmur"]],
+["Spor yaparken en çok hangisi sinirini bozar?",["Aletin başında telefonla oyalananlar","Kulaklığın şarjının bitmesi","Ertesi gün kas ağrısı","Sürekli tavsiye veren biri"]],
+["Bir oyunda en çok hangisine sinir olursun?",["Kaybetmeye","Hile yapana","Kuralları sürekli değiştirene","Kazanıp çok böbürlenene"]],
+["Teknolojiyle ilgili en çok hangisi seni çıldırtır?",["Yavaş internet","Yazıcının tam o an çalışmaması","Şifremi unutmak","Wi-Fi şifresini kimsenin bilmemesi"]],
+["Seyahatte en çok hangisi sinirini bozar?",["Uçakta koltuğunu tam yatıran ön yolcu","Rötar","Yanımda ağlayan bebek","Valiz bandında en son gelen valizim"]]
+];
+if (typeof module !== 'undefined') module.exports = SINIR;

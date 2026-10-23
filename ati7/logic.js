@@ -1,6 +1,7 @@
 /* Ati7 oyun mantığı (Flip 7 kuralları). Sadece ev sahibinde çalışır; saf durum dönüşümü.
    Kartlar: 'n0'..'n12' sayı, 'p2' 'p4' 'p6' 'p8' 'p10' artı, 'x2' çarpan, 'FR' Dondur, 'F3' Üç Çek, 'SC' İkinci Şans */
 const Ati7 = (() => {
+  const EK = typeof ek !== 'undefined' ? ek : require('../assets/ek.js');
   const GOAL = 200, BONUS = 15;
   const NAMES = { FR: 'Dondur', F3: 'Üç Çek', SC: 'İkinci Şans', x2: 'x2' };
   function cardName(c) { return c[0] === 'n' ? c.slice(1) : c[0] === 'p' ? '+' + c.slice(1) : NAMES[c] }
@@ -108,15 +109,15 @@ const Ati7 = (() => {
   }
 
   function applyAction(s, by, card, target) {
-    if (card === 'SC') { s.hands[target].sc = true; log(s, `${nameOf(s, by)} İkinci Şans'ı ${nameOf(s, target)}'a verdi.`); return }
+    if (card === 'SC') { s.hands[target].sc = true; log(s, `${nameOf(s, by)} İkinci Şans'ı ${EK(nameOf(s, target), 'e')} verdi.`); return }
     if (card === 'FR') {
       s.hands[target].status = 'frozen'; s.discard.push('FR');
-      log(s, `${nameOf(s, by)} ${by === target ? 'kendini' : nameOf(s, target) + "'ı"} dondurdu. Puanını bankaladı.`);
+      log(s, `${nameOf(s, by)} ${by === target ? 'kendini' : EK(nameOf(s, target), 'i')} dondurdu. Puanını bankaladı.`);
       return;
     }
     if (card === 'F3') {
       s.discard.push('F3');
-      log(s, `${nameOf(s, by)} ${by === target ? 'kendine' : nameOf(s, target) + "'a"} Üç Çek uyguladı.`);
+      log(s, `${nameOf(s, by)} ${by === target ? 'kendine' : EK(nameOf(s, target), 'e')} Üç Çek uyguladı.`);
       s.stack.push({ k: 'f3', p: target, left: 3, deferred: [] });
     }
   }
@@ -196,18 +197,6 @@ const Ati7 = (() => {
     if (a.type === 'next' && isHost && s.phase === 'roundEnd') { startRound(s); return s }
     if (a.type === 'kick' && isHost && s.phase === 'lobby') { s.players = s.players.filter(p => p.id !== a.id || p.id === s.hostId); return s }
     if (s.phase !== 'play') return s;
-    /* bağlantısı kopan oyuncu sırayı kilitlemesin: ev sahibi onun yerine geçebilir */
-    if (a.type === 'skip' && isHost) {
-      if (s.pending && !(P(s, s.pending.by) || {}).online) {
-        const { by, card, targets } = s.pending; s.pending = null;
-        applyAction(s, by, card, targets[Math.floor(Math.random() * targets.length)]); run(s);
-      } else if (!s.pending && !s.stack.length && s.turn && !(P(s, s.turn) || {}).online) {
-        s.hands[s.turn].status = 'stayed';
-        log(s, `${nameOf(s, s.turn)} bağlantısı koptuğu için durduruldu (${score(s.hands[s.turn])} puan).`);
-        s.stack.push({ k: 'endTurn' }); run(s);
-      }
-      return s;
-    }
     if (s.pending) {
       if (a.type === 'target' && pid === s.pending.by && s.pending.targets.includes(a.id)) {
         const { by, card } = s.pending; s.pending = null;
