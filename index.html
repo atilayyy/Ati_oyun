@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ati Oyun</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.hero{padding-block:24px 8px;display:flex;flex-direction:column;gap:8px}
+.hero h1{font-size:clamp(2.4rem,9vw,4.2rem);letter-spacing:-.02em}
+.hero h1 b{color:var(--accent)}
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.game{display:flex;flex-direction:column;gap:12px;text-decoration:none;color:var(--ink);border:1px solid var(--edge);border-radius:20px;padding:20px;background:var(--table2);transition:transform .15s,border-color .15s}
+.game:hover,.game:focus-visible{transform:translateY(-3px);border-color:var(--accent);outline:none}
+.art{height:120px;border-radius:14px;background:var(--table);display:flex;align-items:center;justify-content:center;gap:8px;overflow:hidden}
+.mc{width:46px;height:64px;border-radius:8px;background:var(--card);color:var(--cardink);display:grid;place-items:center;font:800 1.4rem var(--display);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.mc:nth-child(1){transform:rotate(-12deg) translateY(6px)} .mc:nth-child(2){transform:rotate(-4deg)} .mc:nth-child(3){transform:rotate(4deg)} .mc:nth-child(4){transform:rotate(12deg) translateY(6px)}
+.mt{width:38px;height:38px;border-radius:7px;display:grid;place-items:center;font:800 1.2rem var(--display)}
+.g{background:#3fae6a;color:#06210f}.y{background:#e0a526;color:#2a1d00}.n{background:#3a4270;color:var(--muted)}
+.dot4{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 -4px 0 rgba(0,0,0,.25)}
+.ship{width:150px;height:26px;border-radius:13px 4px 4px 13px;background:#9aa6c9}
+.boom{width:22px;height:22px;border-radius:50%;background:#ff5a4f;box-shadow:0 0 14px #ff5a4f;margin-left:-60px}
+.meta{display:flex;gap:8px;flex-wrap:wrap}
+footer{color:var(--muted);font-size:.85rem;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <span class="label">Arkadaşlarla, herkes kendi cihazından</span>
+    <h1>ATI <b>OYUN</b></h1>
+    <p class="muted">Oda aç, 4 haneli kodu arkadaşlarına gönder, oynamaya başla. Kayıt yok, hesap yok.</p>
+  </header>
+  <section class="games">
+    <a class="game" href="ati7/">
+      <div class="art" aria-hidden="true"><div class="mc">3</div><div class="mc">7</div><div class="mc">11</div><div class="mc">+4</div></div>
+      <h2>Ati7</h2>
+      <p class="muted">Kart çek, şansını zorla. Aynı sayı gelirse patlarsın, 7 farklı sayı toplarsan bonusu kaparsın.</p>
+      <div class="meta"><span class="pill">2+ kişi</span><span class="pill">Hedef 200 puan</span></div>
+    </a>
+    <a class="game" href="kelime/">
+      <div class="art" aria-hidden="true"><div class="mt g">K</div><div class="mt n">E</div><div class="mt y">L</div><div class="mt g">İ</div><div class="mt n">M</div><div class="mt g">E</div></div>
+      <h2>Ati Kelime</h2>
+      <p class="muted">Herkes aynı gizli Türkçe kelimeyi aynı anda arar. 4'ten 10 harfe kadar.</p>
+      <div class="meta"><span class="pill">1+ kişi</span><span class="pill">4-10 harf</span></div>
+    </a>
+    <a class="game" href="tanisma/">
+      <div class="art" aria-hidden="true"><div class="mt y" style="width:auto;padding:0 12px">Kahve?</div><div class="mt g" style="width:auto;padding:0 12px">Çay!</div></div>
+      <h2>Beni Ne Kadar Tanıyorsun?</h2>
+      <p class="muted">Kendi cevabını ver, arkadaşının ne diyeceğini tahmin et. 40 soru, sonunda uyum yüzdesi.</p>
+      <div class="meta"><span class="pill">2 kişi</span><span class="pill">Sohbetlik</span></div>
+    </a>
+    <a class="game" href="dortbagla/">
+      <div class="art" aria-hidden="true"><span class="dot4" style="background:#ffc83d"></span><span class="dot4" style="background:#ff6b8a"></span><span class="dot4" style="background:#ffc83d"></span><span class="dot4" style="background:#ffc83d"></span></div>
+      <h2>Dört Bağla</h2>
+      <p class="muted">Taşını sütuna bırak, 4'ü yan yana, üst üste ya da çapraz getiren kazanır.</p>
+      <div class="meta"><span class="pill">2 kişi</span><span class="pill">5 dakikalık</span></div>
+    </a>
+    <a class="game" href="amiral/">
+      <div class="art" aria-hidden="true" style="background:#173a6b"><div class="ship"></div><span class="boom"></span></div>
+      <h2>Amiral Battı</h2>
+      <p class="muted">Rakibin gizli filosunu bul ve batır. Vurursan tekrar atarsın.</p>
+      <div class="meta"><span class="pill">2 kişi</span><span class="pill">Klasik</span></div>
+    </a>
+  </section>
+  <footer>Kelime listeleri Vikisözlük (mertemin/turkish-word-list) ve OpenSubtitles sıklık verisinden (hermitdave/FrequencyWords) derlenmiştir.</footer>
+</div>
+</body>
+</html>

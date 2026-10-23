@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dört Bağla</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--c0:#ffc83d;--c1:#ff6b8a;--frame:#2f55d4}
+.boardwrap{max-width:520px;width:100%;margin:0 auto}
+.cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;background:var(--frame);padding:8px;border-radius:16px;box-shadow:0 6px 0 #1d3796}
+.col{display:flex;flex-direction:column;gap:6px;border:0;background:transparent;padding:0;border-radius:10px;cursor:pointer}
+.col:disabled{cursor:default}
+.col:not(:disabled):hover .hole:not(.p0):not(.p1){background:color-mix(in srgb,var(--mine) 30%,var(--table))}
+.hole{aspect-ratio:1;border-radius:50%;background:var(--table);box-shadow:inset 0 3px 0 rgba(0,0,0,.35)}
+.hole.p0{background:var(--c0)} .hole.p1{background:var(--c1)}
+.hole.win{outline:4px solid #fff;outline-offset:-4px}
+.hole.last{animation:drop .35s ease-in}
+@keyframes drop{from{transform:translateY(-260%)}to{transform:none}}
+.disc{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px}
+.status{font-family:var(--display);font-weight:800;font-size:1.25rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Dört Bağla</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+const disc = i => `<span class="disc" style="background:var(--c${i})"></span>`;
+function render(v, ctx) {
+  const me = ctx.me, idx = v.players.findIndex(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2 kişilik)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${idx < 0 ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `<button class="btn" id="start" ${v.players.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><p class="muted">Sırayla bir sütuna taş bırakırsınız, taş en alta düşer. Yatay, dikey ya da çapraz 4 taşı yan yana getiren kazanır. Her oyunda başlayan değişir.</p></section>`;
+    Ati.wireShare(app, ctx);
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  const P = v.players, win = new Set((v.line || []).map(([r, c]) => r + ',' + c));
+  let status;
+  if (v.phase === 'over') status = v.winner === -1 ? 'Berabere!' : `${disc(v.winner)} ${esc(P[v.winner].name)} kazandı!`;
+  else status = v.turn === idx ? `${disc(idx)} Sıra sende` : `${disc(v.turn)} Sıra ${esc(P[v.turn].name)}'da`;
+  const canPlay = v.phase === 'play' && v.turn === idx;
+  let cols = '';
+  for (let c = 0; c < 7; c++) {
+    let holes = '';
+    for (let r = 0; r < 6; r++) {
+      const x = v.board[r][c], last = v.last && v.last[0] === r && v.last[1] === c;
+      holes += `<div class="hole ${x >= 0 ? 'p' + x : ''} ${win.has(r + ',' + c) ? 'win' : ''} ${last ? 'last' : ''}"></div>`;
+    }
+    cols += `<button class="col" data-c="${c}" ${canPlay && v.board[0][c] === -1 ? '' : 'disabled'} aria-label="${c + 1}. sütun">${holes}</button>`;
+  }
+  app.innerHTML = `<div class="row">${P.map((p, i) => `<span class="pill">${disc(i)} ${esc(p.name)} · ${p.score}</span>`).join('')}</div>
+    <section class="panel"><div class="status">${status}</div>
+      <div class="boardwrap" style="--mine:var(--c${Math.max(idx, 0)})"><div class="cols">${cols}</div></div>
+      ${v.phase === 'over' && idx >= 0 ? '<button class="btn" id="again">Tekrar oyna</button>' : ''}</section>`;
+  app.querySelectorAll('.col').forEach(b => b.onclick = () => ctx.act({ type: 'drop', col: +b.dataset.c }));
+  const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start' });
+}
+Ati.start({ game: 'dortbagla', el: app, logic: DortBagla, render });
+</script>
+</body>
+</html>

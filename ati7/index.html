@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ati7</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.hud{display:flex;gap:8px;flex-wrap:wrap}
+.seats{display:flex;flex-direction:column;gap:10px}
+.seat{border:1px solid var(--edge);border-radius:16px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;background:var(--table)}
+.seat.turn{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.seat.out{opacity:.62}
+.seat .nm{font-weight:800;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.seat .tot{font-family:var(--display);font-weight:800;font-size:1.3rem;font-variant-numeric:tabular-nums;text-align:right;line-height:1.1}
+.seat .tot small{display:block;font-family:var(--body);font-size:.72rem;color:var(--muted);font-weight:700}
+.hand{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;min-height:58px;align-items:center}
+.c{width:42px;height:58px;border-radius:8px;background:var(--card);color:var(--cardink);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.25rem;
+  border-bottom:5px solid hsl(var(--h) 70% 50%);box-shadow:0 2px 0 rgba(0,0,0,.35);position:relative}
+.c.mod{background:#ffe8a8;border-bottom-color:#c98a00;font-size:1rem}
+.c.act{background:#d9e4ff;border-bottom-color:#3d63d9;font-size:.62rem;line-height:1.1;text-align:center;padding:2px}
+.c.dup{background:#ffd6d6;border-bottom-color:var(--bad);color:#8a0000}
+.c.new{animation:pop .35s ease-out}
+@keyframes pop{from{transform:translateY(-10px) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}
+.st{font-size:.75rem;font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid var(--edge)}
+.st.bust{color:var(--bad);border-color:var(--bad)} .st.stayed{color:var(--good);border-color:var(--good)}
+.st.frozen{color:var(--blue);border-color:var(--blue)} .st.flip7{color:var(--accent);border-color:var(--accent)}
+.sc{font-size:.75rem;font-weight:800;color:#3d63d9;background:#d9e4ff;border-radius:999px;padding:2px 8px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.controls .btn{font-size:1.1rem;padding:14px 26px}
+.log{display:flex;flex-direction:column;gap:2px;font-size:.9rem;color:var(--muted);max-height:180px;overflow:auto}
+.log div:last-child{color:var(--ink);font-weight:700}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.rules{font-size:.95rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:70ch}
+.rules b{color:var(--ink)}
+.field{display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Ati7</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app');
+const esc = Ati.esc;
+let lastSeen = {};
+
+function cardHtml(c, extra = '') {
+  if (c[0] === 'n') { const v = +c.slice(1); return `<div class="c ${extra}" style="--h:${(v * 29) % 360}">${v}</div>` }
+  if (c[0] === 'p' || c === 'x2') return `<div class="c mod ${extra}">${c === 'x2' ? '×2' : '+' + c.slice(1)}</div>`;
+  return `<div class="c act ${extra}">${esc(Ati7.cardName(c))}</div>`;
+}
+const STATUS = { active: '', stayed: 'Durdu', frozen: 'Donduruldu', bust: 'Patladı', flip7: 'ATI7!' };
+
+const RULES = `<div class="rules">
+  <p><b>Amaç:</b> ilk ${Ati7.GOAL} puana ulaşan el sonunda kazanır.</p>
+  <p><b>Sıran gelince</b> ya kart çekersin ya da durup o eldeki puanını bankalarsın.</p>
+  <p><b>Aynı sayıyı ikinci kez çekersen patlarsın</b>, o elden 0 puan alırsın.</p>
+  <p><b>7 farklı sayı</b> toplarsan el anında biter ve +${Ati7.BONUS} bonus alırsın.</p>
+  <p><b>Artı kartları</b> puanına eklenir, <b>×2</b> sayıların toplamını ikiye katlar.</p>
+  <p><b>Dondur:</b> seçtiğin oyuncu puanını bankalayıp elden çıkar. <b>Üç Çek:</b> seçtiğin oyuncu üst üste 3 kart çeker. <b>İkinci Şans:</b> bir tekrarı affeder.</p>
+  <p class="muted">Deste: 0'dan 12'ye sayılar (her sayıdan kendi değeri kadar, 0'dan bir tane), 6 artı/çarpan, 9 aksiyon kartı. Toplam 94 kart.</p>
+</div>`;
+
+function render(v, ctx) {
+  const me = ctx.me, isHost = ctx.isHost;
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Masadakiler</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `<button class="btn" id="start" ${v.players.length < 2 ? 'disabled' : ''}>Oyunu başlat</button>
+        ${v.players.length < 2 ? '<p class="muted">En az 2 kişi gerekiyor. Kodu arkadaşlarına gönder.</p>' : ''}`
+      : '<p class="muted">Ev sahibinin oyunu başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>`;
+    Ati.wireShare(app, ctx);
+    const b = app.querySelector('#start'); if (b) b.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+
+  const order = v.order || v.players.map(p => p.id);
+  const pl = id => v.players.find(p => p.id === id) || { name: '?' };
+  const hud = `<div class="hud"><span class="pill">${v.round}. el</span><span class="pill">Destede ${v.deckCount} kart</span><span class="pill">Hedef ${Ati7.GOAL}</span>
+    ${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>`;
+
+  const seats = order.map(id => {
+    const h = v.hands[id], p = pl(id);
+    const showRes = v.phase !== 'play' && v.lastRound;
+    const prev = lastSeen[id] || 0; const cards = [...h.nums, ...h.mods];
+    const dupIdx = h.status === 'bust' ? h.nums.length - 1 : -1;
+    const html = h.nums.map((c, i) => cardHtml(c, (i === dupIdx ? 'dup ' : '') + (i + h.mods.length >= prev ? '' : ''))).join('') + h.mods.map(c => cardHtml(c)).join('');
+    lastSeen[id] = cards.length;
+    return `<div class="seat ${v.phase === 'play' && v.turn === id ? 'turn' : ''} ${h.status !== 'active' && v.phase === 'play' ? 'out' : ''}">
+      <div class="nm">${esc(p.name)}${id === me ? ' <span class="muted">(sen)</span>' : ''}
+        ${h.status !== 'active' ? `<span class="st ${h.status}">${STATUS[h.status]}</span>` : ''}
+        ${h.sc ? '<span class="sc">İkinci Şans</span>' : ''}
+        ${p.online === false ? '<span class="st">bağlantı yok</span>' : ''}</div>
+      <div class="tot">${p.score}<small>${showRes ? '+' + v.lastRound.res[id] + ' bu el' : 'bu el ' + h.pts}</small></div>
+      <div class="hand">${html || '<span class="muted">Kart yok</span>'}</div></div>`;
+  }).join('');
+
+  let controls = '';
+  if (v.phase === 'play') {
+    if (v.pending) {
+      if (v.pending.by === me) {
+        const what = { FR: 'Kimi donduracaksın?', F3: 'Kime Üç Çek uygulayacaksın?', SC: "İkinci Şans'ı kime vereceksin?" }[v.pending.card];
+        controls = `<div class="controls">${cardHtml(v.pending.card)}<strong>${what}</strong>
+          ${v.pending.targets.map(t => `<button class="btn ${t === me ? 'ghost' : ''}" data-t="${esc(t)}">${t === me ? 'Kendim' : esc(pl(t).name)}</button>`).join('')}</div>`;
+      } else controls = `<p class="muted">${esc(pl(v.pending.by).name)}, ${esc(Ati7.cardName(v.pending.card))} kartının kime gideceğini seçiyor...</p>`;
+    } else if (v.turn === me) {
+      controls = `<div class="controls"><button class="btn" id="hit">Kart çek</button><button class="btn ghost" id="stay">Dur (${v.hands[me].pts} puan)</button></div>`;
+    } else if (v.turn) controls = `<p class="muted">Sıra ${esc(pl(v.turn).name)}'da...</p>`;
+    const waitOn = v.pending ? v.pending.by : v.turn;
+    if (isHost && waitOn && waitOn !== me && pl(waitOn).online === false)
+      controls += `<div class="controls"><span class="muted">${esc(pl(waitOn).name)} bağlı değil.</span><button class="btn ghost small" id="skip">Onu atla</button></div>`;
+  } else if (v.phase === 'roundEnd') {
+    const why = v.lastRound.why === 'ati7' ? 'Biri ATI7 yaptı, el bitti!' : 'Herkes durdu, dondu ya da patladı.';
+    controls = `<div class="controls"><strong>${why}</strong>${isHost ? '<button class="btn" id="next">Sonraki el</button>' : '<span class="muted">Ev sahibi sonraki eli başlatacak.</span>'}</div>`;
+  } else if (v.phase === 'over') {
+    const w = v.winners.map(id => pl(id).name).join(' ve ');
+    const rows = v.players.slice().sort((a, b) => b.score - a.score).map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td class="n">${p.score}</td></tr>`).join('');
+    controls = `<div class="panel" style="padding:16px"><h2>${esc(w)} kazandı!</h2>
+      <table><thead><tr><th>#</th><th>Oyuncu</th><th class="n">Puan</th></tr></thead><tbody>${rows}</tbody></table>
+      ${isHost ? '<button class="btn" id="again">Yeni oyun</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</div>`;
+  }
+
+  app.innerHTML = `${hud}<section class="panel">${controls}</section>
+    <section class="seats">${seats}</section>
+    <section class="panel"><span class="label">Olanlar</span><div class="log" id="log">${v.log.map(l => `<div>${esc(l)}</div>`).join('')}</div></section>
+    <details class="panel"><summary>Kurallar</summary>${RULES}</details>`;
+  const lg = app.querySelector('#log'); lg.scrollTop = lg.scrollHeight;
+  const on = (sel, a) => { const b = app.querySelector(sel); if (b) b.onclick = () => ctx.act(a) };
+  on('#hit', { type: 'hit' }); on('#stay', { type: 'stay' }); on('#next', { type: 'next' }); on('#again', { type: 'start' }); on('#skip', { type: 'skip' });
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => ctx.act({ type: 'target', id: b.dataset.t }));
+}
+
+Ati.start({ game: 'ati7', el: app, logic: Ati7, render });
+</script>
+</body>
+</html>

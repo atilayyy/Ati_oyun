@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Beni Ne Kadar Tanıyorsun?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.q{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1.25;text-wrap:balance}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{font:inherit;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;font-weight:700}
+.opt:hover{border-color:var(--muted)} .opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--table))}
+.step{display:flex;flex-direction:column;gap:8px}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.res{grid-template-columns:1fr}}
+.res>div{border:1px solid var(--edge);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--table)}
+.ok{color:var(--good);font-weight:800} .no{color:var(--bad);font-weight:800}
+.bar{height:6px;background:var(--edge);border-radius:6px;overflow:hidden} .bar i{display:block;height:100%;background:var(--accent)}
+.big{font-family:var(--display);font-weight:800;font-size:2.6rem;font-variant-numeric:tabular-nums;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Beni Ne Kadar Tanıyorsun?</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/net.js"></script>
+<script src="sorular.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let draft = { self: null, guess: null }, lastRound = -1, total = 10, V, C;
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, isHost = ctx.isHost;
+  const pl = v.players, mine = pl.find(p => p.id === me), other = pl.find(p => p.id !== me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2 kişilik)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oda dolu, izliyorsun.</p>' : isHost ? `<div class="field"><label class="label" for="tot">Soru sayısı</label>
+        <select id="tot">${[6, 10, 16, 24, 40].map(n => `<option value="${n}" ${n === total ? 'selected' : ''}>${n} soru</option>`).join('')}</select></div>
+        <button class="btn" id="start" ${pl.length < 2 ? 'disabled' : ''}>Başlat</button>
+        ${pl.length < 2 ? '<p class="muted">Arkadaşının katılması bekleniyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><p class="muted">Her soruda ikiniz de aynı anda iki şey seçersiniz: kendi cevabınız ve arkadaşınızın ne diyeceği. Tahmini tutan 1 puan alır.</p></section>`;
+    Ati.wireShare(app, ctx);
+    const t = app.querySelector('#tot'); if (t) t.onchange = () => total = +t.value;
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', total });
+    return;
+  }
+  const sc = v.scores;
+  const head = `<div class="row">${pl.map((p, i) => `<span class="pill">${esc(p.name)} ${sc[p.id]}</span>`).join('')}</div>`;
+  if (v.phase === 'over') {
+    const [a, b] = pl, pct = Math.round((sc[a.id] + sc[b.id]) / (v.total * 2) * 100);
+    const w = sc[a.id] === sc[b.id] ? 'Berabere!' : (sc[a.id] > sc[b.id] ? a.name : b.name) + ' kazandı!';
+    const msg = pct >= 80 ? 'Birbirinizi çok iyi tanıyorsunuz.' : pct >= 50 ? 'Fena değil, ama keşfedilecek şeyler var.' : 'Daha çok sohbet etmeniz lazım!';
+    app.innerHTML = `${head}<section class="panel"><span class="label">Oyun bitti</span><h2>${esc(w)}</h2>
+      <div><span class="label">Uyum</span><div class="big">%${pct}</div></div><p>${msg}</p>
+      ${isHost ? '<button class="btn" id="again">Yeni oyun</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', total: v.total });
+    return;
+  }
+  if (v.round !== lastRound) { lastRound = v.round; draft = { self: null, guess: null } }
+  const q = BANK[v.qs[v.round]], bar = `<div class="bar"><i style="width:${v.round / v.total * 100}%"></i></div>`;
+  if (!mine) { app.innerHTML = `${head}${bar}<section class="panel"><p class="muted">İzliyorsun.</p><div class="q">${esc(q[0])}</div></section>`; return }
+  const myA = v.ans[me][v.round], hisA = v.ans[other.id][v.round];
+  let body;
+  if (!myA) {
+    const opts = key => q[1].map((t, k) => `<button class="opt ${draft[key] === k ? 'sel' : ''}" data-key="${key}" data-k="${k}">${esc(t)}</button>`).join('');
+    body = `<span class="label">Soru ${v.round + 1} / ${v.total}</span><div class="q">${esc(q[0])}</div>
+      <div class="step"><h3>Senin cevabın</h3><div class="opts">${opts('self')}</div></div>
+      <div class="step"><h3>Sence ${esc(other.name)} ne dedi?</h3><div class="opts">${opts('guess')}</div></div>
+      <button class="btn" id="lock" ${draft.self === null || draft.guess === null ? 'disabled' : ''}>Kilitle</button>`;
+  } else if (!hisA || hisA.hidden) {
+    body = `<span class="label">Soru ${v.round + 1} / ${v.total}</span><div class="q">${esc(q[0])}</div><p class="muted">Cevapların kilitlendi. ${esc(other.name)} bekleniyor...</p>`;
+  } else {
+    const card = (p, A, B) => { const hit = A.guess === B.self;
+      return `<div><span class="label">${esc(p.name)}</span><div><span class="muted">Kendi cevabı</span><br><strong>${esc(q[1][A.self])}</strong></div>
+        <div><span class="muted">Tahmini</span><br><strong>${esc(q[1][A.guess])}</strong> <span class="${hit ? 'ok' : 'no'}">${hit ? '✓ +1' : '✗'}</span></div></div>` };
+    body = `<span class="label">Soru ${v.round + 1} / ${v.total}</span><div class="q">${esc(q[0])}</div>
+      <div class="res">${card(mine, myA, hisA)}${card(other, hisA, myA)}</div>
+      <p class="muted">Neden bu cevabı verdiğinizi konuşun. İkinizden biri basması yeter.</p>
+      <button class="btn" id="next">${v.round + 1 >= v.total ? 'Sonuçları gör' : 'Sonraki soru'}</button>`;
+  }
+  app.innerHTML = `${head}${bar}<section class="panel">${body}</section>`;
+  app.querySelectorAll('.opt').forEach(b => b.onclick = () => { draft[b.dataset.key] = +b.dataset.k; render(V, C) });
+  const l = app.querySelector('#lock'); if (l) l.onclick = () => ctx.act({ type: 'answer', ...draft });
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+}
+Ati.start({ game: 'tanisma', el: app, logic: Tanisma, render });
+</script>
+</body>
+</html>

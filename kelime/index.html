@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ati Kelime</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--t2:#3fae6a;--t1:#e0a526;--t0:#3a4270}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:16px;align-items:start}
+@media (max-width:760px){.layout{grid-template-columns:1fr}}
+.board{display:grid;gap:6px;margin:0 auto;width:100%;max-width:calc(var(--n) * 58px)}
+.brow{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px}
+.tile{aspect-ratio:1;max-width:100%;display:grid;place-items:center;border:2px solid var(--edge);border-radius:8px;font-family:var(--display);font-weight:800;
+  font-size:clamp(.9rem,calc(26rem / var(--n) / 3),1.8rem);text-transform:uppercase;background:var(--table)}
+.tile.f{border-color:var(--muted)}
+.tile.s2{background:var(--t2);border-color:var(--t2);color:#06210f}
+.tile.s1{background:var(--t1);border-color:var(--t1);color:#2a1d00}
+.tile.s0{background:var(--t0);border-color:var(--t0);color:var(--muted)}
+.shake{animation:sh .35s}
+@keyframes sh{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.kb{display:flex;flex-direction:column;gap:6px;user-select:none}
+.kr{display:flex;gap:4px;justify-content:center}
+.k{flex:1 1 0;max-width:46px;min-width:0;height:52px;border:0;border-radius:8px;background:#4a5390;color:var(--ink);font:800 1rem var(--body);cursor:pointer;padding:0}
+.k.wide{flex:1.7 1 0;max-width:80px;font-size:.78rem}
+.k.s2{background:var(--t2);color:#06210f} .k.s1{background:var(--t1);color:#2a1d00} .k.s0{background:var(--t0);color:var(--muted)}
+.side{display:flex;flex-direction:column;gap:12px}
+.opp{display:flex;flex-direction:column;gap:6px}
+.mini{display:grid;gap:2px;width:max-content}
+.mini .mr{display:grid;grid-template-columns:repeat(var(--n),10px);gap:2px}
+.mini i{width:10px;height:10px;border-radius:2px;background:var(--edge)}
+.mini i.s2{background:var(--t2)} .mini i.s1{background:var(--t1)} .mini i.s0{background:var(--t0)}
+.score{display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+.reveal{font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.12em;color:var(--accent)}
+.lens{display:flex;gap:6px;flex-wrap:wrap}
+.lens button{font:inherit;font-weight:800;width:44px;height:44px;border-radius:10px;border:1px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer}
+.lens button.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
+.msg{min-height:1.5em;text-align:center;font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Ati Kelime</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app');
+const esc = Ati.esc;
+const ROWS = [Array.from('ertyuıopğü'), Array.from('asdfghjklşi'), ['ENTER', ...Array.from('zcvbnmöç'), 'DEL']];
+const UP = s => s.toLocaleUpperCase('tr');
+let V = null, C = null, typed = '', msg = '', chosenLen = null, roundKey = '', validCache = null;
+
+function boardHtml(rows, n, max, current) {
+  let h = '';
+  for (let i = 0; i < max; i++) {
+    const r = rows[i]; let cells = '';
+    for (let j = 0; j < n; j++) {
+      if (r) cells += `<div class="tile s${r.r[j]}">${r.w ? esc(UP(Array.from(r.w)[j])) : ''}</div>`;
+      else if (i === rows.length && current != null) { const ch = Array.from(current)[j]; cells += `<div class="tile ${ch ? 'f' : ''}">${ch ? esc(UP(ch)) : ''}</div>` }
+      else cells += '<div class="tile"></div>';
+    }
+    h += `<div class="brow ${i === rows.length ? 'cur' : ''}">${cells}</div>`;
+  }
+  return `<div class="board" style="--n:${n}">${h}</div>`;
+}
+function miniHtml(rows, n) { return `<div class="mini" style="--n:${n}">${rows.map(r => `<div class="mr">${Array.from(r.r).map(x => `<i class="s${x}"></i>`).join('')}</div>`).join('') || '<span class="muted" style="font-size:.8rem">henüz tahmin yok</span>'}</div>` }
+function keyState(rows) {
+  const k = {}; for (const r of rows) Array.from(r.w || '').forEach((c, i) => { k[c] = Math.max(k[c] ?? -1, +r.r[i]) }); return k;
+}
+function kbHtml(rows) {
+  const ks = keyState(rows);
+  return `<div class="kb">${ROWS.map(r => `<div class="kr">${r.map(k => k === 'ENTER' ? '<button class="k wide" data-k="ENTER">GİR</button>' : k === 'DEL' ? '<button class="k wide" data-k="DEL" aria-label="Sil">⌫</button>' : `<button class="k ${ks[k] != null ? 's' + ks[k] : ''}" data-k="${k}">${UP(k)}</button>`).join('')}</div>`).join('')}</div>`;
+}
+function lensHtml(cur) { return `<div class="lens">${[4, 5, 6, 7, 8, 9, 10].map(n => `<button data-len="${n}" class="${n === cur ? 'on' : ''}">${n}</button>`).join('')}</div>` }
+function scoresHtml(v) {
+  return v.players.slice().sort((a, b) => b.score - a.score).map(p => `<div class="score"><span>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</span><strong>${p.score}</strong></div>`).join('');
+}
+
+async function ensureList(n) { try { validCache = await Kelime.list(n) } catch (e) { validCache = null } }
+
+function press(k) {
+  if (!V || V.phase !== 'play') return;
+  const b = V.boards[C.me]; if (!b || b.done) return;
+  const n = V.len;
+  if (k === 'DEL') typed = Array.from(typed).slice(0, -1).join('');
+  else if (k === 'ENTER') {
+    if (Array.from(typed).length !== n) { msg = n + ' harf olmalı'; return draw(true) }
+    if (validCache && !validCache.v.has(typed)) { msg = 'Listede yok: ' + UP(typed); return draw(true) }
+    C.act({ type: 'guess', w: typed }); typed = ''; msg = '';
+  } else if (Kelime.ALPHA.includes(k) && Array.from(typed).length < n) typed += k;
+  draw();
+}
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || (e.target && e.target.tagName === 'INPUT')) return;
+  if (e.key === 'Enter') { e.preventDefault(); press('ENTER') }
+  else if (e.key === 'Backspace') press('DEL');
+  else if (e.key.length === 1) { const k = e.key === 'I' ? 'ı' : e.key === 'İ' ? 'i' : e.key.toLocaleLowerCase('tr'); press(k) }
+});
+
+function draw(shake) {
+  const v = V, ctx = C, me = ctx.me, isHost = ctx.isHost;
+  if (v.phase === 'lobby') {
+    const n = chosenLen || 5;
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `<div><span class="label">Kaç harfli?</span>${lensHtml(n)}</div><button class="btn" id="start">Başlat (${n} harf)</button>
+        <p class="muted">Tek başına da başlatabilirsin, sonradan gelenler bir sonraki tura katılır.</p>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+    </section>
+    <section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Herkes aynı gizli kelimeyi aynı anda bulmaya çalışır. Yeşil: harf doğru yerde. Sarı: kelimede var ama başka yerde. Lacivert: kelimede yok. Rakiplerinin sadece renklerini görürsün, harflerini değil. Az tahminde bulan çok puan alır, ilk bulan +2 bonus kazanır.</p></section>`;
+    Ati.wireShare(app, ctx); wireHostControls(n); return;
+  }
+  const n = v.len, b = v.boards[me];
+  const key = v.round + ':' + n; if (key !== roundKey) { roundKey = key; typed = ''; msg = ''; ensureList(n) }
+  const others = v.players.filter(p => p.id !== me && v.boards[p.id]).map(p => {
+    const ob = v.boards[p.id];
+    return `<div class="opp"><div class="score"><span>${esc(p.name)}</span><span class="muted">${ob.done === 'solved' ? 'buldu, +' + ob.pts : ob.done === 'out' ? 'bulamadı' : ob.rows.length + '/' + v.max}</span></div>
+      ${v.phase === 'play' ? miniHtml(ob.rows, n) : boardHtml(ob.rows, n, ob.rows.length, null).replace('class="board"', 'class="board" style="--n:' + n + ';max-width:' + n * 26 + 'px"')}</div>`;
+  }).join('');
+
+  let mainTop = '';
+  if (v.phase === 'play') {
+    if (!b) mainTop = '<p class="muted">Bu tur izliyorsun, bir sonraki tura katılacaksın.</p>';
+    else if (b.done === 'solved') mainTop = `<p class="msg" style="color:var(--good)">Buldun! +${b.pts} puan. Diğerleri bekleniyor...</p>`;
+    else if (b.done === 'out') mainTop = '<p class="msg" style="color:var(--bad)">Hakların bitti. Diğerleri bekleniyor...</p>';
+    else mainTop = `<p class="msg">${esc(msg)}</p>`;
+  } else {
+    mainTop = `<div style="text-align:center"><span class="label">Kelime</span><div class="reveal">${esc(UP(v.secret))}</div></div>`;
+  }
+
+  const host = isHost ? (v.phase === 'play'
+    ? '<button class="btn ghost small" id="end">Turu bitir</button>'
+    : `<div><span class="label">Sonraki tur kaç harfli?</span>${lensHtml(chosenLen || n)}</div><button class="btn" id="start">Sonraki tur (${chosenLen || n} harf)</button>`)
+    : (v.phase === 'roundEnd' ? '<p class="muted">Ev sahibi sonraki turu başlatacak.</p>' : '');
+
+  app.innerHTML = `<div class="row"><span class="pill">${v.round}. tur</span><span class="pill">${n} harf · ${v.max} hak</span>${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>
+    <div class="layout">
+      <section class="panel">${mainTop}${b ? boardHtml(b.rows, n, v.max, v.phase === 'play' && !b.done ? typed : null) : ''}
+        ${b && v.phase === 'play' && !b.done ? kbHtml(b.rows) : ''}</section>
+      <aside class="side">
+        <section class="panel"><span class="label">Puanlar</span>${scoresHtml(v)}</section>
+        ${others ? `<section class="panel"><span class="label">Rakipler</span>${others}</section>` : ''}
+        ${host ? `<section class="panel">${host}</section>` : ''}
+      </aside></div>`;
+  if (shake) { const r = app.querySelector('.brow.cur'); if (r) r.classList.add('shake') }
+  app.querySelectorAll('.k').forEach(x => x.onclick = () => press(x.dataset.k));
+  const e = app.querySelector('#end'); if (e) e.onclick = () => ctx.act({ type: 'end' });
+  wireHostControls(chosenLen || n);
+}
+function wireHostControls(n) {
+  app.querySelectorAll('[data-len]').forEach(x => x.onclick = () => { chosenLen = +x.dataset.len; draw() });
+  const s = app.querySelector('#start'); if (s) s.onclick = () => { s.disabled = true; C.act({ type: 'start', len: n }) };
+}
+
+Ati.start({ game: 'kelime', el: app, logic: Kelime, render: (v, ctx) => { V = v; C = ctx; draw() } });
+</script>
+</body>
+</html>
