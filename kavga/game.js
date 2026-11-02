@@ -736,7 +736,7 @@ function drawHUD(){
     if (dir === 1) ctx.fillRect(mx, 54, mW, 8); else ctx.fillRect(mx + mw - mW, 54, mW, 8);
     ctx.font = '10px ' + DISPLAY; ctx.fillStyle = full ? '#ffd23f' : '#a3a9b8';
     ctx.textAlign = dir === 1 ? 'left' : 'right';
-    const key = net.mode === 'local' ? (f.id === 'ati' ? ' · G' : ' · SHIFT') : ' · G / SHIFT';
+    const key = net.mode === 'local' && f.id === 'meri' ? ' · SHIFT' : ' · G';
     const label = f.id === 'ati' ? (full ? 'FATURA HAZIR' + key : 'FATURA') : (full ? 'YALAN HAZIR' + key : 'YALAN');
     ctx.fillText(label, dir === 1 ? mx + mw + 8 : mx - 8, 62);
   }
