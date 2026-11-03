@@ -18,9 +18,11 @@ const PLAT = [
   {x:650, y:360, w:220, kind:'desk', owner:'MERİ'},
   {x:380, y:240, w:200, kind:'shelf'}
 ];
+/* Kıyafetler gerçek seçimlerden: Ati hardal süet ceket + kahve tişört + beyaz pantolon + kahve bilekli ayakkabı + turuncu aynalı gözlük;
+   Meri koyu kahve kaban + krem yaka + krem geniş paça + kahve bot + siyah gözlük + küçük kahve çanta. */
 const COL = {
-  ati:  {shirt:'#3f7fd6', dark:'#2a5aa6', pants:'#2a2f3d', skin:'#e8b28a', hair:'#2a1d16', ui:'#4aa3ff'},
-  meri: {shirt:'#e5485f', dark:'#a92c45', pants:'#352a3c', skin:'#f0c29c', hair:'#3a1d16', ui:'#ff5d73'}
+  ati:  {shirt:'#c4862c', dark:'#a46c20', tee:'#7a5442', pants:'#ece7dc', shoe:'#7a6455', sole:'#f3efe6', skin:'#e2ae88', hair:'#1d1612', ui:'#4aa3ff'},
+  meri: {shirt:'#4b3026', dark:'#38231b', collar:'#efe6d4', pants:'#efe8dc', shoe:'#5a3b28', sole:'#3a271b', skin:'#efc8aa', hair:'#141010', bag:'#9b5b30', ui:'#ff5d73'}
 };
 /* Meri'nin yalan senaryosu: önce kankalık kartı, hemen ardından dedikodu talebi. */
 const KANKA = [
@@ -201,7 +203,7 @@ function startRest(){
   A.stunT = 0; A.revT = 0; A.turnT = 0; A.punchT = 0;
   A.bubble = 'Ben yemeğe çıktım. Tek başıma!'; A.bubbleT = 1.6;
   M.bubble = 'Aa nereye? Ben de gelirim!'; M.bubbleT = 1.4;
-  addFx(W/2, 200, 'LOKANTAYA IŞINLANDILAR!', '#ffd23f', 26);
+  addFx(W/2, 250, 'LOKANTAYA IŞINLANDILAR!', '#ffd23f', 26);
 }
 function endRest(){
   restT = 0;
@@ -763,7 +765,7 @@ function drawRestBg(){
 drawRestBg();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawRestBg);
 function drawFighter(f){
-  const c = f.flash > 0 ? {shirt:'#fff', dark:'#fff', pants:'#fff', skin:'#fff', hair:'#fff'} : COL[f.id];
+  const c = f.flash > 0 ? Object.fromEntries(Object.keys(COL[f.id]).map(k => [k, '#fff'])) : COL[f.id];
   const seated = f.id === 'ati' && restT > 0;
   const sb = surfaceBelow(f);
   if (!seated){
@@ -786,60 +788,103 @@ function drawFighter(f){
   ctx.translate(f.x, seated ? FLOOR - 52 + 34 : f.y);
   if (f.hp <= 0){ ctx.rotate(-f.facing * Math.PI/2); ctx.translate(-4*f.facing, -14); }
   ctx.scale(f.facing, 1);
+  const isAti = f.id === 'ati';
   const moving = Math.min(1, Math.abs(f.vx)/200);
   const sw = f.ground ? Math.sin(f.walk)*0.55*moving : 0;
   const air = !f.ground;
-  if (seated){ limb(0, -36, 30, -36, 12, c.pants); limb(30, -36, 32, 0, 12, c.pants); }
+  const shoe = (x, y) => {
+    if (isAti){ // kahverengi bilekli kanvas, beyaz taban
+      ctx.fillStyle = c.shoe; rr(ctx, x-5, y-11, 17, 11, 3); ctx.fill();
+      ctx.fillStyle = c.sole; ctx.fillRect(x-6, y-2, 20, 4); ctx.fillRect(x+8, y-5, 5, 4);
+    } else {    // kahverengi bot
+      ctx.fillStyle = c.shoe; rr(ctx, x-5, y-9, 17, 10, 3); ctx.fill();
+      ctx.fillStyle = c.sole; ctx.fillRect(x-5, y-1, 18, 3);
+    }
+  };
+  const legW = isAti ? 12 : 15;
+  if (seated){ limb(0, -36, 30, -36, legW, c.pants); limb(30, -36, 32, -4, legW, c.pants); shoe(32, 2); }
   else for (const a of [air ? -0.35 : -sw, air ? 0.45 : sw]){
     const fx2 = Math.sin(a)*34, fy = -36 + Math.cos(a)*34;
-    limb(0, -36, fx2, fy, 12, c.pants);
-    ctx.fillStyle = f.flash > 0 ? '#fff' : '#1c1c22';
-    ctx.beginPath(); ctx.ellipse(fx2+4, fy, 9, 5, 0, 0, Math.PI*2); ctx.fill();
+    limb(0, -36, fx2, fy - 4, legW, c.pants);
+    if (!isAti){ ctx.fillStyle = c.pants; ctx.beginPath(); ctx.moveTo(fx2-10, fy-3); ctx.lineTo(fx2+10, fy-3); ctx.lineTo(fx2+7, fy-12); ctx.lineTo(fx2-7, fy-12); ctx.fill(); }
+    shoe(fx2 + 1, fy + 2);
   }
+  // arka kol
   limb(-2, -70, -8 - sw*10, -44, 10, c.dark);
-  if (f.id === 'meri'){ ctx.fillStyle = c.hair; ctx.beginPath(); ctx.ellipse(-7, -80, 15, 28, .12, 0, Math.PI*2); ctx.fill(); }
-  ctx.fillStyle = c.shirt; rr(ctx, -17, -80, 34, 46, 9); ctx.fill();
-  if (f.id === 'ati'){
-    ctx.fillStyle = f.flash > 0 ? '#fff' : '#1f2f5a';
-    ctx.beginPath(); ctx.moveTo(4,-78); ctx.lineTo(9,-74); ctx.lineTo(7,-52); ctx.lineTo(4,-47); ctx.lineTo(1,-52); ctx.lineTo(-1,-74); ctx.fill();
-  } else {
-    ctx.strokeStyle = f.flash > 0 ? '#fff' : '#2b2b33'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(-4,-79); ctx.lineTo(7,-60); ctx.lineTo(14,-79); ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.fillRect(3, -62, 9, 11);
+  ctx.fillStyle = c.skin; ctx.beginPath(); ctx.arc(-8 - sw*10, -41, 5, 0, Math.PI*2); ctx.fill();
+  if (!isAti){
+    // uzun siyah saç (arka) ve küçük çanta
+    ctx.fillStyle = c.hair; ctx.beginPath(); ctx.ellipse(-6, -80, 15, 34, .1, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = c.bag; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-8 - sw*10, -42); ctx.lineTo(-10 - sw*10, -30); ctx.stroke();
+    ctx.fillStyle = c.bag; rr(ctx, -18 - sw*10, -30, 16, 12, 3); ctx.fill();
   }
+  // gövde
+  if (isAti){
+    ctx.fillStyle = c.shirt; rr(ctx, -17, -80, 34, 46, 8); ctx.fill();
+    ctx.fillStyle = c.tee; ctx.beginPath(); ctx.moveTo(-1, -80); ctx.lineTo(13, -80); ctx.lineTo(9, -40); ctx.lineTo(4, -40); ctx.fill();
+    ctx.fillStyle = c.dark;
+    ctx.beginPath(); ctx.moveTo(-3, -81); ctx.lineTo(4, -70); ctx.lineTo(2, -81); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(10, -81); ctx.lineTo(15, -71); ctx.lineTo(17, -79); ctx.fill();
+    ctx.fillStyle = c.dark; rr(ctx, -10, -67, 12, 5, 2); ctx.fill();
+    ctx.fillStyle = '#4a3322'; for (const by of [-60, -50, -42]) { ctx.beginPath(); ctx.arc(14, by, 1.4, 0, Math.PI*2); ctx.fill(); }
+  } else {
+    ctx.fillStyle = c.shirt; rr(ctx, -18, -80, 36, 48, 8); ctx.fill();
+    ctx.fillStyle = '#20140f'; for (const bx of [3, 11]) for (const by of [-64, -52]) { ctx.beginPath(); ctx.arc(bx, by, 1.6, 0, Math.PI*2); ctx.fill(); }
+    ctx.fillStyle = c.collar;
+    ctx.beginPath(); ctx.ellipse(2, -80, 15, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(6, -80); ctx.lineTo(17, -78); ctx.lineTo(9, -66); ctx.fill();
+  }
+  // baş
   ctx.fillStyle = c.skin; ctx.beginPath(); ctx.arc(3, -95, 16, 0, Math.PI*2); ctx.fill();
+  if (isAti){ ctx.fillStyle = f.flash > 0 ? '#fff' : 'rgba(45,30,22,.11)'; ctx.beginPath(); ctx.ellipse(10, -84, 7, 4.5, 0, 0, Math.PI*2); ctx.fill(); }
   ctx.fillStyle = c.hair;
-  if (f.id === 'ati'){
+  if (isAti){
     ctx.beginPath(); ctx.arc(1, -99, 16, Math.PI*1.02, Math.PI*1.95); ctx.lineTo(16,-102); ctx.lineTo(-14,-96); ctx.fill();
-    ctx.fillRect(-15, -104, 8, 14);
+    ctx.beginPath(); ctx.ellipse(3, -110, 15, 7, -.15, 0, Math.PI*2); ctx.fill();
+    rr(ctx, -16, -106, 9, 13, 4); ctx.fill();
   } else {
     ctx.beginPath(); ctx.arc(2, -99, 17, Math.PI*.95, Math.PI*1.98); ctx.lineTo(18,-100); ctx.quadraticCurveTo(6,-104,-6,-97); ctx.lineTo(-16,-92); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-9, -88, 7, 15, .15, 0, Math.PI*2); ctx.fill();
+  }
+  // güneş gözlükleri
+  if (isAti){
+    const lg = ctx.createLinearGradient(6, -101, 16, -91);
+    lg.addColorStop(0, f.flash > 0 ? '#fff' : '#ff3d12'); lg.addColorStop(1, f.flash > 0 ? '#fff' : '#ffb02e');
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(11, -96, 5.5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#2a2522'; ctx.lineWidth = 1.8; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5.5, -97); ctx.lineTo(-3, -98); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(11, -96, 3.4, Math.PI*1.1, Math.PI*1.5); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#15151a'; rr(ctx, 5, -100, 13, 8, 3); ctx.fill();
+    ctx.strokeStyle = '#15151a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(5, -97); ctx.lineTo(-3, -98); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(8, -98); ctx.lineTo(11, -95); ctx.stroke();
   }
   const angry = deli(f) || f.punchT > 0 || f.block || (seated && f.bubbleT > 0 && f.bubble.includes('alla'));
-  ctx.fillStyle = '#1c1c22';
-  if (f.stunT > 0){ ctx.font = 'bold 10px ' + BODY; ctx.textAlign = 'center'; ctx.fillText('x', 11, -92); }
-  else { ctx.beginPath(); ctx.arc(11, -95, 2.2, 0, Math.PI*2); ctx.fill(); }
-  if (f.id === 'ati'){ ctx.strokeStyle = '#1c1c22'; ctx.lineWidth = 1.6; rr(ctx, 6, -100, 11, 9, 3); ctx.stroke(); ctx.beginPath(); ctx.moveTo(6,-96); ctx.lineTo(-2,-97); ctx.stroke(); }
-  else { ctx.strokeStyle = '#1c1c22'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(12,-98); ctx.lineTo(15,-101); ctx.stroke(); }
-  if (angry){ ctx.strokeStyle = '#1c1c22'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(6,-104); ctx.lineTo(15,-101); ctx.stroke(); }
+  ctx.strokeStyle = '#1c1c22'; ctx.lineWidth = angry ? 2.4 : 1.6; ctx.beginPath();
+  if (angry){ ctx.moveTo(5, -106); ctx.lineTo(16, -102); } else { ctx.moveTo(6, -104); ctx.quadraticCurveTo(11, -107, 16, -104); }
+  ctx.stroke();
   ctx.strokeStyle = '#7a3b2e'; ctx.lineWidth = 2;
   ctx.beginPath();
   if (seated && Math.sin(T*14) > 0) ctx.arc(12, -84, 3, 0, Math.PI*2);
   else if (deli(f) || f.hurtT > 0) ctx.arc(12, -84, 3, 0, Math.PI*2);
   else if (f.lieT > 0 || (f.id === 'meri' && f.bubbleT > 0)){ ctx.moveTo(8,-86); ctx.quadraticCurveTo(12,-82,16,-87); }
-  else { ctx.moveTo(9,-85); ctx.lineTo(15,-85); }
+  else { ctx.moveTo(9,-85); ctx.quadraticCurveTo(12,-83,15,-85); }
   ctx.stroke();
+  // ön kol (+ Ati'nin gümüş saati)
+  const watch = (x, y) => { if (!isAti) return; ctx.fillStyle = f.flash > 0 ? '#fff' : '#c9ccd2'; rr(ctx, x-4, y-4, 8, 8, 2); ctx.fill(); ctx.fillStyle = '#5a5e66'; ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill(); };
   if (seated){
     const b = (Math.sin(T*7) + 1)/2, hx = 22 - b*6, hy = -56 - b*26;
     limb(2, -70, hx, hy, 11, c.shirt);
     ctx.fillStyle = c.skin; ctx.beginPath(); ctx.arc(hx+1, hy, 6, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = '#b9bcc4'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(hx+2, hy+2); ctx.lineTo(hx+8, hy-12); ctx.stroke();
     ctx.fillStyle = '#8a4b2a'; ctx.beginPath(); ctx.arc(hx+9, hy-14, 3.5, 0, Math.PI*2); ctx.fill();
+    watch(hx - 3, hy + 7);
   } else if (f.punchT > 0){
     const p = 1 - f.punchT/.22, ext = Math.sin(Math.min(1,p*1.4)*Math.PI/2) * (p < .75 ? 1 : 1-(p-.75)*2);
     const fxp = 6 + 44*Math.max(0, ext);
     limb(2, -70, fxp, -71, 11, c.shirt);
     ctx.fillStyle = c.skin; ctx.beginPath(); ctx.arc(fxp+5, -71, 8, 0, Math.PI*2); ctx.fill();
+    watch(fxp - 3, -71);
   } else if (f.block){
     limb(2, -70, 16, -78, 11, c.shirt); limb(16, -78, 18, -96, 10, c.shirt);
     ctx.fillStyle = c.skin; ctx.beginPath(); ctx.arc(19, -100, 7, 0, Math.PI*2); ctx.fill();
@@ -850,6 +895,7 @@ function drawFighter(f){
     const hx = 6 + sw*10;
     limb(2, -70, hx, -44, 11, c.shirt);
     ctx.fillStyle = c.skin; ctx.beginPath(); ctx.arc(hx+1, -40, 6, 0, Math.PI*2); ctx.fill();
+    watch(hx, -47);
   }
   ctx.restore();
   if (f.hp > 0){
