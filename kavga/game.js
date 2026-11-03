@@ -962,7 +962,7 @@ function drawHUD(){
     ctx.font = '10px ' + DISPLAY; ctx.fillStyle = full ? '#ffd23f' : '#a3a9b8';
     ctx.textAlign = dir === 1 ? 'left' : 'right';
     const key = net.mode === 'local' && f.id === 'ati' ? ' · G' : ' · SHIFT';
-    const label = f.id === 'ati' ? (full ? 'YEMEK HAZIR' + key : 'YEMEK') : (full ? 'YALAN HAZIR' + key : 'YALAN');
+    const label = full ? 'ÖZEL GÜÇ HAZIR' + key : 'ÖZEL GÜÇ';
     ctx.fillText(label, dir === 1 ? mx + mw + 8 : mx - 8, 62);
   }
   ctx.fillStyle = '#ffd23f'; rr(ctx, W/2-34, 14, 68, 46, 6); ctx.fill();
