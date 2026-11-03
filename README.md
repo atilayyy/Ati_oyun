@@ -9,7 +9,7 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 - **Sen Hangi Tipsin?**: 2-8 kişi. 12 komik soru, 6 tip; herkes birbirinin tipini tahmin eder.
 - **Dört Bağla**: 2 kişi. 4 taşı yan yana getiren kazanır.
 - **Amiral Battı**: 2 kişi. Rakibin filosunu ilk batıran kazanır, vurursan tekrar atarsın.
-- **Ati vs Meri**: 2 kişi, gerçek zamanlı ofis dövüşü. Online ya da aynı klavyede. Ati yemeğe kaçar, Meri dedikodu peşinde.
+- **Ati vs Meri**: 2 kişi, gerçek zamanlı ofis dövüşü. Online ya da aynı klavyede. Özel güçler sürpriz.
 
 ## Nasıl çalışıyor?
 
