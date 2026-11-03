@@ -39,7 +39,12 @@ const BIND = {
   ati:  {l:['KeyA'], r:['KeyD'], u:['KeyW'], d:['KeyS'], p:['KeyF'], s:['KeyG']},
   meri: {l:['ArrowLeft'], r:['ArrowRight'], u:['ArrowUp'], d:['ArrowDown'], p:['Enter','NumpadEnter','Numpad1','KeyL'], s:['ShiftRight','Numpad2','KeyK']}
 };
-const ALL = new Set(Object.values(BIND).flatMap(b => Object.values(b).flat()));
+/* Online: iki taraf da yön tuşları + Enter yumruk + Shift (sol ya da sağ) özel güç. WASD de yedek olarak çalışır. */
+const ONLINE = [
+  {l:['ArrowLeft'], r:['ArrowRight'], u:['ArrowUp'], d:['ArrowDown'], p:['Enter','NumpadEnter'], s:['ShiftLeft','ShiftRight']},
+  BIND.ati
+];
+const ALL = new Set([...Object.values(BIND), ...ONLINE].flatMap(b => Object.values(b).flat()));
 const keys = {}; const just = new Set();
 const inGame = () => state !== 'menu' && state !== 'over';
 addEventListener('keydown', e => {
@@ -335,7 +340,7 @@ function clientSmooth(dt){
   if (coffee) coffee.t = (coffee.t || 0) + dt;
 }
 function clientSendInput(dt){
-  const I = readLocal([BIND.ati, BIND.meri]);
+  const I = readLocal(ONLINE);
   if (I.pu) net.myCnt.u++; if (I.pp) net.myCnt.p++; if (I.ps) net.myCnt.s++;
   const msg = {t:'in', h:{l:I.l, r:I.r, u:I.u, d:I.d}, c:net.myCnt};
   const key = JSON.stringify(msg);
@@ -358,7 +363,7 @@ function frame(dt){
     clientSmooth(dt);
   } else {
     if (net.mode === 'local'){ INP.ati = readLocal([BIND.ati]); INP.meri = readLocal([BIND.meri]); }
-    else { INP[net.me] = readLocal([BIND.ati, BIND.meri]); INP[other(net.me)] = remoteInput(); }
+    else { INP[net.me] = readLocal(ONLINE); INP[other(net.me)] = remoteInput(); }
     if (coffee) coffee.t = (coffee.t || 0) + dt;
     simulate(dt);
     if (net.mode === 'host' && net.conn && net.conn.open){
@@ -736,7 +741,7 @@ function drawHUD(){
     if (dir === 1) ctx.fillRect(mx, 54, mW, 8); else ctx.fillRect(mx + mw - mW, 54, mW, 8);
     ctx.font = '10px ' + DISPLAY; ctx.fillStyle = full ? '#ffd23f' : '#a3a9b8';
     ctx.textAlign = dir === 1 ? 'left' : 'right';
-    const key = net.mode === 'local' && f.id === 'meri' ? ' · SHIFT' : ' · G';
+    const key = net.mode === 'local' && f.id === 'ati' ? ' · G' : ' · SHIFT';
     const label = f.id === 'ati' ? (full ? 'FATURA HAZIR' + key : 'FATURA') : (full ? 'YALAN HAZIR' + key : 'YALAN');
     ctx.fillText(label, dir === 1 ? mx + mw + 8 : mx - 8, 62);
   }
