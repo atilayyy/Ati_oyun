@@ -116,12 +116,18 @@ let A = mk('ati'), M = mk('meri');
 let state = 'menu', stateT = 0, round = 1, timer = 90, paused = false;
 let wins = {ati:0, meri:0}, koMain = '', koSub = '';
 let shake = 0, coffee = null, coffeeT = 8, projs = [], fx = [], parts = [], T = 0;
+/* Ati'nin özel gücü: Tek Başına Yemek. İkisi lokantaya ışınlanır, Ati masaya kurulur, Meri'yi oturtmaz. */
+const REST_DUR = 4.5, TABLE = {x:330, w:230}, SEAT_X = 380;
+let restT = 0, restPrev = null, bounceCD = 0, restChatT = 0, biteT = 0;
+const GIT = ['Git alla alla ya!', 'Git alla alla ya!', 'Masa tek kişilik. Git alla alla ya!', 'Rezerve! Git alla alla ya!'];
+const BEG = ['Kanka bi lokma?', 'Bi sandalye de bana çeksene!', 'Ne yiyosun? Anlat bari!', 'Kankalar beraber yer ama…', 'Oturucam, yanına oturucam!', 'Kimle yemeğe çıktın, ha?'];
+const plats = () => restT > 0 ? [] : PLAT;
 const deli = f => f.id === 'meri' && f.hp > 0 && f.hp <= 30;
 const F = id => id === 'ati' ? A : M;
 
 function newRound(){
   A = mk('ati'); M = mk('meri');
-  projs = []; coffee = null; coffeeT = 8; timer = 90; fx = []; parts = [];
+  projs = []; coffee = null; coffeeT = 8; timer = 90; fx = []; parts = []; restT = 0; restPrev = null;
   state = 'intro'; stateT = 1.9;
 }
 function newMatch(){
@@ -154,6 +160,7 @@ function papers(x, y){
 /* ---------- dövüş ---------- */
 function hit(a, d, dmg, dir, src){
   if (d.hp <= 0) return;
+  if (restT > 0) return;
   if (d.block && d.facing === -dir){
     d.hp = Math.max(0, d.hp - 1); d.vx = dir*130; a.meter = Math.min(100, a.meter+4);
     addFx(d.x, d.y-128, 'BLOK', '#cfd5e2', 18); emit({k:'sp', x:Math.round(d.x - dir*18), y:Math.round(d.y-75), col:'#cfd5e2', n:6});
@@ -184,9 +191,40 @@ function special(f, o){
     f.lieT = 1.1; f.bubble = pickOne(KANKA); f.bubbleT = 1.15;
     addFx(o.x, o.y-150, '!', '#ff5d73', 34);
   } else {
-    f.punchT = .22; f.bubble = 'Faturalar geliyor!'; f.bubbleT = 1.1;
-    for (let i=0;i<3;i++) projs.push({x:f.x + f.facing*30, y:f.y-82 + (i-1)*16, vx:f.facing*(500 + i*60), vy:(i-1)*25, owner:f.id, rot:0, life:2.2});
+    startRest();
   }
+}
+function startRest(){
+  restT = REST_DUR; restPrev = {ax:A.x, ay:A.y, mx:M.x, my:M.y};
+  bounceCD = .6; restChatT = 1.3; biteT = .9;
+  M.lieT = 0; M.punchT = 0; M.x = 820; M.y = FLOOR; M.vx = 0; M.vy = 0;
+  A.stunT = 0; A.revT = 0; A.turnT = 0; A.punchT = 0;
+  A.bubble = 'Ben yemeğe çıktım. Tek başıma!'; A.bubbleT = 1.6;
+  M.bubble = 'Aa nereye? Ben de gelirim!'; M.bubbleT = 1.4;
+  addFx(W/2, 200, 'LOKANTAYA IŞINLANDILAR!', '#ffd23f', 26);
+}
+function endRest(){
+  restT = 0;
+  if (restPrev){ A.x = restPrev.ax; A.y = restPrev.ay; M.x = restPrev.mx; M.y = restPrev.my; }
+  A.vy = 0; M.vy = 0; restPrev = null;
+  A.bubble = 'Oh, doydum.'; A.bubbleT = 1.4;
+}
+function restStep(dt){
+  restT -= dt;
+  A.hp = Math.min(100, A.hp + dt*4);
+  biteT -= dt; if (biteT <= 0){ biteT = 1; addFx(SEAT_X + 62, FLOOR - 78, '+4 nyam', '#5fd38a', 16); }
+  bounceCD -= dt; restChatT -= dt;
+  const edge = TABLE.x + TABLE.w + 44;
+  if (M.hp > 0 && M.x < edge){
+    if (bounceCD <= 0){
+      bounceCD = .7; M.x = edge; M.vx = 420; M.vy = -330; M.ground = false; M.hurtT = .3; M.flash = .12;
+      M.hp = Math.max(0, M.hp - 5); M.bubbleT = 0;
+      A.bubble = pickOne(GIT); A.bubbleT = 1.5;
+      addFx(edge + 30, FLOOR - 130, 'MASA DOLU! -5', '#ffd23f', 20); emit({k:'sh'});
+    } else M.x = edge;
+  }
+  if (restChatT <= 0){ restChatT = 1.7; if (M.bubbleT <= 0 && M.hp > 0){ M.bubble = pickOne(BEG); M.bubbleT = 1.5; } }
+  if (restT <= 0) endRest();
 }
 function landLie(m, a){
   const L = pickOne(LIES);
@@ -207,7 +245,7 @@ function landLie(m, a){
 }
 function surfaceBelow(f){
   let best = FLOOR;
-  for (const p of PLAT) if (f.x > p.x-6 && f.x < p.x+p.w+6 && p.y >= f.y-1 && p.y < best) best = p.y;
+  for (const p of plats()) if (f.x > p.x-6 && f.x < p.x+p.w+6 && p.y >= f.y-1 && p.y < best) best = p.y;
   return best;
 }
 
@@ -215,6 +253,10 @@ function stepFighter(f, o, act, dt){
   const I = INP[f.id];
   f.punchCD -= dt; f.hurtT -= dt; f.stunT -= dt; f.revT -= dt; f.turnT -= dt;
   f.flash -= dt; f.bubbleT -= dt; f.dropT -= dt;
+  if (f.id === 'ati' && restT > 0){
+    f.x = SEAT_X; f.y = FLOOR; f.vx = 0; f.vy = 0; f.ground = true; f.block = false; f.punchT = 0; f.hitAt = -1; f.facing = 1;
+    return;
+  }
   if (f.punchT > 0){
     f.punchT -= dt;
     if (f.hitAt > 0){ f.hitAt -= dt; if (f.hitAt <= 0){ f.hitAt = -1; resolvePunch(f, o); } }
@@ -235,7 +277,8 @@ function stepFighter(f, o, act, dt){
     }
     if (I.pp && f.punchCD <= 0 && !f.block){ f.punchT = .22; f.punchCD = .4; f.hitAt = .07; }
     if (I.ps){
-      if (f.meter >= 100) special(f, o);
+      if (f.id === 'meri' && restT > 0) addFx(f.x, f.y-140, 'Ati yemekte, yalan sökmez', '#a3a9b8', 15);
+      else if (f.meter >= 100) special(f, o);
       else addFx(f.x, f.y-140, 'Bar dolmadı', '#a3a9b8', 15);
     }
   }
@@ -251,7 +294,7 @@ function stepFighter(f, o, act, dt){
   f.ground = false;
   if (f.y >= FLOOR){ f.y = FLOOR; f.vy = 0; f.ground = true; }
   else if (f.vy >= 0 && f.dropT <= 0){
-    for (const p of PLAT) if (prevY <= p.y + 1 && f.y >= p.y && f.x > p.x-6 && f.x < p.x+p.w+6){ f.y = p.y; f.vy = 0; f.ground = true; }
+    for (const p of plats()) if (prevY <= p.y + 1 && f.y >= p.y && f.x > p.x-6 && f.x < p.x+p.w+6){ f.y = p.y; f.vy = 0; f.ground = true; }
   }
   f.x = Math.max(24, Math.min(W-24, f.x));
   if (f.ground && Math.abs(f.vx) > 30) f.walk += dt*Math.abs(f.vx)/28;
@@ -287,7 +330,8 @@ function simulate(dt){
   if (act) timer -= dt;
   stepFighter(A, M, act, dt);
   stepFighter(M, A, act, dt);
-  if (act && M.hp > 0){
+  if (restT > 0) restStep(dt);
+  if (act && M.hp > 0 && restT <= 0){
     M.chatT -= dt;
     if (M.chatT <= 0){
       if (M.bubbleT <= 0 && M.lieT <= 0 && M.stunT <= 0){ M.bubble = pickOne(CHAT); M.bubbleT = 2.2; }
@@ -296,18 +340,10 @@ function simulate(dt){
   }
 
   const dx = M.x - A.x;
-  if (Math.abs(dx) < 40 && Math.abs(A.y - M.y) < 100 && A.hp > 0 && M.hp > 0){
+  if (restT <= 0 && Math.abs(dx) < 40 && Math.abs(A.y - M.y) < 100 && A.hp > 0 && M.hp > 0){
     const push = (40 - Math.abs(dx))/2 * (dx >= 0 ? 1 : -1);
     A.x = Math.max(24, Math.min(W-24, A.x - push)); M.x = Math.max(24, Math.min(W-24, M.x + push));
   }
-  for (const p of projs){
-    p.x += p.vx*dt; p.y += p.vy*dt; p.rot += dt*12; p.life -= dt;
-    const t = F(other(p.owner));
-    if (p.life > 0 && t.hp > 0 && Math.abs(p.x - t.x) < 24 && p.y > t.y-112 && p.y < t.y){
-      hit(F(p.owner), t, 6, Math.sign(p.vx), 'paper'); p.life = 0;
-    }
-  }
-  projs = projs.filter(p => p.life > 0 && p.x > -40 && p.x < W+40);
 
   if (act){
     coffeeT -= dt;
@@ -315,7 +351,7 @@ function simulate(dt){
       const p = PLAT[Math.floor(Math.random()*PLAT.length)];
       coffee = {x: Math.round(p.x + 30 + Math.random()*(p.w-60)), y: p.y};
     }
-    if (coffee){
+    if (coffee && restT <= 0){
       for (const f of [A, M]){
         if (f.hp > 0 && Math.abs(f.x - coffee.x) < 30 && Math.abs(f.y - coffee.y) < 12){
           f.hp = Math.min(100, f.hp + 15); addFx(f.x, f.y-140, 'Kahve molası +15', '#ffd23f', 18);
@@ -349,12 +385,12 @@ const FK = ['x','y','vx','facing','hp','meter','ground','punchT','block','stunT'
 const r1 = v => typeof v === 'number' ? Math.round(v*100)/100 : v;
 function pick(f){ const o = {}; for (const k of FK) o[k] = r1(f[k]); return o; }
 function snapshot(){
-  return {t:'s', st:state, stT:r1(stateT), rd:round, tm:r1(timer), w:wins, km:koMain, ks:koSub, cf:coffee,
+  return {t:'s', st:state, stT:r1(stateT), rd:round, tm:r1(timer), rs:r1(restT), w:wins, km:koMain, ks:koSub, cf:coffee,
     pr:projs.map(p => [Math.round(p.x), Math.round(p.y), r1(p.rot)]), a:pick(A), m:pick(M), ev:net.outbox.splice(0)};
 }
 function applySnap(s){
   const prev = state;
-  state = s.st; stateT = s.stT; round = s.rd; timer = s.tm; wins = s.w; koMain = s.km; koSub = s.ks;
+  state = s.st; stateT = s.stT; restT = s.rs || 0; round = s.rd; timer = s.tm; wins = s.w; koMain = s.km; koSub = s.ks;
   if (s.cf && !coffee) coffee = {x:s.cf.x, y:s.cf.y};
   else if (!s.cf) coffee = null;
   projs = s.pr.map(([x, y, rot]) => ({x, y, rot}));
@@ -425,7 +461,7 @@ function resetNet(){
   try { net.conn && net.conn.close(); } catch(e){}
   try { net.peer && net.peer.destroy(); } catch(e){}
   Object.assign(net, {mode:'local', me:null, peer:null, conn:null, code:null, remote:{h:{}, c:{u:0,p:0,s:0}}, seen:{u:0,p:0,s:0}, myCnt:{u:0,p:0,s:0}, lastSent:'', outbox:[]});
-  state = 'menu'; paused = false; A = mk('ati'); M = mk('meri'); projs = []; coffee = null;
+  state = 'menu'; paused = false; A = mk('ati'); M = mk('meri'); projs = []; coffee = null; restT = 0; restPrev = null;
   try { history.replaceState(null, '', location.pathname); } catch(e){}
 }
 function lostConn(msg){
@@ -635,11 +671,105 @@ function drawBg(){
 drawBg();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawBg);
 
+function drawChair(){
+  const x = SEAT_X, seat = FLOOR - 52;
+  ctx.fillStyle = '#5a3a26';
+  ctx.fillRect(x-34, seat-70, 9, 122); ctx.fillRect(x-34, seat-70, 40, 8);
+  ctx.fillRect(x-34, seat-4, 60, 9); ctx.fillRect(x+18, seat, 7, 52);
+  ctx.fillStyle = '#b8453b'; ctx.fillRect(x-30, seat-8, 52, 5);
+}
+function drawTable(){
+  const tx = TABLE.x, tw = TABLE.w, ty = FLOOR - 62;
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(tx + tw/2, FLOOR + 2, tw/2 + 10, 7, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#efe8da'; ctx.fillRect(tx+6, ty+8, tw-12, 56);
+  ctx.fillStyle = '#c8463c';
+  for (let x = tx+6; x < tx+tw-6; x += 16){ ctx.fillRect(x, ty+8, 8, 8); ctx.fillRect(x+8, ty+16, 8, 8); ctx.fillRect(x, FLOOR-14, 8, 8); ctx.fillRect(x+8, FLOOR-6, 8, 6); }
+  ctx.fillStyle = '#f8f4ea'; ctx.fillRect(tx, ty, tw, 9);
+  // tabak, köfte, salata
+  const px = SEAT_X + 62;
+  ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(px, ty+1, 34, 8, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#d6d0c2'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(px, ty+1, 26, 5.5, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#8a4b2a'; for (const dx of [-14, 0, 14]){ ctx.beginPath(); ctx.ellipse(px+dx, ty-3, 7, 5, 0, 0, Math.PI*2); ctx.fill(); }
+  ctx.fillStyle = '#5aa04a'; ctx.beginPath(); ctx.arc(px+22, ty-1, 4, 0, Math.PI*2); ctx.arc(px+26, ty-3, 3.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#e04a3a'; ctx.beginPath(); ctx.arc(px-24, ty-2, 3.5, 0, Math.PI*2); ctx.fill();
+  // ayran
+  ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.fillRect(px+48, ty-26, 16, 26);
+  ctx.fillStyle = '#e9edf2'; ctx.fillRect(px+48, ty-26, 16, 5);
+  // rezerve kartı
+  const rx = tx + tw - 44;
+  ctx.fillStyle = '#1b1f33'; ctx.beginPath(); ctx.moveTo(rx, ty); ctx.lineTo(rx+18, ty-24); ctx.lineTo(rx+36, ty); ctx.fill();
+  ctx.fillStyle = '#ffd23f'; ctx.font = '7px ' + DISPLAY; ctx.textAlign = 'center';
+  ctx.fillText('REZERVE', rx+18, ty-8); ctx.fillText('ATİ', rx+18, ty-1);
+}
+const bgRest = document.createElement('canvas');
+function drawRestBg(){
+  const s = 2; bgRest.width = W*s; bgRest.height = H*s;
+  const g = bgRest.getContext('2d'); g.scale(s, s);
+  let gr = g.createLinearGradient(0, 0, 0, 300);
+  gr.addColorStop(0, '#f0dcb8'); gr.addColorStop(1, '#e2c79b');
+  g.fillStyle = gr; g.fillRect(0, 0, W, 300);
+  g.fillStyle = 'rgba(160,110,60,.12)';
+  for (let x = 0; x < W; x += 36) g.fillRect(x, 0, 14, 300);
+  g.fillStyle = '#7b2d2a'; g.fillRect(0, 300, W, FLOOR-300);
+  g.fillStyle = 'rgba(0,0,0,.15)'; for (let x = 20; x < W; x += 80) g.fillRect(x, 318, 60, FLOOR-336);
+  g.fillStyle = '#c9a36a'; g.fillRect(0, 296, W, 8); g.fillRect(0, FLOOR-10, W, 10);
+  // menü tahtası
+  g.fillStyle = '#5a3a26'; g.fillRect(52, 112, 196, 160);
+  g.fillStyle = '#26302a'; g.fillRect(60, 120, 180, 144);
+  g.fillStyle = '#f2efe6'; g.textAlign = 'left';
+  g.font = '15px ' + DISPLAY; g.fillText('GÜNÜN MENÜSÜ', 74, 146);
+  g.font = '600 14px ' + BODY;
+  g.fillText('İzmir köfte', 76, 172); g.fillText('Pilav üstü', 76, 194); g.fillText('Ayran', 76, 216);
+  g.fillStyle = '#ff8a8a'; g.fillText('Meri\'ye: YOK', 76, 246);
+  g.strokeStyle = '#ff8a8a'; g.lineWidth = 2; g.beginPath(); g.moveTo(74, 252); g.lineTo(170, 252); g.stroke();
+  // pencere
+  g.fillStyle = '#5a3a26'; g.fillRect(700, 112, 200, 150);
+  const sky = g.createLinearGradient(0, 120, 0, 254);
+  sky.addColorStop(0, '#1d2550'); sky.addColorStop(1, '#4b3a6e');
+  g.fillStyle = sky; g.fillRect(708, 120, 184, 134);
+  g.fillStyle = '#fff6c8'; g.beginPath(); g.arc(850, 150, 12, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#141833'; for (let i=0;i<6;i++) g.fillRect(712 + i*31, 254 - (24 + (i*37)%50), 26, 24 + (i*37)%50);
+  g.fillStyle = '#5a3a26'; g.fillRect(797, 120, 6, 134);
+  // sarkıt lambalar
+  for (const lx of [200, 445, 760]){
+    g.strokeStyle = '#2b1d14'; g.lineWidth = 2; g.beginPath(); g.moveTo(lx, 0); g.lineTo(lx, lx === 445 ? 196 : 96); g.stroke();
+    const ly = lx === 445 ? 196 : 96;
+    const glow = g.createRadialGradient(lx, ly+14, 4, lx, ly+14, 120);
+    glow.addColorStop(0, 'rgba(255,214,140,.45)'); glow.addColorStop(1, 'rgba(255,214,140,0)');
+    g.fillStyle = glow; g.beginPath(); g.arc(lx, ly+14, 120, 0, Math.PI*2); g.fill();
+    g.fillStyle = '#2f5d4a'; g.beginPath(); g.moveTo(lx-22, ly+18); g.lineTo(lx-10, ly); g.lineTo(lx+10, ly); g.lineTo(lx+22, ly+18); g.fill();
+    g.fillStyle = '#ffe9a8'; g.beginPath(); g.arc(lx, ly+19, 6, 0, Math.PI); g.fill();
+  }
+  // tabela
+  g.fillStyle = '#2b1d14'; g.fillRect(300, 92, 360, 70);
+  g.strokeStyle = '#c9a36a'; g.lineWidth = 3; g.strokeRect(306, 98, 348, 58);
+  g.fillStyle = '#ffd23f'; g.font = '30px ' + DISPLAY; g.textAlign = 'center'; g.fillText('ATİ LOKANTASI', 480, 132);
+  g.fillStyle = '#f0dcb8'; g.font = '600 12px ' + BODY; g.fillText('Tek kişilik · Rezervasyonsuz giriş yok', 480, 150);
+  // yer karoları
+  const tile = 32;
+  for (let y = FLOOR, r = 0; y < H; y += tile/2, r++) for (let x = (r%2)*tile; x < W; x += tile*2){
+    g.fillStyle = '#d8cfc0'; g.fillRect(x, y, tile, tile/2); g.fillStyle = '#3a3030'; g.fillRect(x+tile, y, tile, tile/2);
+  }
+  g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(0, FLOOR, W, H-FLOOR);
+  // kapalı masa: sandalyeler ters
+  g.fillStyle = '#5c4632'; g.fillRect(740, FLOOR-62, 150, 10); g.fillRect(752, FLOOR-52, 8, 52); g.fillRect(870, FLOOR-52, 8, 52);
+  g.fillStyle = '#6e4a32';
+  for (const cx of [760, 832]){ g.fillRect(cx, FLOOR-112, 48, 7); g.fillRect(cx+4, FLOOR-150, 6, 40); g.fillRect(cx+38, FLOOR-150, 6, 40); }
+  g.fillStyle = '#ffd23f'; g.fillRect(780, FLOOR-48, 80, 22); g.fillStyle = '#1b1f33'; g.font = '11px ' + DISPLAY; g.textAlign = 'center'; g.fillText('KAPALI', 820, FLOOR-32);
+  // saksı
+  g.fillStyle = '#b5683e'; g.fillRect(926, FLOOR-40, 30, 40);
+  g.fillStyle = '#3f8a52'; for (let i=0;i<5;i++){ g.beginPath(); g.ellipse(941 + (i-2)*7, FLOOR-62, 6, 22, (i-2)*.3, 0, Math.PI*2); g.fill(); }
+}
+drawRestBg();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawRestBg);
 function drawFighter(f){
   const c = f.flash > 0 ? {shirt:'#fff', dark:'#fff', pants:'#fff', skin:'#fff', hair:'#fff'} : COL[f.id];
+  const seated = f.id === 'ati' && restT > 0;
   const sb = surfaceBelow(f);
-  ctx.fillStyle = 'rgba(0,0,0,.25)';
-  ctx.beginPath(); ctx.ellipse(f.x, sb, 26 * Math.max(.4, 1 - (sb - f.y)/300), 6, 0, 0, Math.PI*2); ctx.fill();
+  if (!seated){
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath(); ctx.ellipse(f.x, sb, 26 * Math.max(.4, 1 - (sb - f.y)/300), 6, 0, 0, Math.PI*2); ctx.fill();
+  }
   if (deli(f)){
     const r = 70 + Math.sin(T*10)*6;
     const gr = ctx.createRadialGradient(f.x, f.y-60, 10, f.x, f.y-60, r);
@@ -653,13 +783,14 @@ function drawFighter(f){
     ctx.moveTo(f.x-7, yy-8); ctx.lineTo(f.x+7, yy-8); ctx.lineTo(f.x, yy); ctx.fill();
   }
   ctx.save();
-  ctx.translate(f.x, f.y);
+  ctx.translate(f.x, seated ? FLOOR - 52 + 34 : f.y);
   if (f.hp <= 0){ ctx.rotate(-f.facing * Math.PI/2); ctx.translate(-4*f.facing, -14); }
   ctx.scale(f.facing, 1);
   const moving = Math.min(1, Math.abs(f.vx)/200);
   const sw = f.ground ? Math.sin(f.walk)*0.55*moving : 0;
   const air = !f.ground;
-  for (const a of [air ? -0.35 : -sw, air ? 0.45 : sw]){
+  if (seated){ limb(0, -36, 30, -36, 12, c.pants); limb(30, -36, 32, 0, 12, c.pants); }
+  else for (const a of [air ? -0.35 : -sw, air ? 0.45 : sw]){
     const fx2 = Math.sin(a)*34, fy = -36 + Math.cos(a)*34;
     limb(0, -36, fx2, fy, 12, c.pants);
     ctx.fillStyle = f.flash > 0 ? '#fff' : '#1c1c22';
@@ -684,7 +815,7 @@ function drawFighter(f){
   } else {
     ctx.beginPath(); ctx.arc(2, -99, 17, Math.PI*.95, Math.PI*1.98); ctx.lineTo(18,-100); ctx.quadraticCurveTo(6,-104,-6,-97); ctx.lineTo(-16,-92); ctx.fill();
   }
-  const angry = deli(f) || f.punchT > 0 || f.block;
+  const angry = deli(f) || f.punchT > 0 || f.block || (seated && f.bubbleT > 0 && f.bubble.includes('alla'));
   ctx.fillStyle = '#1c1c22';
   if (f.stunT > 0){ ctx.font = 'bold 10px ' + BODY; ctx.textAlign = 'center'; ctx.fillText('x', 11, -92); }
   else { ctx.beginPath(); ctx.arc(11, -95, 2.2, 0, Math.PI*2); ctx.fill(); }
@@ -693,11 +824,18 @@ function drawFighter(f){
   if (angry){ ctx.strokeStyle = '#1c1c22'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(6,-104); ctx.lineTo(15,-101); ctx.stroke(); }
   ctx.strokeStyle = '#7a3b2e'; ctx.lineWidth = 2;
   ctx.beginPath();
-  if (deli(f) || f.hurtT > 0) ctx.arc(12, -84, 3, 0, Math.PI*2);
+  if (seated && Math.sin(T*14) > 0) ctx.arc(12, -84, 3, 0, Math.PI*2);
+  else if (deli(f) || f.hurtT > 0) ctx.arc(12, -84, 3, 0, Math.PI*2);
   else if (f.lieT > 0 || (f.id === 'meri' && f.bubbleT > 0)){ ctx.moveTo(8,-86); ctx.quadraticCurveTo(12,-82,16,-87); }
   else { ctx.moveTo(9,-85); ctx.lineTo(15,-85); }
   ctx.stroke();
-  if (f.punchT > 0){
+  if (seated){
+    const b = (Math.sin(T*7) + 1)/2, hx = 22 - b*6, hy = -56 - b*26;
+    limb(2, -70, hx, hy, 11, c.shirt);
+    ctx.fillStyle = c.skin; ctx.beginPath(); ctx.arc(hx+1, hy, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#b9bcc4'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(hx+2, hy+2); ctx.lineTo(hx+8, hy-12); ctx.stroke();
+    ctx.fillStyle = '#8a4b2a'; ctx.beginPath(); ctx.arc(hx+9, hy-14, 3.5, 0, Math.PI*2); ctx.fill();
+  } else if (f.punchT > 0){
     const p = 1 - f.punchT/.22, ext = Math.sin(Math.min(1,p*1.4)*Math.PI/2) * (p < .75 ? 1 : 1-(p-.75)*2);
     const fxp = 6 + 44*Math.max(0, ext);
     limb(2, -70, fxp, -71, 11, c.shirt);
@@ -778,7 +916,7 @@ function drawHUD(){
     ctx.font = '10px ' + DISPLAY; ctx.fillStyle = full ? '#ffd23f' : '#a3a9b8';
     ctx.textAlign = dir === 1 ? 'left' : 'right';
     const key = net.mode === 'local' && f.id === 'ati' ? ' · G' : ' · SHIFT';
-    const label = f.id === 'ati' ? (full ? 'FATURA HAZIR' + key : 'FATURA') : (full ? 'YALAN HAZIR' + key : 'YALAN');
+    const label = f.id === 'ati' ? (full ? 'YEMEK HAZIR' + key : 'YEMEK') : (full ? 'YALAN HAZIR' + key : 'YALAN');
     ctx.fillText(label, dir === 1 ? mx + mw + 8 : mx - 8, 62);
   }
   ctx.fillStyle = '#ffd23f'; rr(ctx, W/2-34, 14, 68, 46, 6); ctx.fill();
@@ -796,8 +934,8 @@ function draw(){
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.save();
   if (shake > 0){ const k = shake/.18 * 8; ctx.translate((Math.random()-.5)*k, (Math.random()-.5)*k); }
-  ctx.drawImage(bg, 0, 0, W, H);
-  if (coffee){
+  ctx.drawImage(restT > 0 ? bgRest : bg, 0, 0, W, H);
+  if (coffee && restT <= 0){
     const bob = Math.sin((coffee.t||0)*4)*3, x = coffee.x, y = coffee.y - 4 + bob;
     ctx.fillStyle = 'rgba(255,210,63,.35)'; ctx.beginPath(); ctx.arc(x, y-12, 20, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillRect(x-9, y-22, 18, 20);
@@ -806,7 +944,8 @@ function draw(){
     ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2;
     for (let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(x+i*5, y-26); ctx.quadraticCurveTo(x+i*5+4, y-32, x+i*5, y-38 - Math.sin(T*6+i)*2); ctx.stroke(); }
   }
-  for (const f of (A.y <= M.y ? [A, M] : [M, A])) drawFighter(f);
+  if (restT > 0){ drawChair(); drawFighter(A); drawTable(); drawFighter(M); }
+  else for (const f of (A.y <= M.y ? [A, M] : [M, A])) drawFighter(f);
   for (const p of projs){
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
     ctx.fillStyle = '#fbf8ef'; ctx.fillRect(-11, -14, 22, 28);
@@ -831,6 +970,10 @@ function draw(){
   }
   ctx.globalAlpha = 1;
   ctx.restore();
+  if (restT > 0){
+    const a = Math.max(0, (restT - (REST_DUR - .3))/.3) + (restT < .25 ? (.25 - restT)/.25 : 0);
+    if (a > 0){ ctx.fillStyle = 'rgba(255,250,235,' + Math.min(1, a) + ')'; ctx.fillRect(0, 0, W, H); }
+  }
   drawHUD();
   if (state === 'intro'){
     const finalR = wins.ati === 1 && wins.meri === 1;
