@@ -22,17 +22,41 @@ const COL = {
   ati:  {shirt:'#3f7fd6', dark:'#2a5aa6', pants:'#2a2f3d', skin:'#e8b28a', hair:'#2a1d16', ui:'#4aa3ff'},
   meri: {shirt:'#e5485f', dark:'#a92c45', pants:'#352a3c', skin:'#f0c29c', hair:'#3a1d16', ui:'#ff5d73'}
 };
-const LIES = [
-  {t:'Patron seni odasına çağırıyor!', eff:'stun', d:1.8},
-  {t:'Sistem çöktü, raporlar sende!', eff:'rev', d:4},
-  {t:'Arkanda fare var!', eff:'turn', d:2.6},
-  {t:'Bugün maaşlar erken yatmış!', eff:'stun', d:1.6},
-  {t:'Bu Excel\'i sen bozmuşsun!', eff:'rev', d:4},
-  {t:'Kahve makinesi bedava dağıtıyor!', eff:'turn', d:2.6},
-  {t:'Ben hiç sinirlenmem ki.', eff:'stun', d:1.5},
-  {t:'Toplantı iptal olmuş, haberin yok mu?', eff:'rev', d:4}
+/* Meri'nin yalan senaryosu: önce kankalık kartı, hemen ardından dedikodu talebi. */
+const KANKA = [
+  'Ati… sen benim şirket kankamsın biliyorsun di mi?',
+  'Kankam benim! Bu ofiste bir tek sana güveniyorum.',
+  'Biz kankayız ya, aramızda sır olmaz değil mi?',
+  'Sen benim en sevdiğim şirket kankamsın, biliyosun.'
 ];
-const EFF_TXT = {stun:'İnandı! Donakaldı', rev:'İnandı! Yönler ters', turn:'İnandı! Arkasına baktı'};
+const LIES = [
+  {t:'Hadi anlat, bugün kim kimle kahveye çıktı?', eff:'stun', d:1.8},
+  {t:'Sadece bana söyle, kimseye demem. Söz!', eff:'stun', d:1.6},
+  {t:'Kapanış toplantısında ne konuşuldu? Hadi ama!', eff:'rev', d:4},
+  {t:'Kankalar arasında sır olmaz, döktür bakalım!', eff:'rev', d:4},
+  {t:'Arkana bakma ama… o geldi mi? Kim? Anlat!', eff:'turn', d:2.6},
+  {t:'Koridorda bi fısıltı duydum, sen biliyosun kesin!', eff:'turn', d:2.6},
+  {t:'Patron bugün kime kızdı? Hı? Hı?', eff:'stun', d:1.7},
+  {t:'Yeni gelen stajyer hakkında ne biliyosun?', eff:'rev', d:4}
+];
+/* Ati inanınca dedikoduya dalar */
+const SPILL = {
+  stun: ['Ya şimdi şöyle oldu…', 'Valla kimseye söyleme ama…', 'Bak sadece sana söylüyorum…'],
+  rev:  ['Dur, kim kime ne demişti?', 'Ya karıştırdım şimdi her şeyi…', 'Bi dakika, hangisiydi o?'],
+  turn: ['Nerde? Kim geldi?', 'Aa gerçekten mi? Nerde?', 'Kim? Hangisi?']
+};
+const CAUGHT = ['Kanka kanka ama dedikodu yok!', 'Hadi ordan, bu sefer yemem!', 'Kankalığı dedikoduya kullanma!'];
+/* Kavga sırasında Meri'nin boş durmayan ağzı */
+const CHAT = [
+  'Bu arada… yeni bi şey var mı?',
+  'Bugün koridorda çok fısıltı var, dikkatini çekti mi?',
+  'Bi şey biliyosun sen, yüzünden belli!',
+  'Kankam, bana anlatmadığın bi şey var.',
+  'Mutfakta kim kimle takılıyo, gördün mü?',
+  'Ben sorduğum için değil ha, merak ettim sadece.'
+];
+const pickOne = a => a[Math.floor(Math.random()*a.length)];
+const EFF_TXT = {stun:'İnandı! Dedikoduya daldı', rev:'İnandı! Kafası karıştı', turn:'İnandı! Arkasına baktı'};
 
 /* ---------- tuşlar ---------- */
 const BIND = {
@@ -86,7 +110,7 @@ function mk(id){
   return {id, name: id==='ati'?'ATİ':'MERİ', x: id==='ati'?250:710, y:FLOOR, vx:0, vy:0,
     facing: id==='ati'?1:-1, hp:100, hpShow:100, meter:0, ground:true,
     punchT:0, punchCD:0, hitAt:-1, hurtT:0, block:false, stunT:0, revT:0, turnT:0,
-    dropT:0, walk:0, lieT:0, bubble:'', bubbleT:0, flash:0, steamT:0, tx:null, ty:null};
+    dropT:0, walk:0, lieT:0, bubble:'', bubbleT:0, flash:0, steamT:0, tx:null, ty:null, chatT:4 + Math.random()*3};
 }
 let A = mk('ati'), M = mk('meri');
 let state = 'menu', stateT = 0, round = 1, timer = 90, paused = false;
@@ -144,7 +168,7 @@ function hit(a, d, dmg, dir, src){
   else emit({k:'pa', x:Math.round(d.x), y:Math.round(d.y-80)});
   emit({k:'sh'});
   if (d.lieT > 0){
-    d.lieT = 0; d.bubble = 'Ay! Daha söylemedim bile!'; d.bubbleT = 1.4;
+    d.lieT = 0; d.bubble = 'Ay! Daha dedikoduyu duymadım bile!'; d.bubbleT = 1.6;
     addFx(d.x, d.y-160, 'YALAN BOZULDU', '#4aa3ff', 18);
   }
 }
@@ -157,7 +181,7 @@ function resolvePunch(a, d){
 function special(f, o){
   f.meter = 0;
   if (f.id === 'meri'){
-    f.lieT = .8; f.bubble = 'Ati… bi şey söyleyeceğim'; f.bubbleT = .85;
+    f.lieT = 1.1; f.bubble = pickOne(KANKA); f.bubbleT = 1.15;
     addFx(o.x, o.y-150, '!', '#ff5d73', 34);
   } else {
     f.punchT = .22; f.bubble = 'Faturalar geliyor!'; f.bubbleT = 1.1;
@@ -165,19 +189,21 @@ function special(f, o){
   }
 }
 function landLie(m, a){
-  const L = LIES[Math.floor(Math.random()*LIES.length)];
-  m.bubble = L.t; m.bubbleT = 2.4;
+  const L = pickOne(LIES);
+  m.bubble = L.t; m.bubbleT = 2.6; m.chatT = 9;
   if (a.hp <= 0) return;
   if (a.block){
     m.stunT = 1.8; a.meter = Math.min(100, a.meter + 30);
-    a.bubble = 'Hadi ordan Meri!'; a.bubbleT = 1.6;
-    addFx(a.x, a.y-165, 'YALAN YAKALANDI!', '#4aa3ff', 22);
+    a.bubble = pickOne(CAUGHT); a.bubbleT = 1.8;
+    m.bubble = 'Ama kankaydık hani?!'; m.bubbleT = 1.8;
+    addFx(a.x, a.y+4, 'DEDİKODU YOK!', '#4aa3ff', 22);
     return;
   }
   if (L.eff === 'stun') a.stunT = L.d;
   if (L.eff === 'rev')  a.revT = L.d;
   if (L.eff === 'turn') a.turnT = L.d;
-  addFx(a.x, a.y-165, EFF_TXT[L.eff], '#ff5d73', 19);
+  a.bubble = pickOne(SPILL[L.eff]); a.bubbleT = Math.min(2.2, L.d);
+  addFx(a.x, a.y+4, EFF_TXT[L.eff], '#ff5d73', 19);
 }
 function surfaceBelow(f){
   let best = FLOOR;
@@ -243,8 +269,8 @@ function showOver(){
   t.textContent = w === 'ati' ? 'ATİ KAZANDI' : 'MERİ KAZANDI';
   t.style.color = w === 'ati' ? '#4aa3ff' : '#ff5d73';
   $('winSub').textContent = w === 'ati'
-    ? 'Meri\'nin yalanları bu sefer tutmadı. Skor ' + wins.ati + '–' + wins.meri + '.'
-    : 'Meri: "Yalan değildi, stratejiydi." Skor ' + wins.meri + '–' + wins.ati + '.';
+    ? 'Meri bu sefer tek bir dedikodu bile koparamadı. Skor ' + wins.ati + '–' + wins.meri + '.'
+    : 'Meri: "Kankamsın ama dedikoduyu yine de aldım." Skor ' + wins.meri + '–' + wins.ati + '.';
   $('over').hidden = false;
 }
 
@@ -261,6 +287,13 @@ function simulate(dt){
   if (act) timer -= dt;
   stepFighter(A, M, act, dt);
   stepFighter(M, A, act, dt);
+  if (act && M.hp > 0){
+    M.chatT -= dt;
+    if (M.chatT <= 0){
+      if (M.bubbleT <= 0 && M.lieT <= 0 && M.stunT <= 0){ M.bubble = pickOne(CHAT); M.bubbleT = 2.2; }
+      M.chatT = 7 + Math.random()*5;
+    }
+  }
 
   const dx = M.x - A.x;
   if (Math.abs(dx) < 40 && Math.abs(A.y - M.y) < 100 && A.hp > 0 && M.hp > 0){
@@ -706,7 +739,10 @@ function drawBubble(f){
   const lines = wrapLines(f.bubble, 210);
   const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 24, h = lines.length*19 + 14;
   const bx = Math.max(8, Math.min(W-w-8, f.x - w/2));
-  const by = Math.max(80, f.y - 160 - h);
+  let by = Math.max(80, f.y - 160 - h);
+  // İkisi de konuşuyorsa ve yakınlarsa Ati'nin balonu üste çıkar
+  const o = f.id === 'ati' ? M : null;
+  if (o && o.bubbleT > 0 && o.bubble && Math.abs(o.x - f.x) < 300) by = Math.max(4, by - 62);
   ctx.fillStyle = '#fffdf6'; ctx.strokeStyle = COL[f.id].ui; ctx.lineWidth = 3;
   rr(ctx, bx, by, w, h, 10); ctx.fill(); ctx.stroke();
   const tx = Math.max(bx+16, Math.min(bx+w-16, f.x));
