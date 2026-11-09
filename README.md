@@ -7,6 +7,7 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 - **Beni Ne Kadar Tanıyorsun?**: 2 kişi. Kendi cevabını ver, arkadaşının cevabını tahmin et. 40 soru.
 - **En Çok Neye Sinir Olur?**: 2 kişi. Önce 1. oyuncunun, sonra 2. oyuncunun sinir noktaları tahmin edilir.
 - **Sen Hangi Tipsin?**: 2-8 kişi. 12 komik soru, 6 tip; herkes birbirinin tipini tahmin eder.
+- **Pati Yarışı**: 2-8 yarışçı, tek ekranda izlenir. Kedi ve köpek misketler parkurda yarışır, eksik kişiyi bilgisayar tamamlar.
 - **Dört Bağla**: 2 kişi. 4 taşı yan yana getiren kazanır.
 - **Amiral Battı**: 2 kişi. Rakibin filosunu ilk batıran kazanır, vurursan tekrar atarsın.
 - **Ati vs Meri**: 2 kişi, gerçek zamanlı ofis dövüşü. Online ya da aynı klavyede. Özel güçler sürpriz.

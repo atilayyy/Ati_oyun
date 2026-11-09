@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pati Yarışı</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.prow{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px 12px;align-items:center;padding:12px;border:1px solid var(--edge);border-radius:14px;background:var(--table)}
+.prow canvas{width:48px;height:48px}
+.prow .ctl{display:flex;flex-direction:column;gap:8px;min-width:0}
+.prow .line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prow input{flex:1 1 140px}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:8px 12px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw button{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.sw button.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--table2)}
+.x{font:inherit;background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:1.3rem;line-height:1;padding:4px 8px}
+.stepper{display:inline-flex;align-items:center;gap:10px}
+.stepper button{width:40px;height:40px;border-radius:10px;border:1px solid var(--edge);background:var(--table);color:var(--ink);font:800 1.2rem var(--body);cursor:pointer}
+.stepper b{font-family:var(--display);font-size:1.5rem;min-width:1.5em;text-align:center;font-variant-numeric:tabular-nums}
+#stage{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--edge);background:#0f1430}
+#cv{display:block;width:100%;touch-action:pan-y}
+.ov{position:absolute;display:flex;flex-direction:column;gap:6px}
+#board{top:10px;left:10px;background:rgba(15,20,48,.78);border:1px solid var(--edge);border-radius:12px;padding:8px;min-width:150px;max-width:46%;backdrop-filter:blur(4px)}
+#board .r{display:grid;grid-template-columns:1.4em 14px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:.85rem;font-weight:700;cursor:pointer;border-radius:6px;padding:2px 4px}
+#board .r:hover,#board .r.f{background:rgba(255,255,255,.08)}
+#board .r i{width:12px;height:12px;border-radius:50%}
+#board .r span:nth-child(3){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#board .r small{color:var(--muted);font-variant-numeric:tabular-nums}
+#tools{top:10px;right:34px;align-items:flex-end}
+#tools .row{gap:6px}
+.chipbtn{font:inherit;font-weight:800;font-size:.85rem;padding:6px 10px;border-radius:999px;border:1px solid var(--edge);background:rgba(15,20,48,.78);color:var(--ink);cursor:pointer}
+.chipbtn.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
+#clock{font-family:var(--display);font-weight:800;font-size:1.1rem;font-variant-numeric:tabular-nums;background:rgba(15,20,48,.78);border:1px solid var(--edge);border-radius:999px;padding:4px 12px}
+@media (max-width:520px){#board{font-size:.8rem;min-width:0;max-width:52%} #board .r{font-size:.78rem}}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end;text-align:center}
+.pod{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.pod canvas{width:64px;height:64px}
+.pod .blk{width:100%;border-radius:12px 12px 0 0;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.8rem;color:var(--accentink)}
+.pod .nm{font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod small{color:var(--muted);font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:7px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+td .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Pati Yarışı</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script src="course.js"></script>
+<script>
+const app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const COLORS = ['#ff8a3d', '#ffd23f', '#5fd38a', '#4fc3f7', '#b49cff', '#ff6b9e', '#f2f3fb', '#a1775f'];
+const BOT = { kedi: ['Tekir', 'Pamuk', 'Minnoş', 'Boncuk', 'Duman', 'Şeker', 'Mırmır'], kopek: ['Karabaş', 'Çomar', 'Paşa', 'Zeytin', 'Fındık', 'Kömür', 'Haydut'] };
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d } catch (e) { return d } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} } };
+
+let setup = store.get('pati_setup', { humans: [{ name: 'Ati', animal: 'kedi', color: 0 }, { name: '', animal: 'kopek', color: 3 }], bots: 2 });
+let series = store.get('pati_series', {});
+let sound = store.get('pati_sound', true);
+
+/* ---------- çizim: misket karakterleri ---------- */
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255;
+  const t = f < 0 ? 0 : 255, p = Math.abs(f);
+  r = Math.round((t - r) * p + r); g = Math.round((t - g) * p + g); b = Math.round((t - b) * p + b);
+  return `rgb(${r},${g},${b})`;
+}
+function drawPet(ctx, x, y, r, ang, color, animal) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  const dark = shade(color, -0.35);
+  // kulaklar (arkada)
+  if (animal === 'kedi') {
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(s * r * 0.25, -r * 0.8); ctx.lineTo(s * r * 0.95, -r * 1.25); ctx.lineTo(s * r * 0.9, -r * 0.35); ctx.closePath();
+      ctx.fillStyle = dark; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(s * r * 0.42, -r * 0.78); ctx.lineTo(s * r * 0.86, -r * 1.08); ctx.lineTo(s * r * 0.82, -r * 0.5); ctx.closePath();
+      ctx.fillStyle = '#ffb3c7'; ctx.fill();
+    }
+  }
+  // gövde
+  const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
+  g.addColorStop(0, shade(color, 0.45)); g.addColorStop(0.6, color); g.addColorStop(1, dark);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  if (animal === 'kopek') {
+    // sarkık kulaklar
+    for (const s of [-1, 1]) {
+      ctx.save(); ctx.translate(s * r * 0.82, -r * 0.15); ctx.rotate(s * 0.35);
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.32, r * 0.62, 0, 0, Math.PI * 2); ctx.fillStyle = dark; ctx.fill(); ctx.restore();
+    }
+    // ağız bölgesi
+    ctx.beginPath(); ctx.ellipse(0, r * 0.38, r * 0.42, r * 0.3, 0, 0, Math.PI * 2); ctx.fillStyle = shade(color, 0.55); ctx.fill();
+  }
+  // gözler
+  for (const s of [-1, 1]) {
+    ctx.beginPath(); ctx.ellipse(s * r * 0.36, -r * 0.12, r * 0.16, r * 0.21, 0, 0, Math.PI * 2); ctx.fillStyle = '#1b1f33'; ctx.fill();
+    ctx.beginPath(); ctx.arc(s * r * 0.36 + r * 0.05, -r * 0.2, r * 0.06, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  }
+  if (animal === 'kedi') {
+    ctx.beginPath(); ctx.moveTo(-r * 0.1, r * 0.17); ctx.lineTo(r * 0.1, r * 0.17); ctx.lineTo(0, r * 0.3); ctx.closePath(); ctx.fillStyle = '#ff7aa2'; ctx.fill();
+    ctx.strokeStyle = 'rgba(27,31,51,.55)'; ctx.lineWidth = Math.max(1, r * 0.06);
+    for (const s of [-1, 1]) for (const k of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(s * r * 0.25, r * 0.3); ctx.lineTo(s * r * 0.85, r * (0.25 + k * 0.14)); ctx.stroke() }
+  } else {
+    ctx.beginPath(); ctx.ellipse(0, r * 0.22, r * 0.17, r * 0.12, 0, 0, Math.PI * 2); ctx.fillStyle = '#1b1f33'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, r * 0.6, r * 0.12, r * 0.16, 0, 0, Math.PI); ctx.fillStyle = '#ff6b8a'; ctx.fill();
+  }
+  ctx.restore();
+}
+function avatar(cv, color, animal) {
+  const d = 2, s = cv.clientWidth || 48; cv.width = s * d; cv.height = s * d;
+  const c = cv.getContext('2d'); c.scale(d, d); c.clearRect(0, 0, s, s); drawPet(c, s / 2, s / 2 + s * 0.06, s * 0.33, 0, color, animal);
+}
+
+/* ---------- kurulum ekranı ---------- */
+function total() { return setup.humans.length + setup.bots }
+function showSetup() {
+  stopRace();
+  const canAdd = total() < 8;
+  app.innerHTML = `<section class="panel">
+    <h2>Yarışçılar</h2>
+    <div class="label">Oyuncular</div>
+    <div id="rows" style="display:flex;flex-direction:column;gap:10px">${setup.humans.map((h, i) => `
+      <div class="prow"><canvas data-av="${i}"></canvas><div class="ctl">
+        <div class="line"><input id="nm${i}" maxlength="12" placeholder="Adın" value="${esc(h.name)}" data-i="${i}">
+          <span class="seg"><button data-an="kedi" data-i="${i}" class="${h.animal === 'kedi' ? 'on' : ''}">Kedi</button><button data-an="kopek" data-i="${i}" class="${h.animal === 'kopek' ? 'on' : ''}">Köpek</button></span>
+          ${setup.humans.length > 1 ? `<button class="x" data-rm="${i}" aria-label="Oyuncuyu çıkar">×</button>` : ''}</div>
+        <div class="sw">${COLORS.map((c, k) => `<button style="background:${c}" class="${h.color === k ? 'on' : ''}" data-col="${k}" data-i="${i}" aria-label="Renk ${k + 1}"></button>`).join('')}</div>
+      </div></div>`).join('')}</div>
+    <button class="btn ghost" id="add" ${canAdd ? '' : 'disabled'}>+ Oyuncu ekle</button>
+    <div class="row" style="justify-content:space-between">
+      <div><div class="label">Bilgisayar</div><p class="muted" style="font-size:.9rem">Kedi ve köpekler rastgele gelir</p></div>
+      <div class="stepper"><button id="bm" aria-label="Azalt">−</button><b>${setup.bots}</b><button id="bp" aria-label="Artır" ${canAdd ? '' : 'disabled'}>+</button></div>
+    </div>
+    <p class="muted">Toplam ${total()} yarışçı (en az 2, en fazla 8).</p>
+    <button class="btn" id="go" ${total() < 2 ? 'disabled' : ''}>Yarışı başlat</button>
+  </section>
+  ${seriesHtml()}
+  <section class="panel"><p class="muted">Misketler parkurdan aşağı yuvarlanır: çivi ormanı, zikzak rampalar, dönen değirmenler, bumperlar ve delikler. Kimin kazanacağı tamamen şans. Arkanıza yaslanıp izleyin.</p></section>`;
+  app.querySelectorAll('[data-av]').forEach(cv => { const h = setup.humans[+cv.dataset.av]; avatar(cv, COLORS[h.color], h.animal) });
+  app.querySelectorAll('input[data-i]').forEach(inp => inp.oninput = () => { setup.humans[+inp.dataset.i].name = inp.value; save() });
+  app.querySelectorAll('[data-an]').forEach(b => b.onclick = () => { setup.humans[+b.dataset.i].animal = b.dataset.an; save(); showSetup() });
+  app.querySelectorAll('[data-col]').forEach(b => b.onclick = () => { setup.humans[+b.dataset.i].color = +b.dataset.col; save(); showSetup() });
+  app.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { setup.humans.splice(+b.dataset.rm, 1); save(); showSetup() });
+  app.querySelector('#add').onclick = () => { const used = setup.humans.map(h => h.color); setup.humans.push({ name: '', animal: Math.random() < .5 ? 'kedi' : 'kopek', color: [0, 1, 2, 3, 4, 5, 6, 7].find(c => !used.includes(c)) ?? 0 }); save(); showSetup() };
+  app.querySelector('#bm').onclick = () => { setup.bots = Math.max(0, setup.bots - 1); save(); showSetup() };
+  app.querySelector('#bp').onclick = () => { if (total() < 8) setup.bots++; save(); showSetup() };
+  app.querySelector('#go').onclick = () => startRace();
+  const reset = app.querySelector('#sreset'); if (reset) reset.onclick = () => { series = {}; store.set('pati_series', series); showSetup() };
+}
+function save() { store.set('pati_setup', setup) }
+function seriesHtml() {
+  const rows = Object.entries(series).sort((a, b) => b[1].w - a[1].w || b[1].p - a[1].p);
+  if (!rows.length) return '';
+  return `<section class="panel"><div class="row" style="justify-content:space-between"><h3>Seri tablosu</h3><button class="btn ghost small" id="sreset">Sıfırla</button></div>
+    <table><thead><tr><th>Yarışçı</th><th class="n">Birincilik</th><th class="n">Podyum</th></tr></thead>
+    <tbody>${rows.map(([n, s]) => `<tr><td><span class="dot" style="background:${s.c}"></span>${esc(n)}</td><td class="n">${s.w}</td><td class="n">${s.p}</td></tr>`).join('')}</tbody></table></section>`;
+}
+function buildRacers() {
+  const list = setup.humans.map((h, i) => ({ id: 'h' + i, name: h.name.trim() || ('Oyuncu ' + (i + 1)), animal: h.animal, color: COLORS[h.color], human: true }));
+  const used = new Set(setup.humans.map(h => h.color)), usedNames = new Set(list.map(r => r.name));
+  for (let i = 0; i < setup.bots; i++) {
+    const animal = Math.random() < .5 ? 'kedi' : 'kopek';
+    const pool = BOT[animal].filter(n => !usedNames.has(n)); const name = pool[Math.floor(Math.random() * pool.length)] || ('Bot ' + (i + 1)); usedNames.add(name);
+    let c = [0, 1, 2, 3, 4, 5, 6, 7].find(k => !used.has(k)); if (c === undefined) c = Math.floor(Math.random() * 8); used.add(c);
+    list.push({ id: 'b' + i, name, animal, color: COLORS[c], human: false });
+  }
+  return list;
+}
+
+/* ---------- ses ---------- */
+let actx = null, lastBump = 0;
+function beep(f, d = 0.12, type = 'sine', vol = 0.15) {
+  if (!sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+    o.type = type; o.frequency.value = f; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + d);
+  } catch (e) {}
+}
+
+/* ---------- yarış ---------- */
+let race = null, raf = 0;
+function stopRace() { cancelAnimationFrame(raf); raf = 0; race = null; window.removeEventListener('resize', fit) }
+function startRace(same) {
+  stopRace();
+  const racers = same || buildRacers();
+  const course = PatiCourse.create(Matter, (Math.random() * 1e9) | 0, racers);
+  race = { course, racers, speed: store.get('pati_speed', 1), follow: null, camY: 0, acc: 0, last: 0, phase: 'count', cd: 3600, slow: 0, confetti: [], stars: [], done: false, banner: null, bannerT: 0, finishedAt: 0 };
+  for (let i = 0; i < 90; i++) race.stars.push({ x: Math.random(), y: Math.random() * course.H, r: Math.random() * 1.6 + 0.3, a: Math.random() * 0.5 + 0.15 });
+  course.st.onBump = () => { const n = performance.now(); if (n - lastBump > 70) { lastBump = n; beep(320 + Math.random() * 380, 0.07, 'triangle', 0.06) } };
+  course.st.onFinish = (m, place) => {
+    beep(place === 1 ? 988 : 660, 0.22, 'sine', 0.14); if (place === 1) setTimeout(() => beep(1319, 0.3, 'sine', 0.14), 120);
+    if (place === 1) { race.slow = 1400; burst(m.body.position.x, course.FINISH) }
+  };
+  app.innerHTML = `<div id="stage"><canvas id="cv"></canvas>
+    <div class="ov" id="board"></div>
+    <div class="ov" id="tools"><span id="clock">0.0</span>
+      <div class="row"><button class="chipbtn" data-sp="1">1x</button><button class="chipbtn" data-sp="2">2x</button><button class="chipbtn" data-sp="3">3x</button></div>
+      <div class="row"><button class="chipbtn" id="lead">Lideri izle</button><button class="chipbtn" id="snd">${sound ? 'Ses açık' : 'Ses kapalı'}</button></div>
+    </div></div>
+    <div class="row" style="justify-content:space-between"><button class="btn ghost small" id="back">Yarışçıları değiştir</button><span class="muted" style="font-size:.9rem">Bir ismin üstüne dokunursan o misketi takip edersin.</span></div>`;
+  const tools = () => app.querySelectorAll('[data-sp]').forEach(b => b.classList.toggle('on', +b.dataset.sp === race.speed));
+  app.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { race.speed = +b.dataset.sp; store.set('pati_speed', race.speed); tools() }); tools();
+  app.querySelector('#lead').onclick = () => { race.follow = null; drawBoard(true) };
+  app.querySelector('#snd').onclick = e => { sound = !sound; store.set('pati_sound', sound); e.target.textContent = sound ? 'Ses açık' : 'Ses kapalı' };
+  app.querySelector('#back').onclick = showSetup;
+  app.querySelector('#board').onclick = e => { const r = e.target.closest('[data-id]'); if (r) { race.follow = r.dataset.id; drawBoard(true) } };
+  fit(); window.addEventListener('resize', fit);
+  beep(523, 0.15);
+  race.last = performance.now(); raf = requestAnimationFrame(loop);
+}
+function fit() {
+  if (!race) return;
+  const cv = document.getElementById('cv'); if (!cv) return;
+  const w = cv.parentElement.clientWidth, h = Math.max(420, Math.min(window.innerHeight - 150, 900));
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+  race.vw = w; race.vh = h; race.dpr = d;
+  race.scale = Math.min(w / 630, 1.25);
+}
+function burst(x, y) {
+  for (let i = 0; i < 90; i++) race.confetti.push({ x, y, vx: (Math.random() - 0.5) * 9, vy: -Math.random() * 9 - 2, c: COLORS[i % 8], life: 1, r: Math.random() * Math.PI });
+}
+
+function loop(now) {
+  if (!race) return;
+  const c = race.course;
+  let dt = Math.min(now - race.last, 50); race.last = now;
+  if (race.phase === 'count') {
+    const before = Math.ceil(race.cd / 1200); race.cd -= dt * Math.max(1, race.speed * 0.6);
+    const after = Math.ceil(race.cd / 1200);
+    if (after !== before && after > 0) beep(523, 0.15);
+    if (race.cd <= 0) { race.phase = 'run'; c.open(); beep(1047, 0.3, 'square', 0.08); race.banner = 'BAŞLA!'; race.bannerT = 900 }
+  }
+  let ts = race.speed;
+  if (race.slow > 0) { race.slow -= dt; ts *= 0.35 }
+  race.acc += dt * ts;
+  let n = 0; const STEP = 1000 / 120;
+  while (race.acc >= STEP && n < 40) { c.step(STEP); race.acc -= STEP; n++ }
+  if (n >= 40) race.acc = 0;
+  // bölüm afişleri
+  const lead = c.ranking()[0];
+  if (lead && race.phase === 'run') {
+    const sec = c.SECTIONS.filter(s => lead.body.position.y > s.y).pop();
+    if (sec && sec !== race.sec) { race.sec = sec; race.banner = sec.t; race.bannerT = 1400 }
+  }
+  if (race.bannerT > 0) race.bannerT -= dt;
+  for (const b of c.shapes) if (b.flash) b.flash = Math.max(0, b.flash - dt / 250);
+  for (const m of c.marbles) { m.trail.push([m.body.position.x, m.body.position.y]); if (m.trail.length > 9) m.trail.shift() }
+  for (const p of race.confetti) { p.x += p.vx * dt / 16; p.y += p.vy * dt / 16; p.vy += 0.25 * dt / 16; p.r += 0.1; p.life -= dt / 2600 }
+  race.confetti = race.confetti.filter(p => p.life > 0);
+  // kamera
+  const target = race.follow ? c.marbles.find(m => m.id === race.follow) : c.ranking().find(m => !m.done) || lead;
+  const viewH = race.vh / race.scale;
+  let ty = race.phase === 'count' ? viewH / 2 - 20 : (target ? target.body.position.y + viewH * 0.12 : race.camY);
+  ty = Math.max(viewH / 2 - 30, Math.min(c.H - viewH / 2 + 30, ty));
+  race.camY += (ty - race.camY) * Math.min(1, dt * Math.max(1, ts) / 140);
+  render();
+  if (!race.boardT || now - race.boardT > 120) { race.boardT = now; drawBoard() }
+  if (!race.done && c.over()) { race.done = true; race.finishedAt = now; recordSeries() }
+  if (race.done && now - race.finishedAt > 2200) { showResults(); return }
+  raf = requestAnimationFrame(loop);
+}
+
+function render() {
+  const cv = document.getElementById('cv'); if (!cv) return;
+  const ctx = cv.getContext('2d'), c = race.course, s = race.scale, d = race.dpr;
+  const vw = race.vw, vh = race.vh, ox = (vw - c.W * s) / 2, top = race.camY - vh / 2 / s;
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  // arka plan: derinlikle renk değişir
+  const k = Math.min(1, Math.max(0, race.camY / c.H));
+  const bg = ctx.createLinearGradient(0, 0, 0, vh);
+  bg.addColorStop(0, `hsl(${230 - k * 40},45%,${13 + k * 3}%)`); bg.addColorStop(1, `hsl(${250 - k * 40},50%,${9 + k * 3}%)`);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, vw, vh);
+  ctx.setTransform(d * s, 0, 0, d * s, d * ox, -d * s * top);
+  // yıldızlar (paralaks)
+  for (const st of race.stars) {
+    const yy = st.y * 0.6 + top * 0.4; if (yy < top - 10 || yy > top + vh / s + 10) continue;
+    ctx.globalAlpha = st.a; ctx.fillStyle = '#c9d3ff'; ctx.beginPath(); ctx.arc(st.x * c.W, yy, st.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // parkur zemini
+  ctx.fillStyle = 'rgba(255,255,255,0.025)'; ctx.fillRect(0, top, c.W, vh / s);
+  // bölüm yazıları
+  ctx.textAlign = 'center'; ctx.font = '800 54px "Bricolage Grotesque", system-ui';
+  for (const sec of c.SECTIONS) { if (sec.y < top - 80 || sec.y > top + vh / s + 80) continue; ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillText(sec.t.toLocaleUpperCase('tr'), c.W / 2, sec.y + 40) }
+  // varış çizgisi
+  const fy = c.FINISH;
+  if (fy > top - 40 && fy < top + vh / s + 40) {
+    const cs = 15;
+    for (let i = 0; i < c.W / cs; i++) for (let j = 0; j < 2; j++) { ctx.fillStyle = (i + j) % 2 ? '#1b1f33' : '#f2f3fb'; ctx.fillRect(i * cs, fy - cs + j * cs, cs, cs) }
+    ctx.font = '800 26px "Bricolage Grotesque", system-ui'; ctx.fillStyle = '#ffc83d'; ctx.fillText('FİNİŞ', c.W / 2, fy - 26);
+  }
+  // havuz zemini parıltısı
+  if (c.H - 60 < top + vh / s) { const g = ctx.createLinearGradient(0, c.H - 260, 0, c.H - 40); g.addColorStop(0, 'rgba(255,200,61,0)'); g.addColorStop(1, 'rgba(255,200,61,.12)'); ctx.fillStyle = g; ctx.fillRect(0, c.H - 260, c.W, 220) }
+  // statik parçalar
+  const vis = b => b.position.y > top - 200 && b.position.y < top + vh / s + 200;
+  for (const b of c.shapes) {
+    if (b.removed || !vis(b)) continue;
+    if (b.kind === 'peg') { ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.r, 0, Math.PI * 2); ctx.fillStyle = '#ffc83d'; ctx.fill(); ctx.beginPath(); ctx.arc(b.position.x - 2, b.position.y - 2, b.r * 0.35, 0, Math.PI * 2); ctx.fillStyle = '#fff3c4'; ctx.fill(); continue }
+    if (b.kind === 'hub') { ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.r, 0, Math.PI * 2); ctx.fillStyle = '#f2f3fb'; ctx.fill(); continue }
+    if (b.kind === 'bumper') {
+      const f = b.flash || 0;
+      ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.r + 6 + f * 6, 0, Math.PI * 2); ctx.fillStyle = `rgba(95,211,138,${0.18 + f * 0.5})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.r, 0, Math.PI * 2); ctx.fillStyle = f > 0.1 ? '#e9fff0' : '#5fd38a'; ctx.fill();
+      ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.r * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#2b8a3e'; ctx.fill(); continue;
+    }
+    if (b.kind === 'wall' || b.kind === 'floor') continue;
+    ctx.save(); ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
+    const w = b.w, h = b.h, rr = Math.min(h / 2, 8);
+    const col = { ramp: ['#7aa2ff', '#4b6fd6'], ramp2: ['#c4adff', '#8a6be0'], spin: ['#ff8fab', '#e0527a'], gate: ['#ff6b6b', '#b23a3a'] }[b.kind] || ['#7aa2ff', '#4b6fd6'];
+    const g = ctx.createLinearGradient(0, -h / 2, 0, h / 2); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-w / 2, -h / 2, w, h, rr) : ctx.rect(-w / 2, -h / 2, w, h); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(-w / 2 + rr, -h / 2 + 2, w - rr * 2, 2);
+    if (b.kind === 'gate') { ctx.fillStyle = '#ffd23f'; for (let x = -w / 2; x < w / 2; x += 40) ctx.fillRect(x, -h / 2, 20, h) }
+    ctx.restore();
+  }
+  // delik uyarıları
+  for (const hl of c.holes) {
+    const [x, y] = hl.p; if (y < top - 50 || y > top + vh / s + 50) continue;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(hl.a);
+    ctx.fillStyle = 'rgba(255,200,61,.9)';
+    for (const sx of [-27, 27]) { ctx.beginPath(); ctx.arc(sx, 0, 4, 0, Math.PI * 2); ctx.fill() }
+    ctx.restore();
+  }
+  // duvarlar
+  for (const x of [-12, c.W]) { const g = ctx.createLinearGradient(x, 0, x + 12, 0); g.addColorStop(0, x < 0 ? '#1d2550' : '#3c4a8a'); g.addColorStop(1, x < 0 ? '#3c4a8a' : '#1d2550'); ctx.fillStyle = g; ctx.fillRect(x, top - 10, 12, vh / s + 20) }
+  ctx.fillStyle = '#2c3664'; ctx.fillRect(-12, c.H - 20, c.W + 24, 40);
+  // misketler
+  const rank = c.ranking(), leader = rank[0];
+  for (const m of c.marbles) {
+    const p = m.body.position; if (p.y < top - 60 || p.y > top + vh / s + 60) continue;
+    for (let i = 0; i < m.trail.length - 1; i++) { const [tx, ty] = m.trail[i]; ctx.globalAlpha = (i / m.trail.length) * 0.25; ctx.beginPath(); ctx.arc(tx, ty, c.R * (0.4 + i / m.trail.length * 0.5), 0, Math.PI * 2); ctx.fillStyle = m.color; ctx.fill() }
+    ctx.globalAlpha = 1;
+    if (race.follow === m.id) { ctx.beginPath(); ctx.arc(p.x, p.y, c.R + 7, 0, Math.PI * 2); ctx.strokeStyle = '#ffc83d'; ctx.lineWidth = 3; ctx.stroke() }
+    drawPet(ctx, p.x, p.y, c.R, m.body.angle, m.color, m.animal);
+  }
+  // isim etiketleri
+  ctx.font = '800 11px Nunito, system-ui'; ctx.textAlign = 'center';
+  for (const m of c.marbles) {
+    const p = m.body.position; if (p.y < top - 60 || p.y > top + vh / s + 60) continue;
+    const place = m.done ? c.st.order.indexOf(m) + 1 : 0;
+    const txt = (place ? place + '. ' : '') + m.name, tw = ctx.measureText(txt).width + 10, ly = p.y - c.R - 22;
+    ctx.fillStyle = m === leader && race.phase === 'run' ? 'rgba(255,200,61,.95)' : 'rgba(15,20,48,.8)';
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(p.x - tw / 2, ly - 8, tw, 16, 8) : ctx.rect(p.x - tw / 2, ly - 8, tw, 16); ctx.fill();
+    ctx.fillStyle = m === leader && race.phase === 'run' ? '#221a00' : '#f2f3fb'; ctx.fillText(txt, p.x, ly + 4);
+    if (m === leader && race.phase === 'run') { // taç
+      ctx.fillStyle = '#ffc83d'; ctx.beginPath(); const cx = p.x, cy = ly - 12;
+      ctx.moveTo(cx - 8, cy + 3); ctx.lineTo(cx - 8, cy - 4); ctx.lineTo(cx - 4, cy); ctx.lineTo(cx, cy - 6); ctx.lineTo(cx + 4, cy); ctx.lineTo(cx + 8, cy - 4); ctx.lineTo(cx + 8, cy + 3); ctx.closePath(); ctx.fill();
+    }
+  }
+  // konfeti
+  for (const p of race.confetti) { ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-4, -2, 8, 4); ctx.restore() }
+  ctx.globalAlpha = 1;
+  // ekran katmanı: mini harita, geri sayım, afiş
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  const mx = vw - 16, my0 = 14, mh = vh - 28;
+  ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(mx - 4, my0, 8, mh, 4) : ctx.rect(mx - 4, my0, 8, mh); ctx.fill();
+  const fyM = my0 + mh * (c.FINISH / c.H); ctx.fillStyle = '#ffc83d'; ctx.fillRect(mx - 7, fyM - 1, 14, 2);
+  ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(mx - 5, my0 + mh * (top / c.H), 10, mh * (vh / s / c.H));
+  for (const m of c.marbles) { ctx.beginPath(); ctx.arc(mx, my0 + mh * Math.min(1, m.body.position.y / c.H), 4, 0, Math.PI * 2); ctx.fillStyle = m.color; ctx.fill() }
+  ctx.textAlign = 'center';
+  if (race.phase === 'count') {
+    const n = Math.ceil(race.cd / 1200), f = (race.cd % 1200) / 1200;
+    ctx.font = `800 ${Math.round(90 + f * 40)}px "Bricolage Grotesque", system-ui`; ctx.fillStyle = `rgba(255,200,61,${0.4 + f * 0.6})`;
+    ctx.fillText(String(n), vw / 2, vh / 2 + 30);
+    ctx.font = '800 18px Nunito, system-ui'; ctx.fillStyle = '#f2f3fb'; ctx.fillText('Hazır olun...', vw / 2, vh / 2 + 70);
+  } else if (race.bannerT > 0 && race.banner) {
+    const a = Math.min(1, race.bannerT / 400);
+    ctx.font = '800 34px "Bricolage Grotesque", system-ui'; const tw = ctx.measureText(race.banner).width + 40;
+    ctx.globalAlpha = a; ctx.fillStyle = 'rgba(255,200,61,.95)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(vw / 2 - tw / 2, vh - 90, tw, 52, 26) : ctx.rect(vw / 2 - tw / 2, vh - 90, tw, 52); ctx.fill();
+    ctx.fillStyle = '#221a00'; ctx.fillText(race.banner, vw / 2, vh - 52); ctx.globalAlpha = 1;
+  }
+  if (race.done) { ctx.font = '800 40px "Bricolage Grotesque", system-ui'; ctx.fillStyle = '#ffc83d'; ctx.fillText('Yarış bitti!', vw / 2, vh / 2) }
+}
+
+function fmt(ms) { return (ms / 1000).toFixed(1) }
+function drawBoard(force) {
+  const el = document.getElementById('board'); if (!el || !race) return;
+  const c = race.course, rank = c.ranking();
+  el.innerHTML = rank.map((m, i) => `<div class="r ${race.follow === m.id ? 'f' : ''}" data-id="${esc(m.id)}"><b>${i + 1}</b><i style="background:${m.color}"></i><span>${esc(m.name)}</span><small>${m.done ? fmt(m.time) + 's' : ''}</small></div>`).join('');
+  const cl = document.getElementById('clock'); if (cl) cl.textContent = fmt(c.st.t);
+}
+function recordSeries() {
+  const rank = race.course.ranking();
+  rank.forEach((m, i) => { const s = series[m.name] || (series[m.name] = { w: 0, p: 0, c: m.color }); s.c = m.color; if (i === 0) s.w++; if (i < 3) s.p++ });
+  store.set('pati_series', series);
+}
+function showResults() {
+  const racers = race.racers, rank = race.course.ranking(), last = race;
+  stopRace();
+  const top3 = [rank[1], rank[0], rank[2]];
+  const heights = [90, 130, 64], colors = ['#c9d3ff', '#ffc83d', '#e0a070'], places = [2, 1, 3];
+  app.innerHTML = `<section class="panel"><span class="label">Sonuç</span><h2>${esc(rank[0].name)} kazandı!</h2>
+    <div class="podium">${top3.map((m, i) => m ? `<div class="pod"><canvas data-pod="${i}"></canvas><span class="nm">${esc(m.name)}</span><small>${m.done ? fmt(m.time) + ' sn' : 'bitiremedi'}</small>
+      <div class="blk" style="height:${heights[i]}px;background:${colors[i]}">${places[i]}</div></div>` : '<div></div>').join('')}</div>
+    ${rank.length > 3 ? `<table><tbody>${rank.slice(3).map((m, i) => `<tr><td>${i + 4}.</td><td><span class="dot" style="background:${m.color}"></span>${esc(m.name)}${m.human ? '' : ' <span class="muted">(bilgisayar)</span>'}</td><td class="n">${m.done ? fmt(m.time) + ' sn' : 'bitiremedi'}</td></tr>`).join('')}</tbody></table>` : ''}
+    <div class="row"><button class="btn" id="again">Tekrar yarış</button><button class="btn ghost" id="edit">Yarışçıları değiştir</button></div></section>
+    ${seriesHtml()}`;
+  app.querySelectorAll('[data-pod]').forEach(cv => { const m = top3[+cv.dataset.pod]; avatar(cv, m.color, m.animal) });
+  app.querySelector('#again').onclick = () => startRace(racers.map(r => ({ id: r.id, name: r.name, animal: r.animal, color: r.color, human: r.human })));
+  app.querySelector('#edit').onclick = showSetup;
+  const reset = app.querySelector('#sreset'); if (reset) reset.onclick = () => { series = {}; store.set('pati_series', series); reset.closest('section').remove() };
+}
+if (typeof Matter === 'undefined') app.innerHTML = '<section class="panel"><p class="err">Fizik kütüphanesi yüklenemedi. İnternetini kontrol edip sayfayı yenile.</p></section>';
+else showSetup();
+</script>
+</body>
+</html>
