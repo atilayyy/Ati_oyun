@@ -41,7 +41,7 @@ const Board3D = (() => {
       const fin = box(0.08, 0.03, 0.5, bodyM, -0.15, 0.48, 0); g.add(fin);
       g.add(cyl(0.015, 0.015, 0.3, darkM, -0.25, 0.7, 0, 6));
       g.add(box(0.18, 0.03, 0.5, bodyM, (len - 0.7) / 2 + 0.15, 0.12, 0));
-      g.userData.base = -0.07; return g;
+      g.userData.base = -0.07; g.traverse(m => { if (m.isMesh) m.castShadow = true }); return g;
     }
     const w = name === 'Uçak gemisi' ? 0.36 : name === 'Muhrip' ? 0.24 : 0.3;
     const hull = new THREE.Mesh(hullGeo(len, w, 0.3), hullM); g.add(hull);
@@ -73,6 +73,7 @@ const Board3D = (() => {
       g.add(cyl(0.06, 0.07, 0.2, darkM, 0.4, 0.45, 0)); turret(g, supM, darkM, -0.5, 0.33, -1);
     }
     g.userData.base = -0.12;
+    g.traverse(m => { if (m.isMesh) m.castShadow = true });
     return g;
   }
 
@@ -92,15 +93,18 @@ const Board3D = (() => {
     renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:manipulation;border-radius:12px';
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#0f1430'); scene.fog = new THREE.Fog('#0f1430', 18, 30);
     const cam = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
-    scene.add(new THREE.HemisphereLight('#c7dbff', '#0b1a33', 0.7));
-    const sun = new THREE.DirectionalLight('#fff1d6', 1.0); sun.position.set(-6, 10, 5); scene.add(sun);
+    scene.add(new THREE.HemisphereLight('#c7dbff', '#0b1a33', 0.55));
+    const sun = new THREE.DirectionalLight('#fff1d6', 1.0); sun.position.set(-8, 9, -6); scene.add(sun);
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.002;
+    Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
     const rim = new THREE.DirectionalLight('#7aa2ff', 0.35); rim.position.set(6, 4, -6); scene.add(rim);
 
     // deniz tabanı + su
     const bed = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({ color: '#06162c' })); bed.rotation.x = -Math.PI / 2; bed.position.y = -0.7; scene.add(bed);
     const waterG = new THREE.PlaneGeometry(10, 10, 44, 44); waterG.rotateX(-Math.PI / 2);
-    const water = new THREE.Mesh(waterG, new THREE.MeshPhongMaterial({ color: '#145a9e', specular: '#bfe0ff', shininess: 90, transparent: true, opacity: 0.9 }));
-    scene.add(water);
+    const water = new THREE.Mesh(waterG, new THREE.MeshPhongMaterial({ color: '#1765ad', specular: '#1d3d5e', shininess: 60, transparent: true, opacity: 0.94 }));
+    water.receiveShadow = true; scene.add(water);
     const wp = waterG.attributes.position, base = Float32Array.from(wp.array);
     // rıhtım çerçevesi
     const frameM = std('#2c3664', { roughness: 0.8, metalness: 0.1 }), edgeM = std('#ffc83d', { roughness: 0.5 });
@@ -125,7 +129,7 @@ const Board3D = (() => {
 
     // kamerayı tahtanın tamamı (çerçeve dahil) ekrana sığacak kadar uzaklaştır
     const corners = [[-5.8, 0, -5.8], [5.8, 0, -5.8], [-5.8, 0, 5.8], [5.8, 0, 5.8], [-5.8, 0.3, -5.8], [5.8, 0.3, -5.8]].map(p => new THREE.Vector3(...p));
-    const dir = new THREE.Vector3(0, 0.82, 0.57).normalize(), look = new THREE.Vector3(0, 0, 0.25);
+    const dir = new THREE.Vector3(0, 1, 0.16).normalize(), look = new THREE.Vector3(0, 0, 0.1);
     function frame() {
       let lo = 6, hi = 60;
       for (let i = 0; i < 22; i++) {
@@ -138,7 +142,7 @@ const Board3D = (() => {
     function resize() {
       const w = el.clientWidth, h = el.clientHeight; if (!w || !h || (w === sz[0] && h === sz[1])) return;
       sz = [w, h]; renderer.setSize(w, h, false); cam.aspect = w / h; cam.fov = 38;
-      dir.set(0, w < 520 ? 0.9 : 0.82, w < 520 ? 0.44 : 0.57).normalize(); frame();
+      dir.set(0, 1, 0.16).normalize(); frame();
     }
     const ro = window.ResizeObserver ? new ResizeObserver(resize) : null; ro && ro.observe(el); resize();
 
@@ -166,10 +170,11 @@ const Board3D = (() => {
     }
     function addFire(x, z) {
       const g = new THREE.Group(); g.position.set(x, 0.2, z);
-      const f1 = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.42, 10), new THREE.MeshBasicMaterial({ color: '#ff7a1a' }));
-      const f2 = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 10), new THREE.MeshBasicMaterial({ color: '#ffd23f' }));
+      const glow = new THREE.Mesh(new THREE.CircleGeometry(0.36, 24), new THREE.MeshBasicMaterial({ color: '#ff6a2a', transparent: true, opacity: 0.55, depthWrite: false })); glow.rotation.x = -Math.PI / 2; glow.position.y = -0.1; g.add(glow);
+      const f1 = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.42, 10), new THREE.MeshBasicMaterial({ color: '#ff7a1a' }));
+      const f2 = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.3, 10), new THREE.MeshBasicMaterial({ color: '#ffd23f' }));
       f1.position.y = 0.2; f2.position.y = 0.17; g.add(f1, f2);
-      fires.push({ f1, f2, ph: Math.random() * 6 });
+      fires.push({ f1, f2, glow, ph: Math.random() * 6 });
       for (let i = 0; i < 3; i++) {
         const sm = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: '#5b6378', transparent: true, opacity: 0.4, depthWrite: false }));
         g.add(sm); smokes.push({ m: sm, ph: i / 3 + Math.random() * 0.2 });
@@ -272,7 +277,7 @@ const Board3D = (() => {
         wp.needsUpdate = true; waterG.computeVertexNormals();
         for (const o of shipLayer.children) { const p = o.userData.phase; o.position.y = o.userData.base + Math.sin(t * 1.6 + p) * 0.025; o.rotation.x = (o.userData.sunk ? 0.2 : 0) + Math.sin(t * 1.2 + p) * 0.025 }
         if (ghost) ghost.position.y = -0.1 + Math.sin(t * 3) * 0.03;
-        for (const f of fires) { const k = 1 + Math.sin(t * 13 + f.ph) * 0.25; f.f1.scale.set(1, k, 1); f.f2.scale.set(1, 2 - k, 1) }
+        for (const f of fires) { const k = 1 + Math.sin(t * 13 + f.ph) * 0.25; f.f1.scale.set(1, k, 1); f.f2.scale.set(1, 2 - k, 1); f.glow.material.opacity = 0.4 + (k - 1) * 0.8 }
         for (const s of smokes) { const q = (t * 0.45 + s.ph) % 1; s.m.position.set(Math.sin(t + s.ph * 6) * 0.08, 0.45 + q * 1.1, -q * 0.3); s.m.scale.setScalar(0.6 + q * 1.6); s.m.material.opacity = 0.45 * (1 - q) }
         lastRing.material.opacity = 0.5 + Math.sin(t * 5) * 0.4;
         hov.material.opacity = 0.35 + Math.sin(t * 6) * 0.12;
