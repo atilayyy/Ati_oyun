@@ -86,10 +86,11 @@ let actx = null;
 function boom(hit) {
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-    const t = actx.currentTime, len = hit ? 0.6 : 0.35, buf = actx.createBuffer(1, actx.sampleRate * len, actx.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, hit ? 2 : 3);
+    const big = hit === 'sink'; if (big) hit = true;
+    const t = actx.currentTime, len = big ? 1.6 : hit ? 0.6 : 0.35, buf = actx.createBuffer(1, actx.sampleRate * len, actx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, big ? 1.5 : hit ? 2 : 3);
     const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
-    src.buffer = buf; f.type = 'lowpass'; f.frequency.value = hit ? 500 : 1800; g.gain.value = hit ? 0.5 : 0.25;
+    src.buffer = buf; f.type = 'lowpass'; f.frequency.value = big ? 260 : hit ? 500 : 1800; g.gain.value = big ? 0.9 : hit ? 0.5 : 0.25;
     src.connect(f); f.connect(g); g.connect(actx.destination); src.start(t);
   } catch (e) {}
 }

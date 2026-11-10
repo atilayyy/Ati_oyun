@@ -125,7 +125,8 @@ const Board3D = (() => {
     const shipLayer = new THREE.Group(), markLayer = new THREE.Group(), fxLayer = new THREE.Group(); scene.add(shipLayer, markLayer, fxLayer);
     let ghost = null, ghostKey = '';
     const shipObjs = new Map(), marks = new Map(), fires = [], smokes = [], fx = [];
-    let first = true, state = {}, hover = null, sz = [0, 0];
+    let first = true, state = {}, hover = null, sz = [0, 0], shake = 0;
+    const camBase = new THREE.Vector3();
 
     // kamerayı tahtanın tamamı (çerçeve dahil) ekrana sığacak kadar uzaklaştır
     const corners = [[-5.8, 0, -5.8], [5.8, 0, -5.8], [-5.8, 0, 5.8], [5.8, 0, 5.8], [-5.8, 0.3, -5.8], [5.8, 0.3, -5.8]].map(p => new THREE.Vector3(...p));
@@ -137,7 +138,7 @@ const Board3D = (() => {
         const fits = corners.every(p => { const v = p.clone().project(cam); return Math.abs(v.x) < 0.96 && Math.abs(v.y) < 0.94 });
         fits ? hi = d : lo = d;
       }
-      cam.position.copy(look).addScaledVector(dir, hi); cam.lookAt(look); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+      cam.position.copy(look).addScaledVector(dir, hi); cam.lookAt(look); cam.updateMatrixWorld(); cam.updateProjectionMatrix(); camBase.copy(cam.position);
     }
     function resize() {
       const w = el.clientWidth, h = el.clientHeight; if (!w || !h || (w === sz[0] && h === sz[1])) return;
@@ -161,12 +162,66 @@ const Board3D = (() => {
         o.userData.phase = Math.random() * 6;
         if (s.sunk) {
           o.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.color.multiplyScalar(0.42) } });
-          o.userData.base = (o.userData.base || 0) - 0.26; o.position.y = o.userData.base; o.userData.sunk = true;
-          if (!first) for (const [a, b] of s.cells) splash(a, b, '#ff8a3d', 1.3);
+          o.userData.base = (o.userData.base || 0) - 0.26; o.position.y = o.userData.base; o.userData.sunk = true; o.userData.tilt = 0.2;
+          if (!first) {
+            // batmadan önceki hali (kendi tahtanda görünen gemi) patlamaya kadar kalsın
+            const liveKey = shipKey(Object.assign({}, s, { sunk: false })), old = shipObjs.get(liveKey);
+            if (old) shipObjs.delete(liveKey);
+            sinkFx(o, old, s.cells);
+          }
         }
         shipLayer.add(o); shipObjs.set(key, o);
       }
       for (const [k, o] of shipObjs) if (!keep.has(k)) { shipLayer.remove(o); shipObjs.delete(k) }
+    }
+    /* gemi tamamen bulununca: 1 saniye bekle, sonra her karede sırayla büyük patlama, gemi kararıp batar */
+    function sinkFx(o, old, cells) {
+      const base1 = o.userData.base, base0 = base1 + 0.26, parts = [];
+      o.visible = false; o.userData.base = base0; o.userData.tilt = 0;
+      fx.push({ t0: performance.now() / 1000 + 1.0, dur: 2.6,
+        start() {
+          if (old) shipLayer.remove(old);
+          o.visible = true; shake = 0.45;
+          opts.onBoom && opts.onBoom('sink');
+          cells.forEach(([r, c], i) => parts.push(...blast(X(c), Z(r), i * 0.13)));
+        },
+        step(f, dt, el) {
+          const k = Math.min(1, Math.max(0, (el - 0.25) / 1.8));
+          o.userData.base = base0 - 0.26 * k * k; o.userData.tilt = 0.2 * k;
+          for (const p of parts) p(el, dt);
+        },
+        end() { o.userData.base = base1; o.userData.tilt = 0.2; for (const p of parts) p(99, 0) }
+      });
+    }
+    function blast(x, z, delay) {
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.32, 18, 12), new THREE.MeshBasicMaterial({ color: '#ffe08a', transparent: true, depthWrite: false }));
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false }));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.4, 40), new THREE.MeshBasicMaterial({ color: '#ffd7a0', transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.1, z); ball.position.set(x, 0.35, z); core.position.set(x, 0.4, z);
+      const debris = [];
+      for (let i = 0; i < 9; i++) {
+        const d = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.1), new THREE.MeshBasicMaterial({ color: i % 3 ? '#3a3f55' : '#ff8a3d' }));
+        const a = Math.random() * Math.PI * 2, sp = 1.5 + Math.random() * 2.5;
+        d.userData.v = [Math.cos(a) * sp, 3 + Math.random() * 3, Math.sin(a) * sp]; d.position.set(x, 0.35, z); debris.push(d);
+      }
+      const all = [ball, core, ring, ...debris]; all.forEach(m => { m.visible = false; fxLayer.add(m) });
+      const col = new THREE.Color(), hot = new THREE.Color('#ffe08a'), mid = new THREE.Color('#ff6a1a'), cold = new THREE.Color('#3a2a2a');
+      return [(el, dt) => {
+        const t = el - delay;
+        if (t >= 1.6 || el >= 99) { all.forEach(m => fxLayer.remove(m)); return }
+        if (t < 0) return;
+        all.forEach(m => m.visible = true);
+        const q = Math.min(1, t / 0.7), e = 1 - Math.pow(1 - q, 3);
+        ball.scale.setScalar(0.4 + e * 2.6);
+        col.copy(hot).lerp(mid, Math.min(1, t / 0.35)); if (t > 0.35) col.lerp(cold, Math.min(1, (t - 0.35) / 0.6));
+        ball.material.color.copy(col); ball.material.opacity = Math.max(0, 1 - t / 1.1);
+        core.scale.setScalar(0.5 + t * 4); core.material.opacity = Math.max(0, 1 - t / 0.25);
+        ring.scale.setScalar(1 + t * 11); ring.material.opacity = Math.max(0, 0.9 - t / 0.6);
+        for (const d of debris) {
+          const v = d.userData.v; if (d.position.y <= 0.02 && v[1] < 0) { d.visible = false; continue }
+          v[1] -= 9.8 * dt; d.position.x += v[0] * dt; d.position.y += v[1] * dt; d.position.z += v[2] * dt; d.rotation.x += 8 * dt; d.rotation.z += 6 * dt;
+        }
+      }];
     }
     function addFire(x, z) {
       const g = new THREE.Group(); g.position.set(x, 0.2, z);
@@ -266,6 +321,7 @@ const Board3D = (() => {
         cv.style.cursor = state.clickable || state.ghost ? 'crosshair' : 'default';
         first = false;
       },
+      _dbg() { return { t0: Math.max(0, ...fx.map(e => e.t0)), fx: fx.length, started: fx.filter(e => e.started).length, fxObjs: fxLayer.children.filter(m => m.visible).length, shake: +shake.toFixed(3) } },
       project(r, c) { const v = new THREE.Vector3(X(c), 0.06, Z(r)).project(cam), rc = cv.getBoundingClientRect(); return [rc.left + (v.x + 1) / 2 * rc.width, rc.top + (1 - v.y) / 2 * rc.height] },
       dispose() { live.delete(self); ro && ro.disconnect(); renderer.dispose(); try { renderer.forceContextLoss() } catch (e) {} cv.remove() },
       _frame(t) {
@@ -275,14 +331,15 @@ const Board3D = (() => {
         const a = wp.array;
         for (let i = 0; i < a.length; i += 3) { const x = base[i], z = base[i + 2]; a[i + 1] = Math.sin(x * 1.4 + t * 1.3) * 0.035 + Math.cos(z * 1.2 + t * 1.1) * 0.035 + Math.sin((x + z) * 2.3 + t * 2) * 0.012 }
         wp.needsUpdate = true; waterG.computeVertexNormals();
-        for (const o of shipLayer.children) { const p = o.userData.phase; o.position.y = o.userData.base + Math.sin(t * 1.6 + p) * 0.025; o.rotation.x = (o.userData.sunk ? 0.2 : 0) + Math.sin(t * 1.2 + p) * 0.025 }
+        for (const o of shipLayer.children) { const p = o.userData.phase; o.position.y = o.userData.base + Math.sin(t * 1.6 + p) * 0.025; o.rotation.x = (o.userData.tilt || 0) + Math.sin(t * 1.2 + p) * 0.025 }
+        if (shake > 0.003) { cam.position.set(camBase.x + (Math.random() - 0.5) * shake, camBase.y, camBase.z + (Math.random() - 0.5) * shake); shake *= 0.9 } else if (shake) { shake = 0; cam.position.copy(camBase) }
         if (ghost) ghost.position.y = -0.1 + Math.sin(t * 3) * 0.03;
         for (const f of fires) { const k = 1 + Math.sin(t * 13 + f.ph) * 0.25; f.f1.scale.set(1, k, 1); f.f2.scale.set(1, 2 - k, 1); f.glow.material.opacity = 0.4 + (k - 1) * 0.8 }
         for (const s of smokes) { const q = (t * 0.45 + s.ph) % 1; s.m.position.set(Math.sin(t + s.ph * 6) * 0.08, 0.45 + q * 1.1, -q * 0.3); s.m.scale.setScalar(0.6 + q * 1.6); s.m.material.opacity = 0.45 * (1 - q) }
         lastRing.material.opacity = 0.5 + Math.sin(t * 5) * 0.4;
         hov.material.opacity = 0.35 + Math.sin(t * 6) * 0.12;
         const now = performance.now() / 1000;
-        for (let i = fx.length - 1; i >= 0; i--) { const e = fx[i], f = (now - e.t0) / e.dur; if (f >= 1) { e.end(); fx.splice(i, 1) } else e.step(f, 1 / 60) }
+        for (let i = fx.length - 1; i >= 0; i--) { const e = fx[i]; if (now < e.t0) continue; if (!e.started) { e.started = true; e.start && e.start() } const el = now - e.t0, f = el / e.dur; if (f >= 1) { e.end(); fx.splice(i, 1) } else e.step(f, 1 / 60, el) }
         renderer.render(scene, cam);
       }
     };
