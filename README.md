@@ -8,6 +8,7 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 - **En Çok Neye Sinir Olur?**: 2 kişi. Önce 1. oyuncunun, sonra 2. oyuncunun sinir noktaları tahmin edilir.
 - **Sen Hangi Tipsin?**: 2-8 kişi. 12 komik soru, 6 tip; herkes birbirinin tipini tahmin eder.
 - **Pati Yarışı**: 2-8 yarışçı, tek ekranda izlenir. Kedi ve köpek misketler parkurda yarışır, eksik kişiyi bilgisayar tamamlar.
+- **Karne**: 2 kişi. Birbirinizin sevilen ve sinir bozan yanlarına 1-10 puan verin, kaç alacağınızı tahmin edin; sonunda karne çıkar.
 - **Bilgi Yarışması**: 2-8 kişi, aynı soruya aynı anda cevap, hız bonusu. 7 kategoride 166 soru.
 - **Adam Asmaca**: 2 kişi, sırayla kelime seçip bulma.
 - **Kim Önce Basar**: 2-4 kişi refleks oyunu; tepki süresi her cihazda ölçülür, normal ve kandırmaca modu.

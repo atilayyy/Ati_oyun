@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Karne</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--iyi:#5fd38a;--kotu:#ff8a5c}
+.q{font-family:var(--display);font-weight:800;font-size:clamp(1.4rem,5vw,2rem);line-height:1.2;text-wrap:balance}
+.kind{display:inline-flex;align-self:flex-start;padding:4px 12px;border-radius:999px;font-weight:800;font-size:.85rem;background:color-mix(in srgb,var(--k) 22%,var(--table));color:var(--k)}
+.scale{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
+@media (max-width:520px){.scale{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.scale button{font:800 1.2rem var(--display);height:52px;border-radius:12px;border:2px solid transparent;cursor:pointer;color:#0d1126;background:hsl(calc(var(--i) * 12) 75% 62%)}
+.scale.kotu button{background:hsl(calc(120 - var(--i) * 12) 75% 62%)}
+.scale button:hover:not(:disabled){transform:translateY(-2px)}
+.scale button:disabled{cursor:default;opacity:.35}
+.scale button.sel{opacity:1;border-color:var(--ink);box-shadow:0 0 0 3px var(--table2) inset}
+.ends{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);font-weight:700}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.duo>div{border:1px solid var(--edge);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;background:var(--table)}
+.duo b{font-family:var(--display);font-size:3rem;line-height:1;font-variant-numeric:tabular-nums}
+.custom{display:flex;gap:8px;flex-wrap:wrap}
+.custom input{flex:1 1 220px}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.85rem;padding:8px 12px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.rc{border:1px solid var(--edge);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;background:var(--table2)}
+.rc h3{font-size:1.4rem}
+.line{display:grid;grid-template-columns:minmax(0,1fr) 90px 2.2em;gap:8px;align-items:center;font-size:.9rem}
+.line span:first-child{overflow:hidden;text-overflow:ellipsis}
+.track{height:10px;border-radius:5px;background:var(--edge);overflow:hidden}
+.track i{display:block;height:100%;border-radius:5px;background:var(--k)}
+.line b{text-align:right;font-variant-numeric:tabular-nums}
+.avg{display:flex;gap:10px;flex-wrap:wrap}
+.avg div{flex:1 1 120px;border-radius:12px;padding:10px;background:var(--table);text-align:center}
+.avg b{display:block;font-family:var(--display);font-size:1.8rem;color:var(--k)}
+.meter{display:flex;gap:3px}
+.meter i{flex:1;height:7px;border-radius:4px;background:var(--edge)} .meter i.done{background:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Karne</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let per = 6, V, C, cOpen = false, cText = '', cKind = 'iyi', lastCur = -1;
+const KIND = { iyi: ['Sevdiğim yanı', 'var(--iyi)'], kotu: ['Sinir olduğum yanı', 'var(--kotu)'] };
+
+function scale(kind, sel, disabled, act) {
+  return `<div class="scale ${kind}">${Array.from({ length: 10 }, (_, i) => `<button style="--i:${i}" data-v="${i + 1}" data-act="${act}" class="${sel === i + 1 ? 'sel' : ''}" ${disabled ? 'disabled' : ''}>${i + 1}</button>`).join('')}</div>
+    <div class="ends"><span>${kind === 'iyi' ? 'Hiç değil' : 'Hiç yapmaz'}</span><span>${kind === 'iyi' ? 'Çok fazla' : 'Hep yapar'}</span></div>`;
+}
+function label(t) {
+  let x = String(t).trim().replace(/\?+$/, ''); if (x.startsWith('ne kadar ')) x = x.slice(9);
+  return x.charAt(0).toLocaleUpperCase('tr') + x.slice(1);
+}
+function reportCard(v, i) {
+  const p = v.players[i], qs = v.qs.filter(q => q.subj === i && q.rate !== null && q.rate !== 'x');
+  const part = kind => qs.filter(q => q.kind === kind).sort((a, b) => b.rate - a.rate);
+  const avg = a => a.length ? (a.reduce((x, q) => x + q.rate, 0) / a.length).toFixed(1) : '-';
+  const iyi = part('iyi'), kotu = part('kotu'), other = v.players[1 - i];
+  const rows = (list, k) => list.map(q => `<div class="line" style="--k:${KIND[k][1]}"><span>${esc(label(q.t))}</span><span class="track"><i style="width:${q.rate * 10}%"></i></span><b>${q.rate}</b></div>`).join('');
+  return `<div class="rc"><span class="label">${esc(ek(other.name, 'in'))} gözünden</span><h3>${esc(p.name)}</h3>
+    <div class="avg"><div style="--k:var(--iyi)"><span class="label">Sevilen yanlar</span><b>${avg(iyi)}</b></div><div style="--k:var(--kotu)"><span class="label">Sinir bozan yanlar</span><b>${avg(kotu)}</b></div></div>
+    ${iyi[0] ? `<p><strong>En güçlü yanı:</strong> ${esc(label(iyi[0].t))} (${iyi[0].rate}/10)</p>` : ''}
+    ${kotu[0] ? `<p><strong>En sinir bozucu yanı:</strong> ${esc(label(kotu[0].t))} (${kotu[0].rate}/10)</p>` : ''}
+    <div class="label">Sevdiğim yanları</div>${rows(iyi, 'iyi')}
+    <div class="label">Sinir olduğum yanları</div>${rows(kotu, 'kotu')}
+    <p class="muted">Kendini tanıma puanı: <strong>${p.score}</strong> / ${qs.length * 10}</p></div>`;
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, idx = P.findIndex(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2 kişilik)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${idx < 0 ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `<div class="field"><label class="label" for="per">Kişi başı soru</label>
+        <select id="per">${[4, 6, 8, 10].map(n => `<option value="${n}" ${n === per ? 'selected' : ''}>${n} soru (toplam ${n * 2})</option>`).join('')}</select></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Sorular sırayla birinizle, sonra diğerinizle ilgili gelir: "Ati ne kadar komik?", "Ati ne kadar geç kalır?" gibi. Karşındaki 1'den 10'a puan verir, sen de kaç puan alacağını tahmin edersin. Tahminin ne kadar yakınsa o kadar puan. Soruyu beğenmezsen değiştirebilir ya da kendi sorunu yazabilirsin. Sonunda herkesin karnesi çıkar.</p></section>`;
+    Ati.wireShare(app, ctx);
+    const s = app.querySelector('#per'); if (s) s.onchange = () => per = +s.value;
+    const b = app.querySelector('#start'); if (b) b.onclick = () => ctx.act({ type: 'start', per });
+    return;
+  }
+  if (idx < 0) { app.innerHTML = '<section class="panel"><p class="muted">Oda dolu, izliyorsun.</p></section>'; return }
+  if (v.phase === 'over') {
+    const [a, b] = P;
+    const w = a.score === b.score ? 'İkiniz de kendinizi aynı derecede iyi tanıyorsunuz.' : (a.score > b.score ? a.name : b.name) + ' kendini daha iyi tanıyor.';
+    app.innerHTML = `<section class="panel"><span class="label">Karneler hazır</span><h2>${esc(w)}</h2></section>
+      <section class="cards">${reportCard(v, 0)}${reportCard(v, 1)}</section>
+      <section class="panel"><button class="btn" id="again">Yeni karne</button></section>`;
+    app.querySelector('#again').onclick = () => ctx.act({ type: 'start', per: v.per });
+    return;
+  }
+  const q = v.qs[v.cur], subj = P[q.subj], rater = P[1 - q.subj], iRate = idx === 1 - q.subj;
+  if (v.cur !== lastCur) { lastCur = v.cur; cOpen = false; cText = '' }
+  const done = q.rate !== null && q.guess !== null && q.rate !== 'x' && q.guess !== 'x';
+  const meter = `<div class="meter">${v.qs.map((x, i) => `<i class="${i < v.cur ? 'done' : ''}"></i>`).join('')}</div>`;
+  const head = `<div class="row">${P.map(p => `<span class="pill">${esc(p.name)} · ${p.score}</span>`).join('')}<span class="pill">Soru ${v.cur + 1}/${v.qs.length}</span></div>`;
+  const kind = `<span class="kind" style="--k:${KIND[q.kind][1]}">${KIND[q.kind][0]}${q.custom ? ' · ' + esc(rater.name) + ' yazdı' : ''}</span>`;
+  const title = `<div class="q">${esc(subj.name)} ${esc(q.t)}</div>`;
+  let body;
+  if (done) {
+    body = `${kind}${title}
+      <div class="duo"><div><span class="label">${esc(ek(rater.name, 'in'))} puanı</span><b style="color:${KIND[q.kind][1]}">${q.rate}</b></div>
+        <div><span class="label">${esc(ek(subj.name, 'in'))} tahmini</span><b>${q.guess}</b></div></div>
+      <p><strong>${q.rate === q.guess ? 'Tam isabet! ' : ''}${esc(subj.name)} +${q.pts} puan.</strong> ${Math.abs(q.rate - q.guess) >= 4 ? 'Bunu bir konuşun bence.' : ''}</p>
+      <button class="btn" id="next">${v.cur + 1 >= v.qs.length ? 'Karneleri gör' : 'Sonraki soru'}</button>`;
+  } else if (iRate) {
+    const mine = q.rate;
+    body = `${kind}${title}
+      <p><strong>${mine !== null ? 'Puanın kilitlendi. ' + esc(subj.name) + ' tahmin ediyor...' : esc(subj.name) + ' için puanını ver.'}</strong></p>
+      ${scale(q.kind, mine, mine !== null, 'rate')}
+      ${mine === null && !q.custom ? `<div class="row"><button class="btn ghost small" id="skip">Başka soru</button><button class="btn ghost small" id="own">${cOpen ? 'Vazgeç' : 'Kendi sorumu yazayım'}</button></div>` : ''}
+      ${mine === null && cOpen ? `<div class="custom"><span class="seg"><button data-ck="iyi" class="${cKind === 'iyi' ? 'on' : ''}">Sevdiğim</button><button data-ck="kotu" class="${cKind === 'kotu' ? 'on' : ''}">Sinir olduğum</button></span>
+        <input id="ct" maxlength="80" placeholder="${esc(subj.name)} ne kadar ...?" value="${esc(cText)}"><button class="btn small" id="cgo">Bu soruyu sor</button></div>
+        <p class="muted" style="font-size:.85rem">Başına isim otomatik gelir. Örnek: "ne kadar iyi şarkı söyler?"</p>` : ''}`;
+  } else {
+    const mine = q.guess;
+    body = `${kind}${title}
+      <p><strong>${mine !== null ? 'Tahminin kilitlendi. ' + esc(rater.name) + ' puan veriyor...' : esc(rater.name) + ' sana kaç verecek? Tahmin et.'}</strong></p>
+      ${scale(q.kind, mine, mine !== null, 'guess')}`;
+  }
+  app.innerHTML = `${head}${meter}<section class="panel">${body}</section>`;
+  app.querySelectorAll('[data-act]').forEach(b => b.onclick = () => ctx.act({ type: b.dataset.act, v: +b.dataset.v }));
+  const sk = app.querySelector('#skip'); if (sk) sk.onclick = () => ctx.act({ type: 'skip' });
+  const ow = app.querySelector('#own'); if (ow) ow.onclick = () => { cOpen = !cOpen; render(V, C) };
+  app.querySelectorAll('[data-ck]').forEach(b => b.onclick = () => { cKind = b.dataset.ck; render(V, C) });
+  const ct = app.querySelector('#ct');
+  if (ct) {
+    ct.oninput = () => cText = ct.value;
+    const go = () => { let t = ct.value.trim(); const pre = subj.name.toLocaleLowerCase('tr') + ' '; if (t.toLocaleLowerCase('tr').startsWith(pre)) t = t.slice(pre.length); if (t.length >= 3) { ctx.act({ type: 'custom', t, kind: cKind }); cOpen = false; cText = '' } };
+    app.querySelector('#cgo').onclick = go; ct.onkeydown = e => { if (e.key === 'Enter') go() };
+  }
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+}
+Ati.start({ game: 'karne', el: app, logic: Karne, render });
+</script>
+</body>
+</html>
