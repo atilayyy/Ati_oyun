@@ -9,7 +9,7 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 - **Sen Hangi Tipsin?**: 2-8 kişi. 12 komik soru, 6 tip; herkes birbirinin tipini tahmin eder.
 - **Pati Yarışı**: 2-8 yarışçı, tek ekranda izlenir. Kedi ve köpek misketler parkurda yarışır, eksik kişiyi bilgisayar tamamlar.
 - **Dört Bağla**: 2 kişi. 4 taşı yan yana getiren kazanır.
-- **Amiral Battı**: 2 kişi. Rakibin filosunu ilk batıran kazanır, vurursan tekrar atarsın.
+- **Amiral Battı**: 2 kişi, 3D. Gemilerini kendin diz ya da rastgele bırak. Rakibin filosunu ilk batıran kazanır, vurursan tekrar atarsın.
 - **Ati vs Meri**: 2 kişi, gerçek zamanlı ofis dövüşü. Online ya da aynı klavyede. Özel güçler sürpriz.
 
 ## Nasıl çalışıyor?

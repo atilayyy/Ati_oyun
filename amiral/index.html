@@ -28,6 +28,16 @@ button.cell{cursor:crosshair} button.cell:hover{background:var(--sea2);outline:2
 .cell.miss::after{content:"";width:22%;height:22%;border-radius:50%;background:var(--miss)}
 .cell.last{outline:2px solid #fff;outline-offset:-2px}
 .status{font-family:var(--display);font-weight:800;font-size:1.25rem}
+.seas.one{grid-template-columns:minmax(0,640px);justify-content:center}
+.b3d{width:100%;aspect-ratio:1/0.82;border-radius:12px;overflow:hidden;background:#0f1430}
+.b3d.flat{aspect-ratio:auto;background:transparent}
+.fleet{display:flex;gap:8px;flex-wrap:wrap}
+.fleet button{font:inherit;font-weight:800;font-size:.88rem;padding:8px 12px;border-radius:999px;border:1px solid var(--edge);background:var(--table);color:var(--muted);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.fleet button.done{color:var(--ink)} .fleet button.done::before{content:"✓";color:var(--good)}
+.fleet button.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
+.fleet button.on::before{content:none}
+.hint{font-size:.9rem;color:var(--muted)}
+.warn{color:var(--warn);font-weight:700;min-height:1.4em}
 .log{font-size:.9rem;color:var(--muted);display:flex;flex-direction:column;gap:2px;max-height:140px;overflow:auto}
 .log div:first-child{color:var(--ink);font-weight:700}
 </style>
@@ -40,7 +50,9 @@ button.cell{cursor:crosshair} button.cell:hover{background:var(--sea2);outline:2
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="../assets/ek.js"></script>
 <script src="../assets/net.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="logic.js"></script>
+<script src="board3d.js"></script>
 <script>
 const app = document.getElementById('app'), esc = Ati.esc, L = 'ABCDEFGHIJ';
 function gridHtml(b, { own, clickable, last }) {
@@ -64,42 +76,144 @@ function gridHtml(b, { own, clickable, last }) {
   }
   return `<div class="grid">${h}</div>`;
 }
+const USE3D = Board3D.ok;
+const FLEET = Amiral.FLEET, K = (r, c) => r + ',' + c;
+let V = null, C = null, lay = null;
+let draft = null, sel = -1, vert = false, msg = '';
+
+/* ---------- ses ---------- */
+let actx = null;
+function boom(hit) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime, len = hit ? 0.6 : 0.35, buf = actx.createBuffer(1, actx.sampleRate * len, actx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, hit ? 2 : 3);
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = buf; f.type = 'lowpass'; f.frequency.value = hit ? 500 : 1800; g.gain.value = hit ? 0.5 : 0.25;
+    src.connect(f); f.connect(g); g.connect(actx.destination); src.start(t);
+  } catch (e) {}
+}
+
+/* ---------- dizme ---------- */
+const cellsFor = (len, r, c, v) => Array.from({ length: len }, (_, i) => v ? [r + i, c] : [r, c + i]);
+const isVert = sh => sh.cells.length > 1 && sh.cells[0][1] === sh.cells[1][1];
+function canPlace(i, cells) {
+  if (cells.some(([r, c]) => r < 0 || r > 9 || c < 0 || c > 9)) return false;
+  for (let j = 0; j < draft.length; j++) {
+    if (j === i || !draft[j]) continue;
+    for (const [r, c] of cells) for (const [a, b] of draft[j].cells) if (Math.abs(a - r) <= 1 && Math.abs(b - c) <= 1) return false;
+  }
+  return true;
+}
+const nextFree = () => draft.findIndex(d => !d);
+function setupCell(r, c) {
+  const mb = V.boards[C.me]; if (V.phase !== 'setup' || mb.ready) return;
+  const owner = draft.findIndex(d => d && d.cells.some(([a, b]) => a === r && b === c));
+  if (sel >= 0) {
+    const cells = cellsFor(FLEET[sel][1], r, c, vert);
+    if (canPlace(sel, cells)) { draft[sel] = { name: FLEET[sel][0], cells }; sel = nextFree(); msg = '' }
+    else if (owner >= 0) { vert = isVert(draft[owner]); draft[owner] = null; sel = owner; msg = '' }
+    else msg = 'Buraya sığmıyor ya da başka bir gemiye değiyor.';
+  } else if (owner >= 0) { vert = isVert(draft[owner]); draft[owner] = null; sel = owner; msg = '' }
+  update();
+}
+document.addEventListener('keydown', e => { if ((e.key === 'r' || e.key === 'R') && sel >= 0 && V && V.phase === 'setup' && e.target.tagName !== 'INPUT') { vert = !vert; update() } });
+
+/* ---------- yerleşim ---------- */
+function teardown() { if (lay) { lay.enemy && lay.enemy.dispose && lay.enemy.dispose(); lay.own && lay.own.dispose && lay.own.dispose(); lay = null } }
+function ensureLayout() {
+  if (lay) return;
+  app.innerHTML = `<div class="row" id="score"></div>
+    <section class="panel"><div class="status" id="status"></div><div id="ctrl" style="display:flex;flex-direction:column;gap:10px"></div></section>
+    <section class="seas" id="seas">
+      <div class="panel sea" id="enemyP"><span class="label" id="enemyL"></span><div class="b3d ${USE3D ? '' : 'flat'}" id="enemyB"></div></div>
+      <div class="panel sea" id="ownP"><span class="label" id="ownL"></span><div class="b3d ${USE3D ? '' : 'flat'}" id="ownB"></div></div>
+    </section>
+    <section class="panel" id="logP"><span class="label">Atışlar</span><div class="log" id="log"></div></section>`;
+  lay = { $: id => document.getElementById(id) }; window.__amiral = lay;
+  if (USE3D) {
+    lay.enemy = Board3D.create(lay.$('enemyB'), { onCell: fireCell, onBoom: boom });
+    lay.own = Board3D.create(lay.$('ownB'), { onCell: setupCell, onBoom: boom });
+  }
+}
+function fireCell(r, c) {
+  const idx = V.players.findIndex(p => p.id === C.me), opp = V.players[1 - idx];
+  if (V.phase !== 'play' || V.turn !== idx || K(r, c) in V.boards[opp.id].recv) return;
+  C.act({ type: 'fire', r, c });
+}
+const withSunk = b => (b.ships || []).map(sh => ({ name: sh.name, cells: sh.cells, sunk: sh.cells.every(([r, c]) => b.recv[K(r, c)] === 1) }));
+function flat(el, b, o, onCell) {
+  el.innerHTML = gridHtml(b, o);
+  el.querySelectorAll('button.cell').forEach(x => x.onclick = () => onCell(+x.dataset.r, +x.dataset.c));
+}
+
 function render(v, ctx) {
+  V = v; C = ctx;
   const me = ctx.me, idx = v.players.findIndex(p => p.id === me);
-  if (v.phase === 'lobby') {
+  if (v.phase === 'lobby' || idx < 0) {
+    teardown();
+    if (idx < 0 && v.phase !== 'lobby') { app.innerHTML = '<section class="panel"><p class="muted">Oda dolu, izliyorsun.</p></section>'; return }
     app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
       <div><span class="label">Oyuncular (2 kişilik)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
       ${idx < 0 ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `<button class="btn" id="start" ${v.players.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
-      </section><section class="panel"><p class="muted">Herkesin 5 gemisi var: ${Amiral.FLEET.map(f => f[0] + ' (' + f[1] + ')').join(', ')}. Gemiler birbirine değmez. Sırayla rakibin denizine atış yaparsınız. <b>Vurursan tekrar atarsın.</b> Rakibin bütün gemilerini ilk batıran kazanır.</p></section>`;
+      </section><section class="panel"><p class="muted">Herkesin 5 gemisi var: ${FLEET.map(f => f[0] + ' (' + f[1] + ')').join(', ')}. Gemilerini istersen kendin dizersin, istersen rastgele. Gemiler birbirine değemez, çapraz da dahil. Sırayla rakibin denizine atış yaparsınız. <b>Vurursan tekrar atarsın.</b> Rakibin bütün gemilerini ilk batıran kazanır.</p></section>`;
     Ati.wireShare(app, ctx);
     const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
     return;
   }
-  if (idx < 0) { app.innerHTML = '<section class="panel"><p class="muted">Oda dolu, izliyorsun.</p></section>'; return }
-  const P = v.players, opp = P[1 - idx], mb = v.boards[me], ob = v.boards[opp.id];
-  const score = `<div class="row">${P.map(p => `<span class="pill">${esc(p.name)} · ${p.score}</span>`).join('')}</div>`;
+  ensureLayout(); update();
+}
+
+function update() {
+  const v = V, ctx = C, me = ctx.me, idx = v.players.findIndex(p => p.id === me);
+  const P = v.players, opp = P[1 - idx], mb = v.boards[me], ob = v.boards[opp.id], $ = lay.$;
+  $('score').innerHTML = P.map(p => `<span class="pill">${esc(p.name)} · ${p.score}</span>`).join('');
   if (v.phase === 'setup') {
-    app.innerHTML = `${score}<section class="panel"><div class="status">Gemilerini diz</div>
-      <p class="muted">Beğenmezsen yeniden karıştır. Hazır olunca kilitle.</p>
-      ${gridHtml(mb, { own: true })}
-      <div class="row">${mb.ready ? `<span class="pill">Hazırsın. ${ob.ready ? '' : esc(opp.name) + ' bekleniyor...'}</span>` : '<button class="btn ghost" id="shuf">Yeniden karıştır</button><button class="btn" id="ready">Hazırım</button>'}</div></section>`;
-    const s = app.querySelector('#shuf'); if (s) s.onclick = () => ctx.act({ type: 'shuffle' });
-    const r = app.querySelector('#ready'); if (r) r.onclick = () => ctx.act({ type: 'ready' });
+    if (!draft) { draft = mb.ships.map(s => ({ name: s.name, cells: s.cells })); sel = -1; msg = '' }
+    $('seas').classList.add('one'); $('enemyP').style.display = 'none'; $('logP').style.display = 'none';
+    $('ownL').textContent = 'Senin denizin';
+    if (mb.ready) {
+      $('status').textContent = 'Hazırsın';
+      $('ctrl').innerHTML = `<p class="muted">${ob.ready ? 'Oyun başlıyor...' : esc(opp.name) + ' gemilerini diziyor...'}</p>`;
+      if (USE3D) lay.own.update({ ships: withSunk(mb), recv: {} }); else flat($('ownB'), mb, { own: true }, () => {});
+    } else {
+      const all = draft.every(Boolean);
+      $('status').textContent = 'Gemilerini diz';
+      $('ctrl').innerHTML = `<p class="hint">${sel >= 0 ? `<b>${esc(FLEET[sel][0])}</b> seçili: tahtada başlayacağı kareye dokun. Yönünü Döndür ile değiştir${USE3D ? ' (klavyede R)' : ''}.` : 'Gemiler rastgele dizildi. Bir gemiyi taşımak için üstüne dokun, ya da aşağıdan seç.'} Gemiler birbirine değemez, çapraz da dahil.</p>
+        <div class="fleet">${FLEET.map((f, i) => `<button data-sh="${i}" class="${sel === i ? 'on' : draft[i] ? 'done' : ''}">${esc(f[0])} (${f[1]})</button>`).join('')}</div>
+        <p class="warn">${esc(msg)}</p>
+        <div class="row"><button class="btn ghost small" id="rot" ${sel < 0 ? 'disabled' : ''}>Döndür: ${vert ? 'dikey' : 'yatay'}</button>
+          <button class="btn ghost small" id="rnd">Rastgele diz</button><button class="btn ghost small" id="clr">Temizle</button>
+          <button class="btn" id="ready" ${all ? '' : 'disabled'}>Hazırım</button></div>`;
+      $('ctrl').querySelectorAll('[data-sh]').forEach(b => b.onclick = () => { const i = +b.dataset.sh; if (draft[i]) { vert = isVert(draft[i]); draft[i] = null } sel = i; msg = ''; update() });
+      $('rot').onclick = () => { vert = !vert; update() };
+      $('rnd').onclick = () => { draft = Amiral.randomFleet(); sel = -1; msg = ''; update() };
+      $('clr').onclick = () => { draft = FLEET.map(() => null); sel = 0; vert = false; msg = ''; update() };
+      $('ready').onclick = () => { if (draft.every(Boolean)) ctx.act({ type: 'ready', ships: draft.map(d => ({ cells: d.cells })) }) };
+      const ships = draft.filter(Boolean).map(d => ({ name: d.name, cells: d.cells }));
+      if (USE3D) lay.own.update({ ships, recv: {}, ghost: sel >= 0 ? { len: FLEET[sel][1], vertical: vert, valid: (r, c) => canPlace(sel, cellsFor(FLEET[sel][1], r, c, vert)) } : null });
+      else flat($('ownB'), { ships, recv: {} }, { own: true, clickable: true }, setupCell);
+    }
     return;
   }
-  const myTurn = v.phase === 'play' && v.turn === idx;
-  const ls = v.lastShot;
-  const status = v.phase === 'over' ? (v.winner === idx ? 'Kazandın! Bütün filoyu batırdın.' : esc(opp.name) + ' kazandı.')
-    : myTurn ? (ls && ls.by === idx && ls.hit ? 'İsabet! Tekrar at.' : 'Sıra sende, rakibin denizine ateş et.') : `Sıra ${ek(esc(opp.name),'de')}...`;
-  app.innerHTML = `${score}<section class="panel"><div class="status">${status}</div>
-    ${v.phase === 'over' ? '<button class="btn" id="again">Tekrar oyna</button>' : ''}</section>
-    <section class="seas">
-      <div class="panel sea"><span class="label">${ek(esc(opp.name),'in')} denizi${v.phase === 'play' ? ' · kalan gemi ' + ob.left : ''}</span>${gridHtml(ob, { own: v.phase === 'over', clickable: myTurn, last: ls && ls.by === idx ? ls : null })}</div>
-      <div class="panel sea"><span class="label">Senin denizin</span>${gridHtml(mb, { own: true, last: ls && ls.by !== idx ? ls : null })}</div>
-    </section>
-    <section class="panel"><span class="label">Atışlar</span><div class="log">${(v.log || []).slice().reverse().map(l => `<div>${esc(l)}</div>`).join('')}</div></section>`;
-  app.querySelectorAll('button.cell').forEach(b => b.onclick = () => ctx.act({ type: 'fire', r: +b.dataset.r, c: +b.dataset.c }));
-  const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start' });
+  draft = null;
+  $('seas').classList.remove('one'); $('enemyP').style.display = ''; $('logP').style.display = '';
+  const myTurn = v.phase === 'play' && v.turn === idx, ls = v.lastShot;
+  $('status').textContent = v.phase === 'over' ? (v.winner === idx ? 'Kazandın! Bütün filoyu batırdın.' : opp.name + ' kazandı.')
+    : myTurn ? (ls && ls.by === idx && ls.hit ? 'İsabet! Tekrar at.' : 'Sıra sende, rakibin denizine ateş et.') : `Sıra ${ek(opp.name, 'de')}...`;
+  $('ctrl').innerHTML = v.phase === 'over' ? '<div class="row"><button class="btn" id="again">Tekrar oyna</button></div>' : '';
+  const g = document.getElementById('again'); if (g) g.onclick = () => ctx.act({ type: 'start' });
+  $('enemyL').textContent = `${ek(opp.name, 'in')} denizi${v.phase === 'play' ? ' · kalan gemi ' + ob.left : ''}`;
+  $('ownL').textContent = 'Senin denizin';
+  const eLast = ls && ls.by === idx ? ls : null, oLast = ls && ls.by !== idx ? ls : null;
+  if (USE3D) {
+    lay.enemy.update({ ships: withSunk(ob), recv: ob.recv, clickable: myTurn, last: eLast });
+    lay.own.update({ ships: withSunk(mb), recv: mb.recv, last: oLast });
+  } else {
+    flat($('enemyB'), ob, { own: v.phase === 'over', clickable: myTurn, last: eLast }, fireCell);
+    flat($('ownB'), mb, { own: true, last: oLast }, () => {});
+  }
+  $('log').innerHTML = (v.log || []).slice().reverse().map(l => `<div>${esc(l)}</div>`).join('');
 }
 Ati.start({ game: 'amiral', el: app, logic: Amiral, render });
 </script>

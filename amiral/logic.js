@@ -1,4 +1,4 @@
-/* Amiral Battı — 10x10. Gemiler rastgele dizilir (birbirine değmez). Vurursan tekrar atarsın. */
+/* Amiral Battı — 10x10. Gemiler rastgele ya da elle dizilir (birbirine değmez). Vurursan tekrar atarsın. */
 const Amiral = (() => {
   const N = 10;
   const FLEET = [['Uçak gemisi', 5], ['Savaş gemisi', 4], ['Kruvazör', 3], ['Denizaltı', 3], ['Muhrip', 2]];
@@ -22,6 +22,25 @@ const Amiral = (() => {
     }
     throw new Error('yerleşim');
   }
+  /* Elle dizilen filoyu doğrula: doğru boylar, düz ve bitişik, tahta içinde, gemiler birbirine değmez (çapraz dahil). */
+  function validFleet(ships) {
+    if (!Array.isArray(ships) || ships.length !== FLEET.length) return null;
+    const out = [], occ = new Map();
+    for (let i = 0; i < FLEET.length; i++) {
+      const cells = ships[i] && ships[i].cells;
+      if (!Array.isArray(cells) || cells.length !== FLEET[i][1]) return null;
+      const cs = cells.map(x => [x[0] | 0, x[1] | 0]);
+      if (cs.some(([r, c]) => r < 0 || r >= N || c < 0 || c >= N)) return null;
+      const hz = cs.every(([r]) => r === cs[0][0]), vt = cs.every(([, c]) => c === cs[0][1]);
+      if (!hz && !vt) return null;
+      cs.sort((a, b) => hz ? a[1] - b[1] : a[0] - b[0]);
+      for (let j = 1; j < cs.length; j++) if ((hz ? cs[j][1] - cs[j - 1][1] : cs[j][0] - cs[j - 1][0]) !== 1) return null;
+      for (const [r, c] of cs) for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const o = occ.get(k(r + dr, c + dc)); if (o !== undefined && o !== i) return null }
+      cs.forEach(([r, c]) => occ.set(k(r, c), i));
+      out.push({ name: FLEET[i][0], cells: cs });
+    }
+    return out;
+  }
   const sunk = (ship, recv) => ship.cells.every(([r, c]) => recv[k(r, c)] === 1);
   function create(hostId, hostName) { return { phase: 'lobby', hostId, players: [{ id: hostId, name: hostName, online: true, score: 0 }], games: 0 } }
   function setup(s) {
@@ -37,7 +56,10 @@ const Amiral = (() => {
     if (s.phase === 'setup') {
       const b = s.boards[pid];
       if (a.type === 'shuffle' && !b.ready) b.ships = randomFleet();
-      if (a.type === 'ready') b.ready = true;
+      if (a.type === 'ready' && !b.ready) {
+        if (a.ships) { const f = validFleet(a.ships); if (!f) return s; b.ships = f }
+        b.ready = true;
+      }
       if (s.players.every(p => s.boards[p.id].ready)) { s.phase = 'play'; s.turn = s.games % 2 }
       return s;
     }
@@ -66,6 +88,6 @@ const Amiral = (() => {
     }
     return v;
   }
-  return { create, act, view, randomFleet, FLEET, N };
+  return { create, act, view, randomFleet, validFleet, FLEET, N };
 })();
 if (typeof module !== 'undefined') module.exports = Amiral;
