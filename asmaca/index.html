@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Adam Asmaca</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.stage{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:18px;align-items:center}
+@media (max-width:600px){.stage{grid-template-columns:1fr;justify-items:center}}
+.gal{width:100%;max-width:220px}
+.gal .part{opacity:0;transition:opacity .35s,transform .35s;transform-origin:center;transform-box:fill-box}
+.gal .part.on{opacity:1}
+.gal .part.pop{animation:pop .45s ease-out}
+@keyframes pop{0%{transform:scale(.4)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.word{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.slot{width:clamp(28px,8vw,46px);height:clamp(38px,10vw,56px);border-bottom:4px solid var(--edge);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:clamp(1.3rem,5vw,2rem);text-transform:uppercase}
+.slot.got{border-color:var(--good);animation:pop .35s ease-out}
+.slot.miss{color:var(--bad);border-color:var(--bad)}
+.lives{display:flex;gap:5px;justify-content:center}
+.lives i{width:14px;height:14px;border-radius:50%;background:var(--good)}
+.lives i.off{background:var(--edge)}
+.kb{display:flex;flex-direction:column;gap:6px;user-select:none}
+.kr{display:flex;gap:4px;justify-content:center}
+.k{flex:1 1 0;max-width:44px;min-width:0;height:48px;border:0;border-radius:8px;background:#4a5390;color:var(--ink);font:800 1rem var(--body);cursor:pointer;padding:0}
+.k:disabled{cursor:default}
+.k.yes{background:#3fae6a;color:#06210f} .k.no{background:#3a4270;color:var(--muted)}
+.wrongs{font-size:.9rem;color:var(--muted)}
+.big{font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.12em;color:var(--accent);text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Adam Asmaca</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, UP = s => String(s).toLocaleUpperCase('tr');
+const ROWS = [Array.from('ertyuıopğü'), Array.from('asdfghjklşi'), Array.from('zcvbnmöç')];
+let V, C, total = 6, pickDraft = '', solveDraft = '', lastWrong = 0;
+
+function gallows(wrong, solved) {
+  const on = i => solved ? 'part on' : wrong > i ? 'part on' + (wrong === i + 1 && lastWrong !== wrong ? ' pop' : '') : 'part';
+  const face = solved
+    ? '<path d="M128 70 q8 7 16 0" stroke="#1b1f33" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="130" cy="60" r="3" fill="#1b1f33"/><circle cx="142" cy="60" r="3" fill="#1b1f33"/>'
+    : '<path d="M126 56l7 7m0-7l-7 7M139 56l7 7m0-7l-7 7" stroke="#1b1f33" stroke-width="3" stroke-linecap="round"/><path d="M128 76 q8 -7 16 0" stroke="#1b1f33" stroke-width="3" fill="none" stroke-linecap="round"/>';
+  return `<svg class="gal" viewBox="0 0 220 240" aria-label="${wrong} yanlış">
+    <g stroke="#a1775f" stroke-width="10" stroke-linecap="round" fill="none"><path d="M20 228h120M50 228V14h86"/><path d="M50 48l34-34" stroke-width="7"/></g>
+    <path d="M136 14v26" stroke="#d9c89a" stroke-width="4"/>
+    <circle class="${on(0)}" cx="136" cy="64" r="22" fill="#ffc83d"/>
+    <path class="${on(1)}" d="M136 86v62" stroke="#7aa2ff" stroke-width="14" stroke-linecap="round"/>
+    <path class="${on(2)}" d="M136 100l-28 28" stroke="#ffc83d" stroke-width="8" stroke-linecap="round"/>
+    <path class="${on(3)}" d="M136 100l28 28" stroke="#ffc83d" stroke-width="8" stroke-linecap="round"/>
+    <path class="${on(4)}" d="M136 146l-22 40" stroke="#4b6fd6" stroke-width="9" stroke-linecap="round"/>
+    <path class="${on(5)}" d="M136 146l22 40" stroke="#4b6fd6" stroke-width="9" stroke-linecap="round"/>
+    <g class="${on(6)}">${face}</g>
+  </svg>`;
+}
+function lives(w) { return `<div class="lives" aria-label="${Asmaca.MAX - w} hak kaldı">${Array.from({ length: Asmaca.MAX }, (_, i) => `<i class="${i < w ? 'off' : ''}"></i>`).join('')}</div>` }
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, idx = v.players.findIndex(p => p.id === me), P = v.players;
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2 kişilik)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${idx < 0 ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `<div class="field"><label class="label" for="tot">Tur sayısı</label>
+        <select id="tot">${[4, 6, 8, 10].map(n => `<option value="${n}" ${n === total ? 'selected' : ''}>${n} tur (kişi başı ${n / 2} kelime)</option>`).join('')}</select></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><p class="muted">Sırayla biriniz kelime seçer, diğeri harf harf bulmaya çalışır. ${Asmaca.MAX} yanlış hakkın var. Bulursan kalan hakkın kadar puan (+2), bulamazsan kelimeyi seçen 6 puan alır. Kelimeyi seçmek istemezsen "Rastgele kelime" de.</p></section>`;
+    Ati.wireShare(app, ctx);
+    const t = app.querySelector('#tot'); if (t) t.onchange = () => total = +t.value;
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', total });
+    return;
+  }
+  if (idx < 0) { app.innerHTML = '<section class="panel"><p class="muted">Oda dolu, izliyorsun.</p></section>'; return }
+  const si = v.setter, setter = P[si], guesser = P[1 - si], iSet = si === idx;
+  const head = `<div class="row">${P.map(p => `<span class="pill">${esc(p.name)} · ${p.score}</span>`).join('')}${v.round != null && v.phase !== 'over' ? `<span class="pill">Tur ${v.round + 1} / ${v.total}</span>` : ''}</div>`;
+  if (v.phase === 'over') {
+    const [a, b] = P, w = a.score === b.score ? 'Berabere!' : (a.score > b.score ? a.name : b.name) + ' kazandı!';
+    app.innerHTML = `${head}<section class="panel"><span class="label">Oyun bitti</span><h2>${esc(w)}</h2>
+      <button class="btn" id="again">Tekrar oyna</button></section>`;
+    app.querySelector('#again').onclick = () => ctx.act({ type: 'start', total: v.total });
+    return;
+  }
+  if (v.phase === 'pick') {
+    app.innerHTML = `${head}<section class="panel">${iSet ? `<h2>Kelimeyi sen seçiyorsun</h2>
+      <p class="muted">4 ile 10 harf arası bir Türkçe kelime yaz. ${esc(guesser.name)} görmüyor.</p>
+      <div class="row"><input id="pw" maxlength="10" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.15em;font-weight:800;flex:1 1 200px" value="${esc(pickDraft)}" placeholder="KELİME">
+      <button class="btn" id="pick">Bu kelime olsun</button></div>
+      ${v.err ? `<p class="err">${esc(v.err)}</p>` : ''}
+      <button class="btn ghost small" id="rnd">Rastgele kelime seç</button>`
+      : `<h2>${esc(setter.name)} kelime seçiyor...</h2><p class="muted">Sıra sende: harfleri tahmin edeceksin.</p>`}</section>`;
+    const inp = app.querySelector('#pw');
+    if (inp) {
+      inp.oninput = () => pickDraft = inp.value;
+      const go = () => { const w = inp.value.trim(); if (w) { ctx.act({ type: 'setword', w }); pickDraft = '' } };
+      app.querySelector('#pick').onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go() }; inp.focus();
+      app.querySelector('#rnd').onclick = () => ctx.act({ type: 'random' });
+    }
+    return;
+  }
+  const word = iSet || v.phase === 'roundEnd' ? Array.from(v.word) : v.mask;
+  const g = v.guessed || [], solved = v.phase === 'roundEnd' && v.result.solved;
+  const slots = word.map((ch, i) => {
+    const show = iSet ? ch : ch, got = v.phase !== 'pick' && (iSet ? g.includes(ch) : ch !== null);
+    const missed = v.phase === 'roundEnd' && !g.includes(ch);
+    return `<div class="slot ${got && !missed ? 'got' : ''} ${missed ? 'miss' : ''}">${show ? esc(UP(show)) : ''}</div>`;
+  }).join('');
+  const kb = `<div class="kb">${ROWS.map(r => `<div class="kr">${r.map(k => {
+    const used = g.includes(k), hit = used && (v.word ? v.word.includes(k) : (v.mask || []).includes(k));
+    return `<button class="k ${used ? (hit ? 'yes' : 'no') : ''}" data-k="${k}" ${used || iSet || v.phase !== 'play' ? 'disabled' : ''}>${UP(k)}</button>` }).join('')}</div>`).join('')}</div>`;
+  let info;
+  if (v.phase === 'play') info = iSet ? `<p><strong>${esc(guesser.name)} tahmin ediyor.</strong> Kelimen: <span class="big" style="font-size:1.2rem">${esc(UP(v.word))}</span></p>`
+    : `<p><strong>${esc(setter.name)}${v.random ? ' rastgele bir kelime aldı' : ' bir kelime seçti'}.</strong> ${word.length} harf. Harflere bas ya da klavyeden yaz.</p>`;
+  else info = `<h2>${solved ? esc(guesser.name) + ' buldu! +' + v.result.pts : esc(guesser.name) + ' bulamadı. ' + esc(setter.name) + ' +' + v.result.pts}</h2>`;
+  app.innerHTML = `${head}<section class="panel">${info}
+    <div class="stage"><div>${gallows(v.wrong, solved)}${lives(v.wrong)}</div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0"><div class="word">${slots}</div>
+        ${v.wrongWords && v.wrongWords.length ? `<p class="wrongs">Yanlış tahminler: ${v.wrongWords.map(w => esc(UP(w))).join(', ')}</p>` : ''}
+        ${v.phase === 'play' && !iSet ? `<div class="row"><input id="sv" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Kelimeyi biliyorsan yaz" style="flex:1 1 160px" value="${esc(solveDraft)}"><button class="btn ghost small" id="solve">Tahmin et</button></div>
+          <p class="wrongs">Yanlış kelime tahmini de 1 hak götürür.</p>` : ''}
+      </div></div>
+    ${kb}
+    ${v.phase === 'roundEnd' ? `<button class="btn" id="next">${v.round + 1 >= v.total ? 'Sonuçları gör' : 'Sonraki tur'}</button>` : ''}</section>`;
+  lastWrong = v.wrong;
+  app.querySelectorAll('.k[data-k]').forEach(b => b.onclick = () => ctx.act({ type: 'letter', l: b.dataset.k }));
+  const sv = app.querySelector('#sv');
+  if (sv) { sv.oninput = () => solveDraft = sv.value; const go = () => { if (sv.value.trim()) { ctx.act({ type: 'solve', w: sv.value }); solveDraft = '' } }; app.querySelector('#solve').onclick = go; sv.onkeydown = e => { if (e.key === 'Enter') go() } }
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+}
+document.addEventListener('keydown', e => {
+  if (!V || V.phase !== 'play' || e.ctrlKey || e.metaKey || e.altKey || (e.target && e.target.tagName === 'INPUT')) return;
+  const idx = V.players.findIndex(p => p.id === C.me); if (idx === V.setter) return;
+  const k = e.key === 'I' ? 'ı' : e.key === 'İ' ? 'i' : e.key.toLocaleLowerCase('tr');
+  if (k.length === 1 && Asmaca.ALPHA.includes(k) && !(V.guessed || []).includes(k)) C.act({ type: 'letter', l: k });
+});
+Ati.start({ game: 'asmaca', el: app, logic: Asmaca, render });
+</script>
+</body>
+</html>

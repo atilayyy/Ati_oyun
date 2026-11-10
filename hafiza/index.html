@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hafıza Kartları</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--p0:#ffc83d;--p1:#4fc3f7;--p2:#ff6b9e;--p3:#5fd38a}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.board{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:clamp(5px,1.4vw,10px);max-width:calc(var(--cols) * 120px);margin:0 auto;width:100%}
+.card{aspect-ratio:3/4;perspective:700px;border:0;padding:0;background:transparent;cursor:pointer;max-width:100%}
+.card:disabled{cursor:default}
+.inner{position:relative;width:100%;height:100%;transition:transform .45s cubic-bezier(.3,.7,.3,1.2);transform-style:preserve-3d}
+.card.up .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:clamp(8px,1.6vw,14px);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:grid;place-items:center;overflow:hidden}
+.back{background:radial-gradient(circle at 30% 25%,#3c4aa0,#252e66);border:2px solid #4a58b0;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.back svg{width:46%;opacity:.55}
+.card:not(:disabled):hover .back{border-color:var(--accent)}
+.front{background:#fbf6ea;transform:rotateY(180deg);border:3px solid #fbf6ea}
+.front img{width:86%;height:auto}
+.card.matched .front{border-color:var(--own)}
+.card.matched .inner{animation:won .5s ease-out}
+.card.bad .front{border-color:var(--bad)}
+@keyframes won{50%{transform:rotateY(180deg) scale(1.08)}}
+.card.done .front{filter:saturate(.9)}
+.turnbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.pl{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:2px solid var(--edge);font-weight:800}
+.pl i{width:12px;height:12px;border-radius:50%;background:var(--own)}
+.pl.turn{border-color:var(--own);box-shadow:0 0 0 3px color-mix(in srgb,var(--own) 30%,transparent)}
+.pl b{font-family:var(--display);font-size:1.15rem}
+.msg{font-weight:800;min-height:1.5em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Hafıza Kartları</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="../assets/pets.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+const COLORS = ['#ff8a3d', '#ffd23f', '#5fd38a', '#4fc3f7', '#b49cff', '#ff6b9e', '#f2f3fb', '#a1775f', '#ff5a4f', '#4a4f6a'];
+const PAW = '<svg viewBox="0 0 64 64" aria-hidden="true"><g fill="#c9d3ff"><ellipse cx="32" cy="42" rx="14" ry="12"/><ellipse cx="14" cy="26" rx="6" ry="8"/><ellipse cx="26" cy="16" rx="6" ry="8"/><ellipse cx="38" cy="16" rx="6" ry="8"/><ellipse cx="50" cy="26" rx="6" ry="8"/></g></svg>';
+const faceUrl = {};
+function face(f) {
+  if (faceUrl[f]) return faceUrl[f];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 160;
+  const c = cv.getContext('2d'); drawPet(c, 80, 88, 52, 0, COLORS[f % 10], f < 10 ? 'kedi' : 'kopek');
+  return faceUrl[f] = cv.toDataURL();
+}
+let pairs = 8, V, C, built = '';
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, idx = P.findIndex(p => p.id === me);
+  if (v.phase === 'lobby') {
+    built = '';
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-4 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${idx < 0 ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Boyut</span><span class="seg">${[[8, '16 kart'], [10, '20 kart'], [18, '36 kart']].map(([n, t]) => `<button data-p="${n}" class="${pairs === n ? 'on' : ''}">${t}</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><p class="muted">Sırayla iki kart çevirirsiniz. Aynı kedi ya da köpeği bulursan kartlar senin olur ve tekrar oynarsın. Bulamazsan kartlar açık kalır, herkes görür, sonra sıra diğerine geçer. En çok eşi bulan kazanır.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { pairs = +b.dataset.p; render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', pairs });
+    return;
+  }
+  const n = v.deck.length, cols = n === 16 ? 4 : n === 20 ? 5 : 6;
+  if (built !== 'g' + v.game) {
+    built = 'g' + v.game;
+    app.innerHTML = `<section class="panel"><div class="turnbar" id="tb"></div><div class="msg" id="msg"></div></section>
+      <div class="board" style="--cols:${cols}">${v.deck.map((_, i) => `<button class="card" data-i="${i}" aria-label="Kart ${i + 1}"><div class="inner"><div class="face back">${PAW}</div><div class="face front"><img alt=""></div></div></button>`).join('')}</div>
+      <section class="panel" id="foot" style="display:none"></section>`;
+    app.querySelectorAll('.card').forEach(b => b.onclick = () => C.act({ type: 'flip', i: +b.dataset.i }));
+  }
+  const myTurn = v.phase === 'play' && v.turn === idx;
+  document.getElementById('tb').innerHTML = P.map((p, i) => `<span class="pl ${v.phase === 'play' && v.turn === i ? 'turn' : ''}" style="--own:var(--p${i})"><i></i>${esc(p.name)}${p.id === me ? ' (sen)' : ''} <b>${p.score}</b></span>`).join('');
+  const turnName = P[v.turn] ? P[v.turn].name : '';
+  let msg = '';
+  if (v.phase === 'over') {
+    const top = P.slice().sort((a, b) => b.score - a.score), tie = top[1] && top[0].score === top[1].score;
+    msg = tie ? 'Berabere!' : top[0].name + ' kazandı!';
+  } else if (v.last && v.last.ok) msg = (v.last.by === idx ? 'Eşini buldun! Tekrar sen.' : P[v.last.by].name + ' eşini buldu, tekrar oynuyor.');
+  else if (v.last && !v.last.ok) msg = myTurn ? 'Eş değil. Sıra sende, kartlara iyi bak.' : `Eş değil. Sıra ${ek(turnName, 'de')}.`;
+  else msg = myTurn ? 'Sıra sende: bir kart çevir.' : `Sıra ${ek(turnName, 'de')}...`;
+  document.getElementById('msg').textContent = msg;
+  document.querySelectorAll('.card').forEach((el, i) => {
+    const f = v.deck[i], up = f !== null, m = v.matched[i];
+    el.classList.toggle('up', up);
+    el.classList.toggle('matched', m !== null);
+    el.classList.toggle('done', m !== null && !(v.last && v.last.ok && v.last.pair.includes(i)));
+    el.classList.toggle('bad', !!(v.shown && v.shown.includes(i)));
+    el.style.setProperty('--own', m !== null ? `var(--p${m})` : 'transparent');
+    if (up) { const img = el.querySelector('img'); const src = face(f); if (img.getAttribute('src') !== src) img.src = src }
+    el.disabled = !myTurn || m !== null || (up && !(v.shown && v.shown.includes(i)));
+  });
+  const foot = document.getElementById('foot');
+  if (v.phase === 'over') {
+    foot.style.display = '';
+    foot.innerHTML = ctx.isHost ? '<button class="btn" id="again">Tekrar oyna</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>';
+    const g = document.getElementById('again'); if (g) g.onclick = () => ctx.act({ type: 'start', pairs: v.pairs });
+  } else foot.style.display = 'none';
+}
+Ati.start({ game: 'hafiza', el: app, logic: Hafiza, render });
+</script>
+</body>
+</html>

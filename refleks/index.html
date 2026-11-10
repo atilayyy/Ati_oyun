@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kim Önce Basar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+#zone{min-height:min(58vh,520px);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:background .06s;padding:20px;border:0;width:100%;font:inherit;color:inherit}
+#zone .big{font-family:var(--display);font-weight:800;font-size:clamp(2.6rem,12vw,5.5rem);line-height:1}
+#zone .sub{font-weight:800;font-size:1.05rem;opacity:.85}
+#zone.wait{background:#b8323f;color:#fff}
+#zone.decoy{background:#ffc83d;color:#2a1d00}
+#zone.go{background:#2fbf63;color:#06210f}
+#zone.done{background:var(--table);color:var(--ink);cursor:default}
+#zone.early{background:#5a1f2a;color:#ffd0d6;cursor:default}
+.scores{display:flex;gap:8px;flex-wrap:wrap}
+.res{display:flex;flex-direction:column;gap:8px}
+.rrow{display:grid;grid-template-columns:minmax(0,8em) 1fr 5.5em;gap:10px;align-items:center;font-weight:800}
+.rrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{height:14px;border-radius:7px;background:var(--edge);overflow:hidden}
+.track i{display:block;height:100%;background:var(--accent);border-radius:7px}
+.rrow.win .track i{background:var(--good)}
+.rrow small{text-align:right;font-variant-numeric:tabular-nums}
+.tag{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--bad);color:#fff;font-weight:800}
+.dots{display:inline-flex;gap:4px;vertical-align:middle}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--edge)} .dots i.on{background:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Kim Önce Basar</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let mode = 'normal', target = 5, V, C;
+// yerel tur durumu: her cihaz kendi saatini tutar
+let L = { round: -1, zone: 'wait', greenAt: 0, sent: false, rt: undefined, timers: [] };
+let nextTimer = 0, nextFor = -1;
+
+let actx = null;
+function beep(f, d = 0.1, vol = 0.12) { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime; o.frequency.value = f; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + d) } catch (e) {} }
+
+function clearTimers() { L.timers.forEach(clearTimeout); L.timers = [] }
+function beginLocal(v) {
+  clearTimers();
+  L = { round: v.round, zone: 'wait', greenAt: 0, sent: false, rt: undefined, timers: [] };
+  const sc = v.script;
+  if (sc.decoy != null) {
+    L.timers.push(setTimeout(() => { if (L.zone === 'wait') { L.zone = 'decoy'; paintZone() } }, sc.decoy));
+    L.timers.push(setTimeout(() => { if (L.zone === 'decoy') { L.zone = 'wait'; paintZone() } }, sc.decoy + 650));
+  }
+  L.timers.push(setTimeout(() => {
+    if (L.sent) return;
+    L.zone = 'go'; paintZone(); L.greenAt = performance.now(); beep(880, 0.12);
+    L.timers.push(setTimeout(() => { if (!L.sent) send(null) }, Refleks.TIMEOUT));
+  }, sc.wait));
+}
+function send(rt) {
+  if (L.sent || !V || V.phase !== 'round' || V.round !== L.round) return;
+  L.sent = true; L.rt = rt; clearTimers();
+  L.zone = rt === -1 ? 'early' : 'done';
+  C.act({ type: 'press', round: L.round, rt: rt === null ? null : rt === -1 ? -1 : Math.round(rt) });
+  paintZone();
+}
+function press() {
+  if (!V || V.phase !== 'round' || L.sent || L.round !== V.round) return;
+  if (L.zone === 'go') send(performance.now() - L.greenAt);
+  else { beep(160, 0.25, 0.15); send(-1) }
+}
+function paintZone() {
+  const z = document.getElementById('zone'); if (!z) return;
+  z.className = L.zone;
+  const others = V.players.filter(p => p.id !== C.me && !(p.id in V.res)).map(p => esc(p.name)).join(', ');
+  const txt = {
+    wait: ['Bekle...', 'Yeşil olunca bas'],
+    decoy: ['BASMA!', 'Kandırmaca, bekle'],
+    go: ['BAS!', ''],
+    done: [L.rt === null ? 'Kaçırdın' : Math.round(L.rt) + ' ms', others ? others + ' bekleniyor...' : 'Sonuç geliyor...'],
+    early: ['Erken bastın!', 'Bu turu kaybettin. ' + (others ? others + ' bekleniyor...' : '')]
+  }[L.zone];
+  z.innerHTML = `<span class="big">${txt[0]}</span><span class="sub">${txt[1]}</span>`;
+}
+document.addEventListener('keydown', e => { if ((e.code === 'Space' || e.key === 'Enter') && V && V.phase === 'round' && e.target.tagName !== 'INPUT') { e.preventDefault(); press() } });
+
+function scoreline(v) {
+  return `<div class="scores">${v.players.map(p => `<span class="pill">${esc(p.name)} <span class="dots">${Array.from({ length: v.target }, (_, i) => `<i class="${i < p.score ? 'on' : ''}"></i>`).join('')}</span></span>`).join('')}</div>`;
+}
+function resultHtml(v) {
+  const rows = v.players.map(p => ({ p, rt: v.res[p.id] })).sort((a, b) => (a.rt > 0 ? a.rt : 1e9 + (a.rt === -1 ? 1 : 2)) - (b.rt > 0 ? b.rt : 1e9 + (b.rt === -1 ? 1 : 2)));
+  const max = Math.max(400, ...rows.filter(r => r.rt > 0).map(r => r.rt));
+  return `<div class="res">${rows.map(r => `<div class="rrow ${r.p.id === v.winner ? 'win' : ''}"><span class="nm">${esc(r.p.name)}</span>
+    <span class="track">${r.rt > 0 ? `<i style="width:${Math.max(6, (1 - r.rt / max * 0.85) * 100)}%"></i>` : ''}</span>
+    <small>${r.rt > 0 ? r.rt + ' ms' : r.rt === -1 ? '<span class="tag">erken</span>' : 'basmadı'}</small></div>`).join('')}</div>`;
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    clearTimers();
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-4 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Mod</span><span class="seg"><button data-m="normal" class="${mode === 'normal' ? 'on' : ''}">Normal</button><button data-m="kandir" class="${mode === 'kandir' ? 'on' : ''}">Kandırmaca</button></span></div>
+        <div class="row"><span class="label">Kaç puana?</span><span class="seg">${[3, 5, 7].map(n => `<button data-t="${n}" class="${target === n ? 'on' : ''}">${n}</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><p class="muted">Ekran kırmızıyken bekle. Yeşile döndüğü an bas. En hızlı basan turu alır. Erken basarsan o turu kaybedersin. <b>Kandırmaca</b> modunda ekran bazen sarıya döner: o zaman da basma!</p>
+      <p class="muted">Herkesin tepki süresi kendi cihazında ölçülür, internet hızı sonucu değiştirmez. Bilgisayarda boşluk tuşu da çalışır.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; render(V, C) });
+    app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { target = +b.dataset.t; render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', mode, target });
+    return;
+  }
+  if (!mine) { app.innerHTML = `${scoreline(v)}<section class="panel"><p class="muted">Oda dolu, izliyorsun.</p></section>`; return }
+  if (v.phase === 'round') {
+    if (L.round !== v.round) beginLocal(v);
+    if (!document.getElementById('zone') || app.dataset.view !== 'round') {
+      app.dataset.view = 'round';
+      app.innerHTML = `${'<div id="sl"></div>'}<button id="zone" aria-label="Bas"></button><p class="muted" style="text-align:center">Tur ${v.round} · ${v.mode === 'kandir' ? 'Kandırmaca modu' : 'Normal mod'}</p>`;
+      document.getElementById('zone').addEventListener('pointerdown', e => { e.preventDefault(); press() });
+    }
+    document.getElementById('sl').innerHTML = scoreline(v);
+    paintZone();
+    return;
+  }
+  clearTimers(); app.dataset.view = v.phase;
+  if (v.phase === 'result') {
+    const w = v.players.find(p => p.id === v.winner);
+    app.innerHTML = `${scoreline(v)}<section class="panel"><span class="label">Tur ${v.round}</span>
+      <h2>${w ? esc(w.name) + ' kazandı!' : 'Bu tur kimse kazanamadı'}</h2>${resultHtml(v)}
+      <button class="btn" id="next">Sonraki tur</button><p class="muted" style="font-size:.9rem">Sonraki tur birkaç saniye içinde kendiliğinden başlar.</p></section>`;
+    app.querySelector('#next').onclick = () => ctx.act({ type: 'next', round: v.round });
+    if (ctx.isHost && nextFor !== v.round) { nextFor = v.round; clearTimeout(nextTimer); const r = v.round; nextTimer = setTimeout(() => ctx.act({ type: 'next', round: r }), 3500) }
+    return;
+  }
+  // over
+  const top = P.slice().sort((a, b) => b.score - a.score);
+  app.innerHTML = `${scoreline(v)}<section class="panel"><span class="label">Oyun bitti</span><h2>${esc(top[0].name)} kazandı!</h2>
+    <h3>Son tur</h3>${resultHtml(v)}
+    <table style="width:100%;border-collapse:collapse"><tbody>${P.map(p => `<tr><td style="padding:6px 0">${esc(p.name)}</td><td style="text-align:right">En iyi: <strong>${p.best ? p.best + ' ms' : '-'}</strong></td></tr>`).join('')}</tbody></table>
+    ${ctx.isHost ? '<button class="btn" id="again">Tekrar oyna</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+  const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', mode: v.mode, target: v.target });
+}
+Ati.start({ game: 'refleks', el: app, logic: Refleks, render });
+</script>
+</body>
+</html>

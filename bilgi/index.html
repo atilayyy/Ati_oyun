@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bilgi Yarışması</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--o0:#4f8cff;--o1:#ff8a3d;--o2:#b49cff;--o3:#3fc1a5}
+.cats{display:flex;gap:8px;flex-wrap:wrap}
+.cats button{font:inherit;font-weight:800;font-size:.9rem;padding:8px 12px;border-radius:999px;border:1px solid var(--edge);background:var(--table);color:var(--muted);cursor:pointer}
+.cats button.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
+.q{font-family:var(--display);font-weight:800;font-size:clamp(1.3rem,4.5vw,1.9rem);line-height:1.25;text-wrap:balance}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:560px){.opts{grid-template-columns:1fr}}
+.opt{font:inherit;font-weight:800;font-size:1.05rem;text-align:left;padding:14px;border-radius:14px;border:3px solid transparent;background:var(--c);color:#0d1126;cursor:pointer;display:flex;gap:12px;align-items:center;min-height:62px;transition:transform .12s,opacity .2s,filter .2s}
+.opt:hover:not(:disabled){transform:translateY(-2px)}
+.opt b{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.55);display:grid;place-items:center;flex:none}
+.opt:disabled{cursor:default}
+.opt.dim{opacity:.35;filter:saturate(.4)}
+.opt.mine{border-color:var(--ink);box-shadow:0 0 0 3px var(--table2) inset}
+.opt.right{background:var(--good);opacity:1;filter:none}
+.opt.wrong{background:var(--bad);opacity:1;filter:none}
+.opt .who{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.opt .who span{font-size:.75rem;background:rgba(13,17,38,.75);color:#fff;border-radius:999px;padding:2px 8px}
+.bar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:100%}
+.bar i.low{background:var(--bad)}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.sec{font-family:var(--display);font-weight:800;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.ppl{display:flex;gap:8px;flex-wrap:wrap}
+.ppl span{font-weight:800;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid var(--edge)}
+.ppl span.ok{border-color:var(--good);color:var(--good)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.plus{color:var(--good);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Bilgi Yarışması</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="sorular.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, LET = 'ABCD';
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d } catch (e) { return d } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} } };
+let cats = store.get('bilgi_cats', Bilgi.CATS.slice()), count = store.get('bilgi_count', 10);
+let V, C, qKey = '', deadline = 0, timerFor = '', raf = 0;
+const CATNAME = { 'Coğrafya': 'Coğrafya', 'Tarih': 'Tarih', 'Bilim': 'Bilim', 'Spor': 'Spor', 'Sanat': 'Sanat ve eğlence', 'Genel': 'Genel kültür', 'Türkiye': 'Türkiye' };
+
+function scoreTable(v, final) {
+  const rows = v.players.slice().sort((a, b) => b.score - a.score);
+  return `<table><thead><tr><th>#</th><th>Oyuncu</th>${final ? '<th class="n">Doğru</th>' : ''}<th class="n">Puan</th></tr></thead><tbody>${rows.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</td>${final ? `<td class="n">${p.right || 0}/${v.qs.length}</td>` : ''}<td class="n">${p.score}${!final && v.gain && v.gain[p.id] ? ` <span class="plus">+${v.gain[p.id]}</span>` : ''}</td></tr>`).join('')}</tbody></table>`;
+}
+function tick() {
+  const bar = document.getElementById('tbar'), sec = document.getElementById('tsec');
+  if (!bar || !V || V.phase !== 'q') { raf = 0; return }
+  const left = Math.max(0, deadline - performance.now()), f = left / Bilgi.TIME;
+  bar.style.width = (f * 100) + '%'; bar.classList.toggle('low', left < 5000);
+  sec.textContent = Math.ceil(left / 1000);
+  raf = requestAnimationFrame(tick);
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
+        <div><span class="label">Kategoriler</span><div class="cats" style="margin-top:6px">${Bilgi.CATS.map(c => `<button data-cat="${esc(c)}" class="${cats.includes(c) ? 'on' : ''}">${CATNAME[c]}</button>`).join('')}</div></div>
+        <div class="field"><label class="label" for="cnt">Soru sayısı</label><select id="cnt">${[10, 15, 20].map(n => `<option value="${n}" ${n === count ? 'selected' : ''}>${n} soru</option>`).join('')}</select></div>
+        <button class="btn" id="start" ${P.length < 2 || !cats.length ? 'disabled' : ''}>Başlat</button>
+        ${P.length < 2 ? '<p class="muted">En az 2 kişi gerekiyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><p class="muted">Herkes aynı soruya aynı anda cevap verir, ${Bilgi.TIME / 1000} saniyen var. Doğru cevap 100 puan, ne kadar hızlıysan o kadar bonus (en fazla +50). Yanlışın cezası yok ama puan da yok.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { const c = b.dataset.cat; cats = cats.includes(c) ? cats.filter(x => x !== c) : cats.concat([c]); store.set('bilgi_cats', cats); render(V, C) });
+    const cn = app.querySelector('#cnt'); if (cn) cn.onchange = () => { count = +cn.value; store.set('bilgi_count', count) };
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', count, cats });
+    return;
+  }
+  if (v.phase === 'over') {
+    const top = P.slice().sort((a, b) => b.score - a.score), tie = top[1] && top[0].score === top[1].score;
+    app.innerHTML = `<section class="panel"><span class="label">Yarışma bitti</span><h2>${tie ? 'Berabere!' : esc(top[0].name) + ' kazandı!'}</h2>${scoreTable(v, true)}
+      ${ctx.isHost ? '<button class="btn" id="again">Yeni yarışma</button>' : '<p class="muted">Ev sahibi yeni yarışma başlatabilir.</p>'}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', count: v.qs.length, cats: v.cats });
+    return;
+  }
+  const q = v.qs[v.cur], Q = SORULAR[q.i], opts = q.order.map(o => Q[2 + o]);
+  const key = v.cur + ':' + q.i;
+  if (v.phase === 'q' && key !== qKey) { qKey = key; deadline = performance.now() + v.left }
+  if (ctx.isHost && v.phase === 'q' && timerFor !== key) { timerFor = key; const cur = v.cur; setTimeout(() => ctx.act({ type: 'timeout', cur }), v.left + 80) }
+  const myAns = v.ans[me], reveal = v.phase === 'reveal', right = q.order.indexOf(0);
+  const whoPicked = k => P.filter(p => v.ans[p.id] && v.ans[p.id].k === k).map(p => `<span>${esc(p.name)}</span>`).join('');
+  const optHtml = opts.map((t, k) => {
+    let cls = '';
+    if (reveal) cls = k === right ? 'right' : (myAns && myAns.k === k ? 'wrong' : 'dim');
+    else if (myAns) cls = myAns.k === k ? 'mine' : 'dim';
+    return `<button class="opt ${cls}" style="--c:var(--o${k})" data-k="${k}" ${myAns || reveal || !mine ? 'disabled' : ''}><b>${LET[k]}</b><span>${esc(t)}</span>${reveal ? `<span class="who">${whoPicked(k)}</span>` : ''}</button>`;
+  }).join('');
+  let foot;
+  if (reveal) {
+    const g = v.gain[me];
+    foot = `<p><strong style="color:var(${g ? '--good' : '--bad'})">${!mine ? '' : g ? 'Doğru! +' + g + ' puan' : myAns ? 'Yanlış.' : 'Süre doldu.'}</strong> Doğru cevap: <strong>${esc(Q[2])}</strong></p>
+      <button class="btn" id="next">${v.cur + 1 >= v.qs.length ? 'Sonuçları gör' : 'Sonraki soru'}</button>`;
+  } else {
+    foot = `<div class="ppl">${P.map(p => `<span class="${v.ans[p.id] ? 'ok' : ''}">${esc(p.name)} ${v.ans[p.id] ? '✓' : '…'}</span>`).join('')}</div>`;
+  }
+  app.innerHTML = `<section class="panel">
+      <div class="topline"><span class="pill">${CATNAME[Q[0]]} · Soru ${v.cur + 1}/${v.qs.length}</span>${reveal ? '' : '<span class="sec" id="tsec"></span>'}</div>
+      ${reveal ? '' : '<div class="bar"><i id="tbar"></i></div>'}
+      <div class="q">${esc(Q[1])}</div>
+      <div class="opts">${optHtml}</div>
+      ${foot}</section>
+    <section class="panel"><span class="label">Puan durumu</span>${scoreTable(v, false)}</section>`;
+  app.querySelectorAll('.opt[data-k]').forEach(b => b.onclick = () => ctx.act({ type: 'answer', k: +b.dataset.k }));
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+  if (!reveal && !raf) raf = requestAnimationFrame(tick); else if (!reveal) tick();
+}
+Ati.start({ game: 'bilgi', el: app, logic: Bilgi, render });
+</script>
+</body>
+</html>

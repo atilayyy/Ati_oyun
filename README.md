@@ -8,6 +8,10 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 - **En Çok Neye Sinir Olur?**: 2 kişi. Önce 1. oyuncunun, sonra 2. oyuncunun sinir noktaları tahmin edilir.
 - **Sen Hangi Tipsin?**: 2-8 kişi. 12 komik soru, 6 tip; herkes birbirinin tipini tahmin eder.
 - **Pati Yarışı**: 2-8 yarışçı, tek ekranda izlenir. Kedi ve köpek misketler parkurda yarışır, eksik kişiyi bilgisayar tamamlar.
+- **Bilgi Yarışması**: 2-8 kişi, aynı soruya aynı anda cevap, hız bonusu. 7 kategoride 166 soru.
+- **Adam Asmaca**: 2 kişi, sırayla kelime seçip bulma.
+- **Kim Önce Basar**: 2-4 kişi refleks oyunu; tepki süresi her cihazda ölçülür, normal ve kandırmaca modu.
+- **Hafıza Kartları**: 2-4 kişi, kedi ve köpek kartlarıyla eş bulma.
 - **Dört Bağla**: 2 kişi. 4 taşı yan yana getiren kazanır.
 - **Amiral Battı**: 2 kişi, 3D. Gemilerini kendin diz ya da rastgele bırak. Rakibin filosunu ilk batıran kazanır, vurursan tekrar atarsın.
 - **Ati vs Meri**: 2 kişi, gerçek zamanlı ofis dövüşü. Online ya da aynı klavyede. Özel güçler sürpriz.
