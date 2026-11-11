@@ -4,9 +4,6 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
 - **Ati7**: Flip 7 kurallarıyla kart oyunu. 2 ve üzeri oyuncu, hedef 200 puan.
 - **Ati Kelime**: Türkçe kelime bulmaca, 4'ten 10 harfe kadar. Kelimeyi bilgisayar seçebilir ya da sırayla siz seçersiniz.
-- **Beni Ne Kadar Tanıyorsun?**: 2 kişi. Kendi cevabını ver, arkadaşının cevabını tahmin et. 40 soru.
-- **En Çok Neye Sinir Olur?**: 2 kişi. Önce 1. oyuncunun, sonra 2. oyuncunun sinir noktaları tahmin edilir.
-- **Sen Hangi Tipsin?**: 2-8 kişi. 12 komik soru, 6 tip; herkes birbirinin tipini tahmin eder.
 - **Pati Yarışı**: 2-8 yarışçı, tek ekranda izlenir. Kedi ve köpek misketler parkurda yarışır, eksik kişiyi bilgisayar tamamlar.
 - **Karne**: 2 kişi. Birbirinizin sevilen ve sinir bozan yanlarına 1-10 puan verin, kaç alacağınızı tahmin edin; sonunda karne çıkar.
 - **Bilgi Yarışması**: 2-8 kişi, aynı soruya aynı anda cevap, hız bonusu. 7 kategoride 166 soru.
