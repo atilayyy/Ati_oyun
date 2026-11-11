@@ -13,7 +13,7 @@ const AyniKafa = (() => {
     'Bir telefon markası söyle', 'Bir hobi söyle', 'Gece canın çeken bir atıştırmalık', 'Ofiste en çok duyulan kelime', 'Bir doğum günü hediyesi söyle',
     'Pazar sabahı yapılacak bir şey', 'İnsanların en çok korktuğu şey', 'Bir tatil aktivitesi söyle', 'Bir ünlü futbolcu söyle', 'Bir NBA oyuncusu söyle',
     'Bir Avrupa başkenti söyle', 'Bir mevsim söyle', 'Bir el aleti söyle', 'Bir banyo eşyası söyle', 'Bir ev hayvanı ismi söyle', 'Bir bayram yemeği söyle'];
-  // [ek türü veya '', metin]: ek varsa ismin sonuna eklenir ("Ati'nin en sevdiği renk?")
+  // [ek türü veya '', metin]: ek varsa ismin sonuna eklenir ("Deniz'in en sevdiği renk?")
   const KISI = [['in', 'en sevdiği yemek?'], ['', 'tatile nereye gitmek ister?'], ['in', 'en sevdiği renk?'], ['in', 'en sevdiği dizi?'],
     ['in', 'en sevdiği hayvan?'], ['', 'sabah uyanınca ilk ne yapar?'], ['in', 'en sevdiği içecek?'], ['in', 'en sevdiği tatlı?'],
     ['', 'boş bir günde ne yapar?'], ['in', 'en sevdiği mevsim?'], ['in', 'en çok kullandığı uygulama?'], ['in', 'tuttuğu takım?']];

@@ -1,4 +1,4 @@
-/* İsimlere Türkçe ek: ek('Ati','de') → "Ati'de", ek('Can','in') → "Can'ın", ek('Ati','i') → "Ati'yi", ek('Can','e') → "Can'a" */
+/* İsimlere Türkçe ek: ek('Deniz','de') → "Deniz'de", ek('Can','in') → "Can'ın", ek('Ece','i') → "Ece'yi", ek('Can','e') → "Can'a" */
 function ek(name, type) {
   const n = String(name || ''), low = n.toLocaleLowerCase('tr');
   const vowels = 'aeıioöuü', m = [...low].reverse().find(c => vowels.includes(c)) || 'e';

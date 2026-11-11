@@ -1,4 +1,4 @@
-/* Ati Kelime oyun mantığı. Herkes aynı gizli kelimeyi bulmaya çalışır; ev sahibinde çalışır. */
+/* Kelime Bulmaca oyun mantığı. Herkes aynı gizli kelimeyi bulmaya çalışır; ev sahibinde çalışır. */
 const Kelime = (() => {
   const ALPHA = 'abcçdefgğhıijklmnoöprsştuüvyz';
   const maxFor = n => n <= 6 ? 6 : n <= 8 ? 7 : 8;

@@ -87,7 +87,7 @@ function render(v, ctx) {
       ${idx < 0 ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `<div class="field"><label class="label" for="per">Kişi başı soru</label>
         <select id="per">${[4, 6, 8, 10].map(n => `<option value="${n}" ${n === per ? 'selected' : ''}>${n} soru (toplam ${n * 2})</option>`).join('')}</select></div>
         <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
-      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Sorular sırayla birinizle, sonra diğerinizle ilgili gelir: "Ati ne kadar komik?", "Ati ne kadar geç kalır?" gibi. Karşındaki 1'den 10'a puan verir, sen de kaç puan alacağını tahmin edersin. Tahminin ne kadar yakınsa o kadar puan. Soruyu beğenmezsen değiştirebilir ya da kendi sorunu yazabilirsin. Sonunda herkesin karnesi çıkar.</p></section>`;
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Sorular sırayla birinizle, sonra diğerinizle ilgili gelir: "Deniz ne kadar komik?", "Deniz ne kadar geç kalır?" gibi. Karşındaki 1'den 10'a puan verir, sen de kaç puan alacağını tahmin edersin. Tahminin ne kadar yakınsa o kadar puan. Soruyu beğenmezsen değiştirebilir ya da kendi sorunu yazabilirsin. Sonunda herkesin karnesi çıkar.</p></section>`;
     Ati.wireShare(app, ctx);
     const s = app.querySelector('#per'); if (s) s.onchange = () => per = +s.value;
     const b = app.querySelector('#start'); if (b) b.onclick = () => ctx.act({ type: 'start', per });

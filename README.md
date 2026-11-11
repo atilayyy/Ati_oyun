@@ -7,7 +7,7 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 - **Sayı Bulmaca**: 2 kişi. Gizli sayıyı +/− ipuçlarıyla önce bulan kazanır.
 - **Aynı Kafa**: 2-8 kişi. Aynı cevabı yazanlar puan alır.
 - **Ati7**: Flip 7 kurallarıyla kart oyunu. 2 ve üzeri oyuncu, hedef 200 puan.
-- **Ati Kelime**: Türkçe kelime bulmaca, 4'ten 10 harfe kadar. Kelimeyi bilgisayar seçebilir ya da sırayla siz seçersiniz.
+- **Kelime Bulmaca**: Türkçe kelime bulmaca, 4'ten 10 harfe kadar. Kelimeyi bilgisayar seçebilir ya da sırayla siz seçersiniz.
 - **Pati Yarışı**: 2-8 yarışçı, tek ekranda izlenir. Kedi ve köpek misketler parkurda yarışır, eksik kişiyi bilgisayar tamamlar.
 - **Tahmin Düellosu**: 2-8 kişi. Şıksız sayı tahmini; gerçeğe en yakın olan turu alır.
 - **Karne**: 2 kişi. Birbirinizin sevilen ve sinir bozan yanlarına 1-10 puan verin, kaç alacağınızı tahmin edin; sonunda karne çıkar.

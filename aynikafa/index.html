@@ -65,7 +65,7 @@ function render(v, ctx) {
       ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
         <div class="row"><span class="label">Soru sayısı</span><span class="seg">${[8, 12, 16].map(n => `<button data-n="${n}" class="${count === n ? 'on' : ''}">${n}</button>`).join('')}</span></div>
         <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
-      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">"Bir meyve söyle" gibi bir soru gelir, herkes aklına ilk geleni yazar. Aynı cevabı yazanlar puan alır: aynı şeyi yazan her kişi için +1. Arada sizinle ilgili sorular da gelir: "Ati'nin en sevdiği yemek?" gibi.</p>
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">"Bir meyve söyle" gibi bir soru gelir, herkes aklına ilk geleni yazar. Aynı cevabı yazanlar puan alır: aynı şeyi yazan her kişi için +1. Arada sizinle ilgili sorular da gelir: "Deniz'in en sevdiği yemek?" gibi.</p>
       <p class="muted">Yazımı farklı ama aynı şeyse ("kola" ile "coca cola" gibi), cevaplar açılınca "Benimki de bu sayılsın" diyebilirsin.</p></section>`;
     Ati.wireShare(app, ctx);
     app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { count = +b.dataset.n; render(V, C) });

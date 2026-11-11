@@ -64,7 +64,7 @@ const COLORS = ['#ff8a3d', '#ffd23f', '#5fd38a', '#4fc3f7', '#b49cff', '#ff6b9e'
 const BOT = { kedi: ['Tekir', 'Pamuk', 'Minnoş', 'Boncuk', 'Duman', 'Şeker', 'Mırmır'], kopek: ['Karabaş', 'Çomar', 'Paşa', 'Zeytin', 'Fındık', 'Kömür', 'Haydut'] };
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d } catch (e) { return d } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} } };
 
-let setup = store.get('pati_setup', { humans: [{ name: 'Ati', animal: 'kedi', color: 0 }, { name: '', animal: 'kopek', color: 3 }], bots: 2 });
+let setup = store.get('pati_setup', { humans: [{ name: '', animal: 'kedi', color: 0 }, { name: '', animal: 'kopek', color: 3 }], bots: 2 });
 let series = store.get('pati_series', {});
 let sound = store.get('pati_sound', true);
 
