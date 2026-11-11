@@ -38,6 +38,18 @@ td.n,th.n{text-align:right}
 .rules{font-size:.95rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:70ch}
 .rules b{color:var(--ink)}
 .field{display:flex;flex-direction:column;gap:6px}
+.c small{position:absolute;bottom:2px;left:0;right:0;font-family:var(--body);font-size:.5rem;font-weight:800;text-align:center;letter-spacing:.02em}
+.c.neg{background:#ffd0c4;border-bottom-color:#c0392b;color:#7a1a0c}
+.c.zero{background:#2a2433;color:#ff6b6b;border-bottom-color:#ff6b6b}
+.c.unl{background:#3a2530;color:#ffb3b3;border-bottom-color:#8b1a1a}
+.c.luk{background:#fff1b8;color:#7a5600;border-bottom-color:#e0a800}
+.c.vact{background:#ffd9ec;border-bottom-color:#c2185b}
+.c.pick{cursor:pointer;outline:2px dashed var(--accent);outline-offset:2px}
+.c.sel{outline:3px solid var(--accent);transform:translateY(-6px)}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.modepill{background:#c0392b;color:#fff;border-color:#c0392b}
 </style>
 </head>
 <body>
@@ -54,13 +66,27 @@ const app = document.getElementById('app');
 const esc = Ati.esc;
 let lastSeen = {};
 
-function cardHtml(c, extra = '') {
+let V = null, C = null, picks = [], pickKey = '';
+function cardHtml(c, extra = '', vm) {
+  if (c === 'n0' && vm) return `<div class="c zero ${extra}">0<small>SIFIR</small></div>`;
+  if (c === 'U7') return `<div class="c unl ${extra}">7<small>UĞURSUZ</small></div>`;
+  if (c === 'L13') return `<div class="c luk ${extra}">13<small>ŞANSLI</small></div>`;
+  if (c[0] === 'm' || c === 'd2') return `<div class="c mod neg ${extra}">${esc(Ati7.cardName(c))}</div>`;
+  if (['J1', 'F4', 'SW', 'ST', 'DC'].includes(c)) return `<div class="c act vact ${extra}">${esc(Ati7.cardName(c))}</div>`;
   if (c[0] === 'n') { const v = +c.slice(1); return `<div class="c ${extra}" style="--h:${(v * 29) % 360}">${v}</div>` }
   if (c[0] === 'p' || c === 'x2') return `<div class="c mod ${extra}">${c === 'x2' ? '×2' : '+' + c.slice(1)}</div>`;
   return `<div class="c act ${extra}">${esc(Ati7.cardName(c))}</div>`;
 }
 const STATUS = { active: '', stayed: 'Durdu', frozen: 'Donduruldu', bust: 'Patladı', flip7: 'ATI7!' };
 
+const RULES_V = `<div class="rules">
+  <p><b>Acımasız mod</b> (Flip 7: With a Vengeance kuralları). Amaç yine ${Ati7.GOAL} puan, temel akış aynı: kart çek ya da dur, aynı sayıdan iki tane gelirse patlarsın, 7 sayı toplarsan +${Ati7.BONUS}.</p>
+  <p><b>Sayılar 0'dan 13'e.</b> <b>Sıfır:</b> Ati7 yapmazsan o el 0 puan alırsın ve elinde Sıfır varken duramazsın. <b>Uğursuz 7:</b> çektiğinde elindeki diğer bütün sayı ve eksi kartları çöpe gider. <b>Şanslı 13:</b> yanında bir 13 daha tutabilirsin, patlamazsın.</p>
+  <p><b>Eksi kartları</b> (−2...−10) ve <b>÷2</b> puan düşürür. Çeken, patlamamış birine verir. Sıralama: sayılar toplanır, ÷2 uygulanır, eksiler düşülür, en az 0.</p>
+  <p><b>Bir Daha!:</b> seçilen kişi bir kart çeker ve durmak zorunda. <b>Dört Çek!:</b> seçilen kişi 4 kart çeker. <b>Takas:</b> iki farklı oyuncudan birer kartı yer değiştir. <b>Çal:</b> birinin kartını kendi önüne al. <b>Çöpe At:</b> birinin bir kartını at.</p>
+  <p>Aksiyonlar zorunlu, durmuş oyuncular da hedef olabilir (patlayanlar olamaz). Takas ve Çal ile aynı sayı gelen patlar.</p>
+  <p class="muted">Deste 108 kart: 92 sayı, 6 eksi/bölme, 10 aksiyon. Takas/Çal ile gelen Uğursuz 7 sadece 7 sayılır, kart atma etkisi çekildiğinde çalışır.</p>
+</div>`;
 const RULES = `<div class="rules">
   <p><b>Amaç:</b> ilk ${Ati7.GOAL} puana ulaşan el sonunda kazanır.</p>
   <p><b>Sıran gelince</b> ya kart çekersin ya da durup o eldeki puanını bankalarsın.</p>
@@ -71,31 +97,40 @@ const RULES = `<div class="rules">
   <p class="muted">Deste: 0'dan 12'ye sayılar (her sayıdan kendi değeri kadar, 0'dan bir tane), 6 artı/çarpan, 9 aksiyon kartı. Toplam 94 kart.</p>
 </div>`;
 
+const modeSeg = v => `<span class="seg">${[['k', 'Klasik'], ['v', 'Acımasız']].map(([m, t]) => `<button data-m="${m}" class="${(v.mode || 'k') === m ? 'on' : ''}">${t}</button>`).join('')}</span>`;
 function render(v, ctx) {
-  const me = ctx.me, isHost = ctx.isHost;
+  V = v; C = ctx;
+  const me = ctx.me, isHost = ctx.isHost, vm = v.mode === 'v', rules = vm ? RULES_V : RULES;
+  const wireMode = () => app.querySelectorAll('[data-m]').forEach(b => b.onclick = () => ctx.act({ type: 'mode', m: b.dataset.m }));
   if (v.phase === 'lobby') {
     app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
       <div><span class="label">Masadakiler</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      <div class="row"><span class="label">Mod</span>${isHost ? modeSeg(v) : `<b>${vm ? 'Acımasız' : 'Klasik'}</b>`}</div>
       ${isHost ? `<button class="btn" id="start" ${v.players.length < 2 ? 'disabled' : ''}>Oyunu başlat</button>
         ${v.players.length < 2 ? '<p class="muted">En az 2 kişi gerekiyor. Kodu arkadaşlarına gönder.</p>' : ''}`
       : '<p class="muted">Ev sahibinin oyunu başlatması bekleniyor...</p>'}
-      </section><section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>`;
-    Ati.wireShare(app, ctx);
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>${rules}</section>`;
+    Ati.wireShare(app, ctx); wireMode();
     const b = app.querySelector('#start'); if (b) b.onclick = () => ctx.act({ type: 'start' });
     return;
   }
 
   const order = v.order || v.players.map(p => p.id);
   const pl = id => v.players.find(p => p.id === id) || { name: '?' };
-  const hud = `<div class="hud"><span class="pill">${v.round}. el</span><span class="pill">Destede ${v.deckCount} kart</span><span class="pill">Hedef ${Ati7.GOAL}</span>
+  const hud = `<div class="hud"><span class="pill">${v.round}. el</span><span class="pill">Destede ${v.deckCount} kart</span><span class="pill">Hedef ${Ati7.GOAL}</span>${vm ? '<span class="pill modepill">Acımasız</span>' : ''}
     ${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>`;
 
+  const P = v.pending, picking = v.phase === 'play' && P && P.by === me && P.from;
+  const pk = v.round + '|' + v.log.length + '|' + (P ? P.card : '');
+  if (pk !== pickKey) { pickKey = pk; picks = [] }
   const seats = order.map(id => {
     const h = v.hands[id], p = pl(id);
     const showRes = v.phase !== 'play' && v.lastRound;
     const prev = lastSeen[id] || 0; const cards = [...h.nums, ...h.mods];
     const dupIdx = h.status === 'bust' ? h.nums.length - 1 : -1;
-    const html = h.nums.map((c, i) => cardHtml(c, (i === dupIdx ? 'dup ' : '') + (i + h.mods.length >= prev ? '' : ''))).join('') + h.mods.map(c => cardHtml(c)).join('');
+    const can = picking && P.from.includes(id);
+    const cls = i => can ? `pick ${picks.some(x => x.id === id && x.i === i) ? 'sel' : ''}" data-k="${esc(id)}|${i}` : '';
+    const html = h.nums.map((c, i) => cardHtml(c, (i === dupIdx ? 'dup ' : '') + cls(i), vm)).join('') + h.mods.map((c, j) => cardHtml(c, cls(h.nums.length + j), vm)).join('');
     lastSeen[id] = cards.length;
     return `<div class="seat ${v.phase === 'play' && v.turn === id ? 'turn' : ''} ${h.status !== 'active' && v.phase === 'play' ? 'out' : ''}">
       <div class="nm">${esc(p.name)}${id === me ? ' <span class="muted">(sen)</span>' : ''}
@@ -110,12 +145,19 @@ function render(v, ctx) {
   if (v.phase === 'play') {
     if (v.pending) {
       if (v.pending.by === me) {
-        const what = { FR: 'Kimi donduracaksın?', F3: 'Kime Üç Çek uygulayacaksın?', SC: "İkinci Şans'ı kime vereceksin?" }[v.pending.card];
-        controls = `<div class="controls">${cardHtml(v.pending.card)}<strong>${what}</strong>
+        const c = v.pending.card;
+        const what = { FR: 'Kimi donduracaksın?', F3: 'Kime Üç Çek uygulayacaksın?', SC: "İkinci Şans'ı kime vereceksin?", J1: 'Kime Bir Daha! uygulayacaksın? (1 kart çekip durur)', F4: 'Kime Dört Çek! uygulayacaksın?',
+          ST: 'Kimin hangi kartını çalacaksın? Aşağıdan bir kart seç.', DC: 'Hangi kartı çöpe atacaksın? Aşağıdan bir kart seç.', SW: 'Farklı iki oyuncudan birer kart seç, yerleri değişsin.' }[c] || `${esc(Ati7.cardName(c))} kartını kime vereceksin?`;
+        if (picking) {
+          const need = P.kind === 'swap' ? 2 : 1;
+          controls = `<div class="controls">${cardHtml(c)}<strong>${what}</strong><button class="btn" id="okpick" ${picks.length === need ? '' : 'disabled'}>Onayla</button></div>`;
+        } else
+        controls = `<div class="controls">${cardHtml(c)}<strong>${what}</strong>
           ${v.pending.targets.map(t => `<button class="btn ${t === me ? 'ghost' : ''}" data-t="${esc(t)}">${t === me ? 'Kendim' : esc(pl(t).name)}</button>`).join('')}</div>`;
-      } else controls = `<p class="muted">${esc(pl(v.pending.by).name)}, ${esc(Ati7.cardName(v.pending.card))} kartının kime gideceğini seçiyor...</p>`;
+      } else controls = `<p class="muted">${esc(pl(v.pending.by).name)}, ${esc(Ati7.cardName(v.pending.card))} kartı için seçim yapıyor...</p>`;
     } else if (v.turn === me) {
-      controls = `<div class="controls"><button class="btn" id="hit">Kart çek</button><button class="btn ghost" id="stay">Dur (${v.hands[me].pts} puan)</button></div>`;
+      const zero = vm && v.hands[me].nums.includes('n0');
+      controls = `<div class="controls"><button class="btn" id="hit">Kart çek</button>${zero ? '<button class="btn ghost" disabled>Sıfır var, duramazsın</button>' : `<button class="btn ghost" id="stay">Dur (${v.hands[me].pts} puan)</button>`}</div>`;
     } else if (v.turn) controls = `<p class="muted">Sıra ${ek(esc(pl(v.turn).name),'de')}...</p>`;
   } else if (v.phase === 'roundEnd') {
     const why = v.lastRound.why === 'ati7' ? 'Biri ATI7 yaptı, el bitti!' : 'Herkes durdu, dondu ya da patladı.';
@@ -125,17 +167,26 @@ function render(v, ctx) {
     const rows = v.players.slice().sort((a, b) => b.score - a.score).map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td class="n">${p.score}</td></tr>`).join('');
     controls = `<div class="panel" style="padding:16px"><h2>${esc(w)} kazandı!</h2>
       <table><thead><tr><th>#</th><th>Oyuncu</th><th class="n">Puan</th></tr></thead><tbody>${rows}</tbody></table>
-      ${isHost ? '<button class="btn" id="again">Yeni oyun</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</div>`;
+      ${isHost ? `<div class="row"><span class="label">Mod</span>${modeSeg(v)}</div><button class="btn" id="again">Yeni oyun</button>` : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</div>`;
   }
 
   app.innerHTML = `${hud}<section class="panel">${controls}</section>
     <section class="seats">${seats}</section>
     <section class="panel"><span class="label">Olanlar</span><div class="log" id="log">${v.log.map(l => `<div>${esc(l)}</div>`).join('')}</div></section>
-    <details class="panel"><summary>Kurallar</summary>${RULES}</details>`;
+    <details class="panel"><summary>Kurallar</summary>${rules}</details>`;
   const lg = app.querySelector('#log'); lg.scrollTop = lg.scrollHeight;
   const on = (sel, a) => { const b = app.querySelector(sel); if (b) b.onclick = () => ctx.act(a) };
   on('#hit', { type: 'hit' }); on('#stay', { type: 'stay' }); on('#next', { type: 'next' }); on('#again', { type: 'start' });
   app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => ctx.act({ type: 'target', id: b.dataset.t }));
+  wireMode();
+  app.querySelectorAll('[data-k]').forEach(el => el.onclick = () => {
+    const k = el.dataset.k, cut = k.lastIndexOf('|'), x = { id: k.slice(0, cut), i: +k.slice(cut + 1) };
+    if (picks.some(p => p.id === x.id && p.i === x.i)) picks = picks.filter(p => !(p.id === x.id && p.i === x.i));
+    else if (P.kind === 'swap') { picks = picks.filter(p => p.id !== x.id); picks.push(x); if (picks.length > 2) picks.shift() }
+    else picks = [x];
+    render(V, C);
+  });
+  const ok = app.querySelector('#okpick'); if (ok) ok.onclick = () => ctx.act({ type: 'pick', picks });
 }
 
 Ati.start({ game: 'ati7', el: app, logic: Ati7, render });
