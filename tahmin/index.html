@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tahmin Düellosu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--c0:#4fc3f7;--c1:#ff8a5c;--c2:#b49cff;--c3:#5fd38a;--c4:#ff6b9e;--c5:#ffd23f;--c6:#f2f3fb;--c7:#a1775f}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.q{font-family:var(--display);font-weight:800;font-size:clamp(1.35rem,4.8vw,2rem);line-height:1.22;text-wrap:balance}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.sec{font-family:var(--display);font-weight:800;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:100%}
+.bar i.low{background:var(--bad)}
+.entry{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.entry input{flex:1 1 220px;font-family:var(--display);font-weight:800;font-size:1.8rem;padding:12px 16px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.entry .unit{align-self:center;font-weight:800;color:var(--muted);font-size:1.1rem}
+.preview{font-weight:700;color:var(--muted);min-height:1.5em}
+.preview b{color:var(--ink)}
+.ppl{display:flex;gap:8px;flex-wrap:wrap}
+.ppl span{font-weight:800;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid var(--edge)}
+.ppl span.ok{border-color:var(--good);color:var(--good)}
+.answer{text-align:center;display:flex;flex-direction:column;gap:2px}
+.answer b{font-family:var(--display);font-size:clamp(2.2rem,9vw,3.4rem);color:var(--accent);line-height:1.05;font-variant-numeric:tabular-nums}
+.nl{position:relative;height:96px;margin:6px 14px 0}
+.nl .axis{position:absolute;left:0;right:0;top:48px;height:4px;border-radius:2px;background:var(--edge)}
+.nl .mk{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;transition:left .8s cubic-bezier(.2,.8,.2,1)}
+.nl .mk span{font-size:.72rem;font-weight:800;padding:2px 7px;border-radius:999px;background:var(--c);color:#0d1126;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.nl .mk i{width:4px;height:26px;border-radius:2px;background:var(--c)}
+.nl .mk.low{top:46px;flex-direction:column-reverse}
+.nl .truth{position:absolute;top:30px;bottom:30px;width:4px;margin-left:-2px;background:var(--accent);box-shadow:0 0 12px var(--accent);border-radius:2px}
+.rows{display:flex;flex-direction:column;gap:6px}
+.rw{display:grid;grid-template-columns:14px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--table);font-weight:700}
+.rw i{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.rw.win{outline:2px solid var(--good)}
+.rw small{color:var(--muted);font-variant-numeric:tabular-nums}
+.rw b{font-variant-numeric:tabular-nums}
+.crown{color:var(--good);font-weight:800}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Tahmin Düellosu</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="sorular.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let count = 12, V, C, qKey = '', deadline = 0, timerFor = '', raf = 0, draft = '';
+const fmt = n => { if (n === null || n === undefined || n === 'x') return '-'; const r = Math.round(n * 1000) / 1000; return r.toLocaleString('tr-TR', { maximumFractionDigits: 3 }) };
+const col = i => `var(--c${i % 8})`;
+
+function tick() {
+  const bar = document.getElementById('tbar'), sec = document.getElementById('tsec');
+  if (!bar || !V || V.phase !== 'q') { raf = 0; return }
+  const left = Math.max(0, deadline - performance.now());
+  bar.style.width = (left / Tahmin.TIME * 100) + '%'; bar.classList.toggle('low', left < 8000);
+  sec.textContent = Math.ceil(left / 1000);
+  raf = requestAnimationFrame(tick);
+}
+function ranking(v) { return v.players.slice().sort((a, b) => b.score - a.score || (a.err || 0) - (b.err || 0)) }
+function numberLine(v, ans) {
+  const vals = v.players.map((p, i) => ({ p, i, x: v.ans[p.id] })).filter(o => typeof o.x === 'number');
+  let lo = Math.min(ans, ...vals.map(o => o.x)), hi = Math.max(ans, ...vals.map(o => o.x));
+  if (hi === lo) { hi += Math.max(1, Math.abs(hi) * 0.1); lo -= Math.max(1, Math.abs(lo) * 0.1) }
+  const pad = (hi - lo) * 0.08, L = lo - pad, R = hi + pad, pos = x => ((x - L) / (R - L) * 100).toFixed(2) + '%';
+  return `<div class="nl"><div class="axis"></div><div class="truth" style="left:${pos(ans)}" title="Doğru cevap"></div>
+    ${vals.map((o, k) => `<div class="mk ${k % 2 ? 'low' : ''}" style="left:${pos(o.x)};--c:${col(o.i)}"><span>${esc(o.p.name)}</span><i></i></div>`).join('')}</div>`;
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Soru sayısı</span><span class="seg">${[8, 12, 16].map(n => `<button data-n="${n}" class="${count === n ? 'on' : ''}">${n}</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>
+        ${P.length < 2 ? '<p class="muted">En az 2 kişi gerekiyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Şık yok. Soruyu oku, kafandaki sayıyı yaz. "Everest kaç metre?" gibi. Gerçeğe en yakın tahmini yapan turu alır, eşitlikte ikisi de alır. Bilmesen bile mantıklı tahminle kazanabilirsin. ${Tahmin.TIME / 1000} saniyen var.</p>
+      <p class="muted">Ondalık için virgül kullan (42,195). "1,5 milyon" ya da "300 bin" diye de yazabilirsin.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { count = +b.dataset.n; render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', count });
+    return;
+  }
+  if (v.phase === 'over') {
+    const r = ranking(v), tie = r[1] && r[0].score === r[1].score && Math.abs((r[0].err || 0) - (r[1].err || 0)) < 1e-9;
+    app.innerHTML = `<section class="panel"><span class="label">Düello bitti</span><h2>${tie ? 'Berabere!' : esc(r[0].name) + ' kazandı!'}</h2>
+      <table><thead><tr><th>#</th><th>Oyuncu</th><th class="n">Kazandığı tur</th><th class="n">Tam isabet</th><th class="n">Ort. sapma</th></tr></thead>
+      <tbody>${r.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td class="n">${p.score}</td><td class="n">${p.exact || 0}</td><td class="n">%${Math.round((p.err || 0) / v.qs.length * 100)}</td></tr>`).join('')}</tbody></table>
+      <p class="muted" style="font-size:.9rem">Turlar eşitse ortalama sapması düşük olan önde sayılır.</p>
+      ${ctx.isHost ? '<button class="btn" id="again">Yeni düello</button>' : '<p class="muted">Ev sahibi yeni düello başlatabilir.</p>'}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', count: v.qs.length });
+    return;
+  }
+  const Q = TAHMIN[v.qs[v.cur]], ans = Q[2], unit = Q[3], key = v.cur + ':' + v.qs[v.cur];
+  if (v.phase === 'q' && key !== qKey) { qKey = key; deadline = performance.now() + v.left; draft = '' }
+  if (ctx.isHost && v.phase === 'q' && timerFor !== key) { timerFor = key; const cur = v.cur; setTimeout(() => ctx.act({ type: 'timeout', cur }), v.left + 80) }
+  const head = `<div class="row">${ranking(v).map(p => `<span class="pill">${esc(p.name)} · ${p.score}</span>`).join('')}</div>`;
+  const qtop = `<div class="topline"><span class="pill">${esc(Q[0])} · Soru ${v.cur + 1}/${v.qs.length}</span>${v.phase === 'q' ? '<span class="sec" id="tsec"></span>' : ''}</div>
+    ${v.phase === 'q' ? '<div class="bar"><i id="tbar"></i></div>' : ''}<div class="q">${esc(Q[1])}</div>`;
+  let body;
+  if (v.phase === 'q') {
+    const myAns = mine && (me in v.ans) ? v.ans[me] : null, dec = !Number.isInteger(ans);
+    body = mine && myAns === null ? `<div class="entry"><input id="g" inputmode="decimal" autocomplete="off" placeholder="Tahminin" value="${esc(draft)}">${unit ? `<span class="unit">${esc(unit)}</span>` : ''}<button class="btn" id="send">Kilitle</button></div>
+        <div class="preview" id="pv"></div>${dec ? '<p class="muted" style="font-size:.9rem">Bu sorunun cevabı küsuratlı. Ondalık için virgül kullan.</p>' : ''}`
+      : mine ? `<p><strong>Tahminin kilitlendi: ${fmt(myAns)} ${esc(unit)}</strong></p>` : '<p class="muted">İzliyorsun.</p>';
+    body += `<div class="ppl">${P.map(p => `<span class="${p.id in v.ans ? 'ok' : ''}">${esc(p.name)} ${p.id in v.ans ? '✓' : '…'}</span>`).join('')}</div>`;
+  } else {
+    const rows = P.map((p, i) => ({ p, i, x: v.ans[p.id] })).sort((a, b) => (typeof a.x === 'number' ? Math.abs(a.x - ans) : 1e18) - (typeof b.x === 'number' ? Math.abs(b.x - ans) : 1e18));
+    const won = v.win.map(id => P.find(p => p.id === id).name);
+    body = `<div class="answer"><span class="label">Doğru cevap</span><b>${fmt(ans)}</b><span class="muted">${esc(unit)}</span></div>
+      ${numberLine(v, ans)}
+      <div class="rows">${rows.map(o => `<div class="rw ${v.win.includes(o.p.id) ? 'win' : ''}" style="--c:${col(o.i)}"><i></i><span>${esc(o.p.name)}${v.win.includes(o.p.id) ? ' <span class="crown">+1</span>' : ''}</span>
+        <b>${typeof o.x === 'number' ? fmt(o.x) : 'cevap yok'}</b><small>${typeof o.x === 'number' ? (o.x === ans ? 'tam isabet!' : 'fark ' + fmt(Math.abs(o.x - ans))) : ''}</small></div>`).join('')}</div>
+      <p><strong>${won.length ? (won.length > 1 ? 'Eşitlik! ' + won.map(esc).join(' ve ') + ' turu aldı.' : esc(won[0]) + ' turu aldı.') : 'Kimse cevap vermedi.'}</strong></p>
+      <button class="btn" id="next">${v.cur + 1 >= v.qs.length ? 'Sonuçları gör' : 'Sonraki soru'}</button>`;
+  }
+  app.innerHTML = `${head}<section class="panel">${qtop}${body}</section>`;
+  const inp = app.querySelector('#g');
+  if (inp) {
+    const pv = app.querySelector('#pv');
+    const upd = () => { draft = inp.value; const n = Tahmin.parse(inp.value); pv.innerHTML = inp.value.trim() ? (n === null ? 'Sayı olarak okuyamadım.' : `Tahminin: <b>${fmt(n)}</b> ${esc(unit)}`) : '' };
+    inp.oninput = upd; upd();
+    const go = () => { const n = Tahmin.parse(inp.value); if (n === null) { inp.focus(); return } ctx.act({ type: 'answer', v: n }); draft = '' };
+    app.querySelector('#send').onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go() };
+    if (document.activeElement !== inp) inp.focus({ preventScroll: true });
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+  }
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+  if (v.phase === 'q' && !raf) raf = requestAnimationFrame(tick);
+}
+Ati.start({ game: 'tahmin', el: app, logic: Tahmin, render });
+</script>
+</body>
+</html>
