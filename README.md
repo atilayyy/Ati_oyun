@@ -13,7 +13,6 @@ Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 - **Hafıza Kartları**: 2-4 kişi, kedi ve köpek kartlarıyla eş bulma.
 - **Dört Bağla**: 2 kişi. 4 taşı yan yana getiren kazanır.
 - **Amiral Battı**: 2 kişi, 3D. Gemilerini kendin diz ya da rastgele bırak. Rakibin filosunu ilk batıran kazanır, vurursan tekrar atarsın.
-- **Ati vs Meri**: 2 kişi, gerçek zamanlı ofis dövüşü. Online ya da aynı klavyede. Özel güçler sürpriz.
 
 ## Nasıl çalışıyor?
 
