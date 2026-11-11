@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sayı Bulmaca</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.slots{display:flex;gap:8px;justify-content:center}
+.slots div{width:clamp(46px,13vw,62px);height:clamp(58px,16vw,76px);border-radius:12px;border:2px solid var(--edge);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:clamp(1.8rem,7vw,2.4rem);background:var(--table)}
+.slots div.f{border-color:var(--accent)}
+.pad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;max-width:420px;margin:0 auto;width:100%}
+.pad button{font:800 1.3rem var(--display);height:52px;border-radius:10px;border:0;background:#4a5390;color:var(--ink);cursor:pointer}
+.pad button:disabled{opacity:.3;cursor:default}
+.pad button.dead{background:#2a3058;color:var(--muted);text-decoration:line-through}
+.pad button.sure{background:#3fae6a;color:#06210f}
+.acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.hist{display:flex;flex-direction:column;gap:6px}
+.hr{display:grid;grid-template-columns:2em minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--table)}
+.hr .num{font-family:var(--display);font-weight:800;font-size:1.35rem;letter-spacing:.18em;font-variant-numeric:tabular-nums}
+.hr .n{color:var(--muted);font-weight:800;font-size:.8rem}
+.hr.win{outline:2px solid var(--good)}
+.clue{display:flex;gap:4px}
+.clue span{font-weight:800;font-size:.95rem;padding:3px 9px;border-radius:999px;font-variant-numeric:tabular-nums}
+.clue .p{background:#3fae6a;color:#06210f} .clue .m{background:#e0a526;color:#2a1d00} .clue .z{background:#3a4270;color:var(--muted)}
+.status{font-family:var(--display);font-weight:800;font-size:1.25rem}
+.secret{display:inline-flex;align-items:center;gap:8px;font-weight:800}
+.secret b{font-family:var(--display);letter-spacing:.2em;font-size:1.2rem}
+.note{font-size:.88rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Sayı Bulmaca</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let n = 4, V, C, entry = '', marks = {}, showSecret = false, gameKey = '';
+const clue = (p, m) => p || m ? `<span class="clue">${p ? `<span class="p">+${p}</span>` : ''}${m ? `<span class="m">−${m}</span>` : ''}</span>` : '<span class="clue"><span class="z">0</span></span>';
+function slots(len) { return `<div class="slots">${Array.from({ length: len }, (_, i) => `<div class="${entry[i] ? 'f' : ''}">${entry[i] || ''}</div>`).join('')}</div>` }
+function pad(len, notes) {
+  return `<div class="pad">${'1234567890'.split('').map(d => `<button data-d="${d}" class="${notes && marks[d] === 1 ? 'dead' : notes && marks[d] === 2 ? 'sure' : ''}" ${entry.includes(d) || entry.length >= len || (d === '0' && entry.length === 0) ? 'disabled' : ''}>${d}</button>`).join('')}</div>`;
+}
+function hist(list, len, me) {
+  if (!list.length) return '<p class="muted">Henüz tahmin yok.</p>';
+  return `<div class="hist">${list.map((g, i) => `<div class="hr ${g.p === len ? 'win' : ''}"><span class="n">${i + 1}.</span><span class="num">${g.v}</span>${clue(g.p, g.m)}</div>`).reverse().join('')}</div>`;
+}
+function typeDigit(d) {
+  if (!V) return;
+  const len = V.n; if (entry.length >= len || entry.includes(d) || (d === '0' && !entry)) return;
+  entry += d; render(V, C);
+}
+function submit() {
+  if (!V || entry.length !== V.n) return;
+  if (V.phase === 'set') C.act({ type: 'secret', v: entry }); else C.act({ type: 'guess', v: entry });
+  entry = ''; render(V, C);
+}
+document.addEventListener('keydown', e => {
+  if (!V || (V.phase !== 'set' && V.phase !== 'play') || e.target.tagName === 'INPUT') return;
+  if (/^[0-9]$/.test(e.key)) typeDigit(e.key);
+  else if (e.key === 'Backspace') { entry = entry.slice(0, -1); render(V, C) }
+  else if (e.key === 'Enter') submit();
+});
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, idx = P.findIndex(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2 kişilik)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${idx < 0 ? '<p class="muted">Oda dolu, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Kaç haneli?</span><span class="seg">${[3, 4, 5].map(k => `<button data-n="${k}" class="${n === k ? 'on' : ''}">${k}</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">İkiniz de rakamları birbirinden farklı, 0 ile başlamayan gizli bir sayı tutarsınız. Sırayla karşınızın sayısını tahmin edersiniz. Her tahminde ipucu gelir:</p>
+      <p>${clue(1, 0)} doğru rakam, doğru yerde &nbsp; ${clue(0, 1)} doğru rakam, yanlış yerde &nbsp; ${clue(0, 0)} hiçbiri yok</p>
+      <p class="muted">Örnek: Sayı 1234, tahmin 1325 ise: 1 doğru yerde (+1), 3 ve 2 var ama yanlış yerde (−2). Önce bulan kazanır. Başlayan bulursa diğerine de aynı sayıda hak tanınır, o da bulursa berabere.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { n = +b.dataset.n; render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', n });
+    return;
+  }
+  if (idx < 0) { app.innerHTML = '<section class="panel"><p class="muted">Oda dolu, izliyorsun.</p></section>'; return }
+  const gk = v.games + ':' + v.n; if (gk !== gameKey) { gameKey = gk; marks = {}; entry = ''; showSecret = false }
+  const opp = P[1 - idx], head = `<div class="row">${P.map(p => `<span class="pill">${esc(p.name)} · ${p.score} galibiyet</span>`).join('')}<span class="pill">${v.n} haneli</span></div>`;
+  if (v.phase === 'set') {
+    const done = v.secret[me] && v.secret[me] !== 'x';
+    app.innerHTML = `${head}<section class="panel">${done ? `<div class="status">Sayın kilitlendi: <span style="letter-spacing:.2em">${v.secret[me]}</span></div><p class="muted">${esc(opp.name)} sayısını tutuyor...</p>`
+      : `<div class="status">Gizli sayını tut</div><p class="muted">${v.n} haneli, rakamları farklı, 0 ile başlamasın. ${esc(opp.name)} görmeyecek.</p>
+        ${slots(v.n)}${pad(v.n, false)}
+        <div class="acts"><button class="btn ghost small" id="del">Sil</button><button class="btn" id="ok" ${entry.length === v.n ? '' : 'disabled'}>Bu sayı olsun</button></div>
+        ${v.err ? `<p class="err">${esc(v.err)}</p>` : ''}`}</section>`;
+  } else {
+    const mine = v.g[me], theirs = v.g[opp.id], myTurn = v.phase === 'play' && v.turn === idx;
+    let status;
+    if (v.phase === 'over') {
+      status = v.winners.length === 2 ? 'Berabere! İkiniz de aynı turda buldunuz.' : v.winners[0] === me ? `Kazandın! ${mine.length}. tahminde buldun.` : `${opp.name} kazandı (${theirs.length}. tahminde).`;
+    } else if (v.oppSolved && myTurn) status = `${opp.name} sayını buldu! Son hakkın: bulursan berabere.`;
+    else if (v.meSolved) status = `Buldun! ${opp.name} son hakkını kullanıyor...`;
+    else status = myTurn ? 'Sıra sende: tahminini yaz.' : `Sıra ${ek(opp.name, 'de')}...`;
+    app.innerHTML = `${head}<section class="panel"><div class="status">${esc(status)}</div>
+      ${myTurn ? `${slots(v.n)}${pad(v.n, true)}<div class="acts"><button class="btn ghost small" id="del">Sil</button><button class="btn" id="ok" ${entry.length === v.n ? '' : 'disabled'}>Tahmin et</button></div>${v.err ? `<p class="err">${esc(v.err)}</p>` : ''}` : ''}
+      <p class="note">Not defteri: ${myTurn ? 'rakam tuşuna uzun bas ya da sağ tıkla' : 'sıra karşıdayken rakama dokun'}. Bir kez: yok (üstü çizili), iki kez: kesin var (yeşil), üç kez: temizle. Sadece sen görürsün.</p>
+      ${!myTurn && v.phase === 'play' ? pad(0, true).replace(/disabled/g, '') : ''}
+      <div class="secret">Senin sayın: <b>${showSecret || v.phase === 'over' ? v.secret[me] : '•'.repeat(v.n)}</b> ${v.phase === 'over' ? '' : `<button class="btn ghost small" id="eye">${showSecret ? 'Gizle' : 'Göster'}</button>`}</div>
+      ${v.phase === 'over' ? `<p>${esc(ek(opp.name, 'in'))} sayısı: <b style="letter-spacing:.2em;font-size:1.2rem">${v.secret[opp.id]}</b></p><button class="btn" id="again">Tekrar oyna</button>` : ''}
+    </section>
+    <section class="cols">
+      <div class="panel"><span class="label">Senin tahminlerin (${mine.length})</span>${hist(mine, v.n)}</div>
+      <div class="panel"><span class="label">${esc(ek(opp.name, 'in'))} tahminleri, senin sayın üzerine (${theirs.length})</span>${hist(theirs, v.n)}</div>
+    </section>`;
+  }
+  app.querySelectorAll('.pad button').forEach(b => {
+    const d = b.dataset.d;
+    const notes = V.phase === 'play' && V.turn !== V.players.findIndex(p => p.id === C.me);
+    b.onclick = () => { if (notes) { marks[d] = ((marks[d] || 0) + 1) % 3; render(V, C) } else typeDigit(d) };
+    b.oncontextmenu = e => { e.preventDefault(); marks[d] = ((marks[d] || 0) + 1) % 3; render(V, C) };
+    let t; b.addEventListener('touchstart', () => { t = setTimeout(() => { marks[d] = ((marks[d] || 0) + 1) % 3; t = 'done'; render(V, C) }, 450) }, { passive: true });
+    b.addEventListener('touchend', e => { if (t === 'done') e.preventDefault(); else clearTimeout(t) });
+  });
+  const del = app.querySelector('#del'); if (del) del.onclick = () => { entry = entry.slice(0, -1); render(V, C) };
+  const ok = app.querySelector('#ok'); if (ok) ok.onclick = submit;
+  const eye = app.querySelector('#eye'); if (eye) eye.onclick = () => { showSecret = !showSecret; render(V, C) };
+  const ag = app.querySelector('#again'); if (ag) ag.onclick = () => ctx.act({ type: 'start', n: v.n });
+}
+Ati.start({ game: 'sayibul', el: app, logic: SayiBul, render });
+</script>
+</body>
+</html>

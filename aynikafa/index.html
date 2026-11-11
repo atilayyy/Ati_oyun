@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Aynı Kafa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.q{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,5.5vw,2.3rem);line-height:1.2;text-wrap:balance}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.sec{font-family:var(--display);font-weight:800;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:100%}
+.bar i.low{background:var(--bad)}
+.entry{display:flex;gap:10px;flex-wrap:wrap}
+.entry input{flex:1 1 220px;font-family:var(--display);font-weight:800;font-size:1.5rem;padding:12px 16px}
+.ppl{display:flex;gap:8px;flex-wrap:wrap}
+.ppl span{font-weight:800;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid var(--edge)}
+.ppl span.ok{border-color:var(--good);color:var(--good)}
+.grps{display:flex;flex-direction:column;gap:10px}
+.grp{border-radius:14px;padding:12px 14px;border:2px solid var(--edge);background:var(--table);display:flex;flex-direction:column;gap:6px}
+.grp.hit{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--table))}
+.grp .ans{font-family:var(--display);font-weight:800;font-size:1.35rem;text-transform:capitalize}
+.grp .who{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.grp .who span{font-size:.8rem;font-weight:800;padding:2px 9px;border-radius:999px;background:var(--table2);border:1px solid var(--edge)}
+.grp .who em{font-style:normal;font-size:.78rem;color:var(--muted)}
+.hitmsg{font-family:var(--display);font-weight:800;font-size:1.6rem;color:var(--good)}
+.big{font-family:var(--display);font-weight:800;font-size:3rem;color:var(--accent);line-height:1}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Aynı Kafa</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let count = 12, V, C, qKey = '', deadline = 0, timerFor = '', raf = 0, draft = '';
+function tick() {
+  const bar = document.getElementById('tbar'), sec = document.getElementById('tsec');
+  if (!bar || !V || V.phase !== 'q') { raf = 0; return }
+  const left = Math.max(0, deadline - performance.now());
+  bar.style.width = (left / AyniKafa.TIME * 100) + '%'; bar.classList.toggle('low', left < 7000); sec.textContent = Math.ceil(left / 1000);
+  raf = requestAnimationFrame(tick);
+}
+const nm = (v, id) => (v.players.find(p => p.id === id) || {}).name || '?';
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me), two = P.length === 2;
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Soru sayısı</span><span class="seg">${[8, 12, 16].map(n => `<button data-n="${n}" class="${count === n ? 'on' : ''}">${n}</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">"Bir meyve söyle" gibi bir soru gelir, herkes aklına ilk geleni yazar. Aynı cevabı yazanlar puan alır: aynı şeyi yazan her kişi için +1. Arada sizinle ilgili sorular da gelir: "Ati'nin en sevdiği yemek?" gibi.</p>
+      <p class="muted">Yazımı farklı ama aynı şeyse ("kola" ile "coca cola" gibi), cevaplar açılınca "Benimki de bu sayılsın" diyebilirsin.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { count = +b.dataset.n; render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', count });
+    return;
+  }
+  const head = `<div class="row">${P.slice().sort((a, b) => b.score - a.score).map(p => `<span class="pill">${esc(p.name)} · ${p.score}</span>`).join('')}</div>`;
+  if (v.phase === 'over') {
+    const r = P.slice().sort((a, b) => b.score - a.score);
+    if (two) {
+      const m = P[0].match || 0, pct = Math.round(m / v.qs.length * 100);
+      app.innerHTML = `<section class="panel"><span class="label">Oyun bitti</span><h2>Aynı kafa oranınız</h2><div class="big">%${pct}</div>
+        <p>${v.qs.length} sorunun ${m} tanesinde aynı cevabı verdiniz. ${pct >= 60 ? 'Resmen aynı kafa!' : pct >= 35 ? 'Fena değil, bazı konularda ayrı dünyalardasınız.' : 'Ayrı gezegenlerden gelmiş gibisiniz.'}</p>
+        ${ctx.isHost ? '<button class="btn" id="again">Tekrar oyna</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    } else {
+      app.innerHTML = `<section class="panel"><span class="label">Oyun bitti</span><h2>${esc(r[0].name)} en çok herkesle aynı kafada!</h2>
+        <table><thead><tr><th>#</th><th>Oyuncu</th><th class="n">Eşleştiği soru</th><th class="n">Puan</th></tr></thead><tbody>${r.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td class="n">${p.match || 0}</td><td class="n">${p.score}</td></tr>`).join('')}</tbody></table>
+        ${ctx.isHost ? '<button class="btn" id="again">Tekrar oyna</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    }
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', count: v.qs.length });
+    return;
+  }
+  const q = v.qs[v.cur], key = v.cur + ':' + q;
+  if (v.phase === 'q' && key !== qKey) { qKey = key; deadline = performance.now() + v.left; draft = '' }
+  if (ctx.isHost && v.phase === 'q' && timerFor !== key) { timerFor = key; const cur = v.cur; setTimeout(() => ctx.act({ type: 'timeout', cur }), v.left + 80) }
+  const top = `<div class="topline"><span class="pill">Soru ${v.cur + 1}/${v.qs.length}</span>${v.phase === 'q' ? '<span class="sec" id="tsec"></span>' : ''}</div>
+    ${v.phase === 'q' ? '<div class="bar"><i id="tbar"></i></div>' : ''}<div class="q">${esc(q)}</div>`;
+  let body;
+  if (v.phase === 'q') {
+    const done = mine && me in v.ans;
+    body = mine && !done ? `<div class="entry"><input id="t" maxlength="40" autocomplete="off" placeholder="Aklına ilk gelen" value="${esc(draft)}"><button class="btn" id="send">Gönder</button></div>`
+      : mine ? `<p><strong>Cevabın: ${esc(v.ans[me])}</strong>. Diğerleri bekleniyor...</p>` : '<p class="muted">İzliyorsun.</p>';
+    body += `<div class="ppl">${P.map(p => `<span class="${p.id in v.ans ? 'ok' : ''}">${esc(p.name)} ${p.id in v.ans ? '✓' : '…'}</span>`).join('')}</div>`;
+  } else {
+    const g = v.groups, keys = Object.keys(g).sort((a, b) => g[b].length - g[a].length);
+    const myKey = keys.find(k => g[k].includes(me)), myGroupBig = myKey && g[myKey].length > 1;
+    const empty = P.filter(p => !v.ans[p.id] || !v.ans[p.id].trim());
+    const anyHit = keys.some(k => g[k].length > 1);
+    body = `${two ? `<div class="hitmsg" style="color:var(${anyHit ? '--good' : '--bad'})">${anyHit ? 'Aynı kafa! +1' : 'Farklı kafa'}</div>` : ''}
+      <div class="grps">${keys.map(k => {
+        const ids = g[k], shown = v.ans[ids.find(id => !v.merge[id]) || ids[0]];
+        const canJoin = mine && v.ans[me] && v.ans[me].trim() && !ids.includes(me) && !myGroupBig;
+        return `<div class="grp ${ids.length > 1 ? 'hit' : ''}"><span class="ans">${esc(shown)}</span>
+          <div class="who">${ids.map(id => `<span>${esc(nm(v, id))}${v.merge[id] ? ` <em>("${esc(v.ans[id])}" yazdı)</em>` : ''}</span>`).join('')}
+          ${ids.length > 1 ? `<em>+${ids.length - 1} puan</em>` : ''}</div>
+          ${canJoin ? `<div><button class="btn ghost small" data-join="${esc(ids[0])}">Benimki de bu sayılsın</button></div>` : ''}
+          ${v.merge[me] && ids.includes(me) ? '<div><button class="btn ghost small" data-unjoin="1">Geri al</button></div>' : ''}</div>`;
+      }).join('')}</div>
+      ${empty.length ? `<p class="muted">Cevap vermeyen: ${empty.map(p => esc(p.name)).join(', ')}</p>` : ''}
+      <button class="btn" id="next">${v.cur + 1 >= v.qs.length ? 'Sonuçları gör' : 'Sonraki soru'}</button>`;
+  }
+  app.innerHTML = `${head}<section class="panel">${top}${body}</section>`;
+  const t = app.querySelector('#t');
+  if (t) {
+    t.oninput = () => draft = t.value;
+    const go = () => { if (t.value.trim()) { ctx.act({ type: 'answer', t: t.value.trim() }); draft = '' } };
+    app.querySelector('#send').onclick = go; t.onkeydown = e => { if (e.key === 'Enter') go() };
+    if (document.activeElement !== t) t.focus({ preventScroll: true }); t.setSelectionRange(t.value.length, t.value.length);
+  }
+  app.querySelectorAll('[data-join]').forEach(b => b.onclick = () => ctx.act({ type: 'merge', to: b.dataset.join }));
+  app.querySelectorAll('[data-unjoin]').forEach(b => b.onclick = () => ctx.act({ type: 'merge', to: null }));
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+  if (v.phase === 'q' && !raf) raf = requestAnimationFrame(tick);
+}
+Ati.start({ game: 'aynikafa', el: app, logic: AyniKafa, render });
+</script>
+</body>
+</html>

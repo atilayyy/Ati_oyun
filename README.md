@@ -2,6 +2,10 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Harita Tahmini**: 2-8 kişi. Şehrin yerini yazısız haritada işaretle; Türkiye (81 il) ve dünya modu. Harita: Natural Earth, koordinatlar: GeoNames.
+- **Hangisi Daha Çok?**: 2-8 kişi. İki seçenekten doğruyu hızlıca seç.
+- **Sayı Bulmaca**: 2 kişi. Gizli sayıyı +/− ipuçlarıyla önce bulan kazanır.
+- **Aynı Kafa**: 2-8 kişi. Aynı cevabı yazanlar puan alır.
 - **Ati7**: Flip 7 kurallarıyla kart oyunu. 2 ve üzeri oyuncu, hedef 200 puan.
 - **Ati Kelime**: Türkçe kelime bulmaca, 4'ten 10 harfe kadar. Kelimeyi bilgisayar seçebilir ya da sırayla siz seçersiniz.
 - **Pati Yarışı**: 2-8 yarışçı, tek ekranda izlenir. Kedi ve köpek misketler parkurda yarışır, eksik kişiyi bilgisayar tamamlar.
