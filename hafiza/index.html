@@ -12,14 +12,15 @@
 .seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
 .seg button.on{background:var(--accent);color:var(--accentink)}
 .board{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:clamp(5px,1.4vw,10px);max-width:calc(var(--cols) * 120px);margin:0 auto;width:100%}
-.card{aspect-ratio:3/4;perspective:700px;border:0;padding:0;background:transparent;cursor:pointer;max-width:100%}
-.card:disabled{cursor:default}
-.inner{position:relative;width:100%;height:100%;transition:transform .45s cubic-bezier(.3,.7,.3,1.2);transform-style:preserve-3d}
+.card{position:relative;display:block;width:100%;perspective:700px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0}
+.card::before{content:"";display:block;padding-top:133.33%}
+.card.off{cursor:default}
+.inner{position:absolute;inset:0;transition:transform .45s cubic-bezier(.3,.7,.3,1.2);transform-style:preserve-3d}
 .card.up .inner{transform:rotateY(180deg)}
 .face{position:absolute;inset:0;border-radius:clamp(8px,1.6vw,14px);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:grid;place-items:center;overflow:hidden}
 .back{background:radial-gradient(circle at 30% 25%,#3c4aa0,#252e66);border:2px solid #4a58b0;box-shadow:0 3px 0 rgba(0,0,0,.35)}
 .back svg{width:46%;opacity:.55}
-.card:not(:disabled):hover .back{border-color:var(--accent)}
+.card:not(.off):hover .back{border-color:var(--accent)}
 .front{background:#fbf6ea;transform:rotateY(180deg);border:3px solid #fbf6ea}
 .front img{width:86%;height:auto}
 .card.matched .front{border-color:var(--own)}
@@ -77,9 +78,9 @@ function render(v, ctx) {
   if (built !== 'g' + v.game) {
     built = 'g' + v.game;
     app.innerHTML = `<section class="panel"><div class="turnbar" id="tb"></div><div class="msg" id="msg"></div></section>
-      <div class="board" style="--cols:${cols}">${v.deck.map((_, i) => `<button class="card" data-i="${i}" aria-label="Kart ${i + 1}"><div class="inner"><div class="face back">${PAW}</div><div class="face front"><img alt=""></div></div></button>`).join('')}</div>
+      <div class="board" style="--cols:${cols}">${v.deck.map((_, i) => `<div class="card" role="button" tabindex="0" data-i="${i}" aria-label="Kart ${i + 1}"><div class="inner"><div class="face back">${PAW}</div><div class="face front"><img alt=""></div></div></div>`).join('')}</div>
       <section class="panel" id="foot" style="display:none"></section>`;
-    app.querySelectorAll('.card').forEach(b => b.onclick = () => C.act({ type: 'flip', i: +b.dataset.i }));
+    app.querySelectorAll('.card').forEach(b => { const go = () => { if (!b.classList.contains('off')) C.act({ type: 'flip', i: +b.dataset.i }) }; b.onclick = go; b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } } });
   }
   const myTurn = v.phase === 'play' && v.turn === idx;
   document.getElementById('tb').innerHTML = P.map((p, i) => `<span class="pl ${v.phase === 'play' && v.turn === i ? 'turn' : ''}" style="--own:var(--p${i})"><i></i>${esc(p.name)}${p.id === me ? ' (sen)' : ''} <b>${p.score}</b></span>`).join('');
@@ -100,7 +101,8 @@ function render(v, ctx) {
     el.classList.toggle('bad', !!(v.shown && v.shown.includes(i)));
     el.style.setProperty('--own', m !== null ? `var(--p${m})` : 'transparent');
     if (up) { const img = el.querySelector('img'); const src = face(f); if (img.getAttribute('src') !== src) img.src = src }
-    el.disabled = !myTurn || m !== null || (up && !(v.shown && v.shown.includes(i)));
+    const off = !myTurn || m !== null || (up && !(v.shown && v.shown.includes(i)));
+    el.classList.toggle('off', off); el.setAttribute('aria-disabled', off); el.tabIndex = off ? -1 : 0;
   });
   const foot = document.getElementById('foot');
   if (v.phase === 'over') {

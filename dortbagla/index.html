@@ -10,10 +10,11 @@
 :root{--c0:#ffc83d;--c1:#ff6b8a;--frame:#2f55d4}
 .boardwrap{max-width:520px;width:100%;margin:0 auto}
 .cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;background:var(--frame);padding:8px;border-radius:16px;box-shadow:0 6px 0 #1d3796}
-.col{display:flex;flex-direction:column;gap:6px;border:0;background:transparent;padding:0;border-radius:10px;cursor:pointer}
-.col:disabled{cursor:default}
-.col:not(:disabled):hover .hole:not(.p0):not(.p1){background:color-mix(in srgb,var(--mine) 30%,var(--table))}
-.hole{aspect-ratio:1;border-radius:50%;background:var(--table);box-shadow:inset 0 3px 0 rgba(0,0,0,.35)}
+.col{display:block;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0}
+.col .hole+.hole{margin-top:6px}
+.col.off{cursor:default}
+.col:not(.off):hover .hole:not(.p0):not(.p1){background:color-mix(in srgb,var(--mine) 30%,var(--table))}
+.hole{display:block;width:100%;height:0;padding-bottom:100%;border-radius:50%;background:var(--table);box-shadow:inset 0 3px 0 rgba(0,0,0,.35)}
 .hole.p0{background:var(--c0)} .hole.p1{background:var(--c1)}
 .hole.win{outline:4px solid #fff;outline-offset:-4px}
 .hole.last{animation:drop .35s ease-in}
@@ -57,13 +58,17 @@ function render(v, ctx) {
       const x = v.board[r][c], last = v.last && v.last[0] === r && v.last[1] === c;
       holes += `<div class="hole ${x >= 0 ? 'p' + x : ''} ${win.has(r + ',' + c) ? 'win' : ''} ${last ? 'last' : ''}"></div>`;
     }
-    cols += `<button class="col" data-c="${c}" ${canPlay && v.board[0][c] === -1 ? '' : 'disabled'} aria-label="${c + 1}. sütun">${holes}</button>`;
+    const on = canPlay && v.board[0][c] === -1;
+    cols += `<div class="col ${on ? '' : 'off'}" role="button" tabindex="${on ? 0 : -1}" aria-disabled="${!on}" data-c="${c}" aria-label="${c + 1}. sütun">${holes}</div>`;
   }
   app.innerHTML = `<div class="row">${P.map((p, i) => `<span class="pill">${disc(i)} ${esc(p.name)} · ${p.score}</span>`).join('')}</div>
     <section class="panel"><div class="status">${status}</div>
       <div class="boardwrap" style="--mine:var(--c${Math.max(idx, 0)})"><div class="cols">${cols}</div></div>
       ${v.phase === 'over' && idx >= 0 ? '<button class="btn" id="again">Tekrar oyna</button>' : ''}</section>`;
-  app.querySelectorAll('.col').forEach(b => b.onclick = () => ctx.act({ type: 'drop', col: +b.dataset.c }));
+  app.querySelectorAll('.col').forEach(b => {
+    const go = () => { if (!b.classList.contains('off')) ctx.act({ type: 'drop', col: +b.dataset.c }) };
+    b.onclick = go; b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } };
+  });
   const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start' });
 }
 Ati.start({ game: 'dortbagla', el: app, logic: DortBagla, render });

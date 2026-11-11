@@ -37,6 +37,7 @@
 .lens button{font:inherit;font-weight:800;width:44px;height:44px;border-radius:10px;border:1px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer}
 .lens button.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
 .msg{min-height:1.5em;text-align:center;font-weight:800}
+@supports not (aspect-ratio:1/1){.tile{height:clamp(28px,calc((100vw - 80px) / var(--n)),52px)}}
 </style>
 </head>
 <body>

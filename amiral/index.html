@@ -31,6 +31,7 @@ button.cell{cursor:crosshair} button.cell:hover{background:var(--sea2);outline:2
 .seas.one{grid-template-columns:minmax(0,560px);justify-content:center}
 .b3d{width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#0f1430}
 .b3d.flat{aspect-ratio:auto;background:transparent}
+@supports not (aspect-ratio:1/1){.b3d{height:min(92vw,520px)}.b3d.flat{height:auto}}
 .fleet{display:flex;gap:8px;flex-wrap:wrap}
 .fleet button{font:inherit;font-weight:800;font-size:.88rem;padding:8px 12px;border-radius:999px;border:1px solid var(--edge);background:var(--table);color:var(--muted);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .fleet button.done{color:var(--ink)} .fleet button.done::before{content:"✓";color:var(--good)}
