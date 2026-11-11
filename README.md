@@ -2,6 +2,7 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Blöf Sözlük**: 2-8 kişi. Az bilinen kelimelere uydurma anlam yaz, gerçeği oyla.
 - **Harita Tahmini**: 2-8 kişi. Şehrin yerini yazısız haritada işaretle; Türkiye (81 il) ve dünya modu. Harita: Natural Earth, koordinatlar: GeoNames.
 - **Hangisi Daha Çok?**: 2-8 kişi. İki seçenekten doğruyu hızlıca seç.
 - **Sayı Bulmaca**: 2 kişi. Gizli sayıyı +/− ipuçlarıyla önce bulan kazanır.

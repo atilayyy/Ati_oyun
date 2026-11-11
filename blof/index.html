@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blöf Sözlük</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.sec{font-family:var(--display);font-weight:800;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:100%}
+.bar i.low{background:var(--bad)}
+.word{text-align:center;display:flex;flex-direction:column;gap:2px;padding:6px 0}
+.word b{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,11vw,4rem);line-height:1;color:var(--accent);letter-spacing:.01em}
+.word span{color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:1.05rem;padding:12px 14px;border-radius:12px;border:1px solid var(--edge);background:var(--table);color:var(--ink);width:100%;min-height:90px;resize:vertical}
+textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{font:inherit;text-align:left;padding:14px 16px;border-radius:14px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;font-weight:700;font-size:1.02rem;line-height:1.4;display:flex;flex-direction:column;gap:8px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default}
+.opt.mine{opacity:.55;border-style:dashed}
+.opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--table))}
+.opt.real{border-color:var(--good);background:color-mix(in srgb,var(--good) 16%,var(--table))}
+.opt .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.82rem}
+.opt .meta .by{font-weight:800;color:var(--muted)}
+.opt .meta .v{padding:2px 9px;border-radius:999px;background:var(--table2);border:1px solid var(--edge);font-weight:800}
+.tag{font-size:.78rem;font-weight:800;padding:3px 10px;border-radius:999px;background:var(--good);color:#06210f;align-self:flex-start}
+.ppl{display:flex;gap:8px;flex-wrap:wrap}
+.ppl span{font-weight:800;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid var(--edge)}
+.ppl span.ok{border-color:var(--good);color:var(--good)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.plus{color:var(--good);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Blöf Sözlük</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="kelimeler.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let count = 5, V, C, pKey = '', deadline = 0, total = 1, timerFor = '', raf = 0, draft = '';
+const nm = (v, id) => (v.players.find(p => p.id === id) || {}).name || '?';
+function tick() {
+  const bar = document.getElementById('tbar'), sec = document.getElementById('tsec');
+  if (!bar || !V || (V.phase !== 'write' && V.phase !== 'vote')) { raf = 0; return }
+  const left = Math.max(0, deadline - performance.now());
+  bar.style.width = (left / total * 100) + '%'; bar.classList.toggle('low', left < 10000); sec.textContent = Math.ceil(left / 1000);
+  raf = requestAnimationFrame(tick);
+}
+function table(v, final) {
+  const r = v.players.slice().sort((a, b) => b.score - a.score);
+  return `<table><thead><tr><th>#</th><th>Oyuncu</th><th class="n">Puan</th></tr></thead><tbody>${r.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</td><td class="n">${p.score}${!final && v.phase === 'reveal' && v.gain[p.id] ? ` <span class="plus">+${v.gain[p.id]}</span>` : ''}</td></tr>`).join('')}</tbody></table>`;
+}
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-8 kişi, 3 ve üstü daha eğlenceli)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Kelime sayısı</span><span class="seg">${[5, 8, 10].map(n => `<button data-n="${n}" class="${count === n ? 'on' : ''}">${n}</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>
+      <p class="muted"><b>1.</b> Az bilinen ama gerçek bir Türkçe kelime gelir: "Kantarma", "Daniska" gibi.</p>
+      <p class="muted"><b>2.</b> Herkes ona inandırıcı, uydurma bir anlam yazar. Sözlükteki gibi ciddi yazarsan daha çok kişiyi kandırırsın.</p>
+      <p class="muted"><b>3.</b> Gerçek anlam herkesin uydurmasıyla karışık listelenir. Hangisinin gerçek olduğunu oylarsın.</p>
+      <p class="muted"><b>Puan:</b> Gerçeği bulursan +2. Senin uydurmana kanan her kişi için +1. Kelimeyi biliyorsan ve gerçek anlamı yazarsan +2.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { count = +b.dataset.n; render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', count });
+    return;
+  }
+  if (v.phase === 'over') {
+    const r = P.slice().sort((a, b) => b.score - a.score), tie = r[1] && r[0].score === r[1].score;
+    app.innerHTML = `<section class="panel"><span class="label">Oyun bitti</span><h2>${tie ? 'Berabere!' : esc(r[0].name) + ' en iyi blöfçü!'}</h2>${table(v, true)}
+      ${ctx.isHost ? '<button class="btn" id="again">Tekrar oyna</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', count: v.qs.length });
+    return;
+  }
+  const W = KELIMELER[v.qs[v.cur]], key = v.cur + ':' + v.phase;
+  if ((v.phase === 'write' || v.phase === 'vote') && key !== pKey) { pKey = key; total = v.phase === 'write' ? Blof.WRITE : Blof.VOTE; deadline = performance.now() + v.left; if (v.phase === 'write') draft = '' }
+  if (ctx.isHost && (v.phase === 'write' || v.phase === 'vote') && timerFor !== key) { timerFor = key; const cur = v.cur, ph = v.phase; setTimeout(() => ctx.act({ type: 'timeout', cur, ph }), v.left + 80) }
+  const timed = v.phase === 'write' || v.phase === 'vote';
+  const top = `<div class="topline"><span class="pill">Kelime ${v.cur + 1}/${v.qs.length} · ${v.phase === 'write' ? 'Uydurma yaz' : v.phase === 'vote' ? 'Oyla' : 'Sonuç'}</span>${timed ? '<span class="sec" id="tsec"></span>' : ''}</div>
+    ${timed ? '<div class="bar"><i id="tbar"></i></div>' : ''}<div class="word"><b>${esc(W[0])}</b><span>ne demek?</span></div>`;
+  let body = '';
+  if (v.phase === 'write') {
+    const done = mine && me in v.fake;
+    body = mine && !done ? `<textarea id="f" maxlength="140" placeholder="Sözlükteymiş gibi inandırıcı bir anlam yaz...">${esc(draft)}</textarea>
+      <div class="row"><button class="btn" id="send">Gönder</button><span class="muted" style="font-size:.9rem">Kelimeyi biliyorsan gerçek anlamını yaz, +2 alırsın.</span></div>`
+      : mine ? '<p><strong>Gönderildi.</strong> Diğerleri yazıyor...</p>' : '<p class="muted">İzliyorsun.</p>';
+    body += `<div class="ppl">${P.map(p => `<span class="${p.id in v.fake ? 'ok' : ''}">${esc(p.name)} ${p.id in v.fake ? '✓' : '…'}</span>`).join('')}</div>`;
+  } else if (v.phase === 'vote') {
+    const my = v.votes[me], hasMine = v.opts.some(o => o.mine) || !mine;
+    body = `<p><strong>${my !== undefined ? 'Oyun verildi. Diğerleri bekleniyor...' : 'Sence gerçek anlam hangisi?'}</strong></p>
+      <div class="opts">${v.opts.map((o, k) => `<button class="opt ${o.mine ? 'mine' : ''} ${my === k ? 'sel' : ''}" data-k="${k}" ${o.mine || my !== undefined || !mine ? 'disabled' : ''}>${esc(o.t)}${o.mine ? '<span class="meta"><span class="by">Bu senin uydurman</span></span>' : ''}</button>`).join('')}</div>
+      <div class="ppl">${P.map(p => `<span class="${p.id in v.votes ? 'ok' : ''}">${esc(p.name)} ${p.id in v.votes ? '✓' : '…'}</span>`).join('')}</div>`;
+  } else {
+    const votersOf = k => P.filter(p => v.votes[p.id] === k).map(p => `<span class="v">${esc(p.name)}</span>`).join('');
+    const right = v.opts.findIndex(o => o.by === null);
+    const finders = P.filter(p => v.votes[p.id] === right).map(p => p.name);
+    const knew = P.filter(p => v.fake[p.id] && !v.opts.some(o => o.by === p.id)).map(p => p.name);
+    body = `<div class="opts">${v.opts.map((o, k) => `<div class="opt ${o.by === null ? 'real' : ''}">${o.by === null ? '<span class="tag">GERÇEK ANLAM</span>' : ''}${esc(o.t)}
+        <span class="meta">${o.by ? `<span class="by">Uyduran: ${esc(nm(v, o.by))}</span>` : ''}${votersOf(k) ? `<span class="by">Oy verenler:</span>${votersOf(k)}` : '<span class="by">Kimse seçmedi</span>'}</span></div>`).join('')}</div>
+      <p><strong>${finders.length ? finders.map(esc).join(', ') + ' gerçeği buldu.' : 'Kimse gerçeği bulamadı!'}</strong>${knew.length ? ' ' + knew.map(esc).join(', ') + ' kelimeyi biliyormuş, +2.' : ''}</p>
+      <button class="btn" id="next">${v.cur + 1 >= v.qs.length ? 'Sonuçları gör' : 'Sonraki kelime'}</button>`;
+  }
+  app.innerHTML = `<section class="panel">${top}${body}</section><section class="panel"><span class="label">Puan durumu</span>${table(v, false)}</section>`;
+  const f = app.querySelector('#f');
+  if (f) {
+    f.oninput = () => draft = f.value;
+    const go = () => { if (f.value.trim().length >= 3) { ctx.act({ type: 'fake', t: f.value.trim() }); draft = '' } else f.focus() };
+    app.querySelector('#send').onclick = go; f.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go() } };
+    if (document.activeElement !== f) f.focus({ preventScroll: true }); f.setSelectionRange(f.value.length, f.value.length);
+  }
+  app.querySelectorAll('.opt[data-k]').forEach(b => b.onclick = () => ctx.act({ type: 'vote', k: +b.dataset.k }));
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+  if (timed && !raf) raf = requestAnimationFrame(tick);
+}
+Ati.start({ game: 'blof', el: app, logic: Blof, render });
+</script>
+</body>
+</html>
