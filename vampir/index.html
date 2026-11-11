@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vampir Köylü</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--blood:#e0384f;--moon:#e8e6ff;--sun:#ffb347}
+body.night{background:radial-gradient(ellipse at 70% -10%,#2a1f55,#0b0d22 65%) fixed}
+body.day{background:radial-gradient(ellipse at 30% -20%,#4a3a2a,#141a33 70%) fixed}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.88rem;padding:8px 12px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.sky{display:flex;align-items:center;gap:14px}
+.sky svg{width:56px;height:56px;flex:none}
+.sky h2{font-size:1.6rem}
+.card{border-radius:20px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;border:2px solid var(--rc);background:color-mix(in srgb,var(--rc) 14%,var(--table));cursor:pointer;font:inherit;color:var(--ink);width:100%}
+.card svg{width:96px;height:96px}
+.card h3{font-size:2rem;color:var(--rc)}
+.card.hidden{--rc:var(--edge);background:var(--table)}
+.targets{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.tg{font:inherit;font-weight:800;padding:14px 10px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:center}
+.tg:hover:not(:disabled){border-color:var(--accent)}
+.tg.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--table))}
+.tg.kill.sel{border-color:var(--blood);background:color-mix(in srgb,var(--blood) 22%,var(--table))}
+.tg:disabled{cursor:default;opacity:.6}
+.tg small{font-weight:700;color:var(--muted);font-size:.75rem}
+.tg.skip{border-style:dashed;color:var(--muted)}
+.ppl{display:flex;gap:6px;flex-wrap:wrap}
+.pp{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid var(--edge);font-weight:800;font-size:.85rem}
+.pp.dead{opacity:.5;text-decoration:line-through}
+.pp i{font-style:normal;font-size:.72rem;padding:1px 7px;border-radius:999px;background:var(--rc,var(--edge));color:#0d1126}
+.news{font-family:var(--display);font-weight:800;font-size:1.3rem;line-height:1.3}
+.news .x{color:var(--blood)}
+.priv{border:1px dashed var(--edge);border-radius:12px;padding:10px 12px;font-size:.92rem;display:flex;flex-direction:column;gap:4px}
+.zz{font-family:var(--display);font-weight:800;font-size:2.4rem;color:var(--moon);opacity:.8;animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
+.sec{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%}
+td{padding:7px 6px;border-bottom:1px solid var(--edge)}
+.toggles{display:flex;gap:8px;flex-wrap:wrap}
+.toggles button{font:inherit;font-weight:800;font-size:.88rem;padding:8px 12px;border-radius:999px;border:1px solid var(--edge);background:var(--table);color:var(--muted);cursor:pointer}
+.toggles button.on{border-color:var(--good);color:var(--good)}
+</style>
+</head>
+<body class="night">
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Vampir Köylü</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+const R = {
+  vampir: { ad: 'Vampir', c: '#e0384f', is: 'Her gece diğer vampirlerle birlikte bir köylüyü seçersin, sabaha o kişi ölmüş olur. Gündüz kimseye belli etme. Vampir sayısı köylülere eşit olunca kazanırsınız.',
+    svg: '<svg viewBox="0 0 100 100"><path d="M50 8C28 8 16 26 16 46c0 22 16 40 34 46 18-6 34-24 34-46C84 26 72 8 50 8z" fill="#2a1430"/><path d="M30 44l12 6M70 44l-12 6" stroke="#e0384f" stroke-width="5" stroke-linecap="round"/><path d="M34 66q16 10 32 0" stroke="#e8e6ff" stroke-width="4" fill="none"/><path d="M40 67l3 10 3-9M54 68l3 9 3-10" fill="#e8e6ff"/></svg>' },
+  koylu: { ad: 'Köylü', c: '#5fd38a', is: 'Özel bir gücün yok ama oyun senin elinde. Gündüz konuşmaları dinle, şüpheliyi bul ve oylamayla vampirleri köyden at.',
+    svg: '<svg viewBox="0 0 100 100"><circle cx="50" cy="56" r="26" fill="#f2c79b"/><path d="M18 40h64l-8-18H26z" fill="#a1775f"/><rect x="14" y="38" width="72" height="8" rx="4" fill="#7d5a45"/><circle cx="41" cy="58" r="3.5" fill="#1b1f33"/><circle cx="59" cy="58" r="3.5" fill="#1b1f33"/><path d="M42 69q8 6 16 0" stroke="#1b1f33" stroke-width="3" fill="none" stroke-linecap="round"/></svg>' },
+  doktor: { ad: 'Doktor', c: '#4fc3f7', is: 'Her gece birini korursun, kendin dahil. Vampirler o kişiyi seçerse ölmez. Kimseye doktor olduğunu söyleme, yoksa ilk hedef sen olursun.',
+    svg: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="#e8f6ff"/><rect x="42" y="24" width="16" height="52" rx="4" fill="#e0384f"/><rect x="24" y="42" width="52" height="16" rx="4" fill="#e0384f"/></svg>' },
+  gozcu: { ad: 'Gözcü', c: '#b49cff', is: 'Her gece birini seçersin ve onun vampir olup olmadığını öğrenirsin. Bildiklerini gündüz dikkatli kullan; vampirler seni fark ederse avlar.',
+    svg: '<svg viewBox="0 0 100 100"><path d="M8 50q42-40 84 0q-42 40-84 0z" fill="#e8e6ff"/><circle cx="50" cy="50" r="17" fill="#6a4fd0"/><circle cx="50" cy="50" r="8" fill="#14102e"/><circle cx="55" cy="45" r="3" fill="#fff"/></svg>' }
+};
+const WAS = { vampir: 'vampirdi!', koylu: 'köylüydü.', doktor: 'doktordu.', gozcu: 'gözcüydü.' };
+const MOON = '<svg viewBox="0 0 60 60"><path d="M40 8a24 24 0 1 0 12 34A20 20 0 0 1 40 8z" fill="#e8e6ff"/></svg>';
+const SUN = '<svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="13" fill="#ffb347"/><g stroke="#ffb347" stroke-width="4" stroke-linecap="round">' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => { const r = a * Math.PI / 180; return `<line x1="${30 + Math.cos(r) * 19}" y1="${30 + Math.sin(r) * 19}" x2="${30 + Math.cos(r) * 26}" y2="${30 + Math.sin(r) * 26}"/>` }).join('') + '</g></svg>';
+let V, C, opt = null, peek = false, nightKey = '', deadline = 0, timerFor = '', raf = 0;
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+function tick() { const el = document.getElementById('tsec'); if (!el || V.phase !== 'night') { raf = 0; return } el.textContent = Math.ceil(Math.max(0, deadline - performance.now()) / 1000) + ' sn'; raf = requestAnimationFrame(tick) }
+function people(v) {
+  return `<div class="ppl">${v.players.map(p => { const r = v.roles[p.id]; return `<span class="pp ${v.alive && !v.alive[p.id] ? 'dead' : ''}">${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}${r ? `<i style="--rc:${R[r].c}">${R[r].ad}</i>` : ''}</span>` }).join('')}</div>`;
+}
+function roleCard(role, open) {
+  if (!open) return `<button class="card hidden" id="peek"><svg viewBox="0 0 100 100"><rect x="18" y="10" width="64" height="80" rx="10" fill="#2c3664"/><text x="50" y="62" text-anchor="middle" font-size="40" font-weight="800" fill="#c9d3ff" font-family="sans-serif">?</text></svg><h3 style="color:var(--ink)">Rolünü görmek için dokun</h3><span class="muted">Ekranını kimseye gösterme.</span></button>`;
+  const r = R[role];
+  return `<button class="card" id="peek" style="--rc:${r.c}">${r.svg}<h3>${r.ad}</h3><p>${r.is}</p><span class="muted">Gizlemek için dokun</span></button>`;
+}
+function seerLog(v) {
+  if (!v.seerLog || !v.seerLog.length) return '';
+  return `<div class="priv"><b>Gözcü notların (sadece sen görüyorsun)</b>${v.seerLog.map(x => `<span>${x.day}. gece: ${esc(nm(x.t))} ${x.v ? '<b style="color:var(--blood)">VAMPİR!</b>' : 'vampir değil.'}</span>`).join('')}</div>`;
+}
+function lastVoteText(v) {
+  const L = v.lastVote; if (!L) return '';
+  if (!L.out) return `<p class="news">${L.tie ? 'Oylar eşit çıktı, köy kimseyi asmadı.' : 'Köy bu sefer kimseyi asmamaya karar verdi.'}</p>`;
+  const r = v.roles[L.out];
+  return `<p class="news">Köy <span class="x">${esc(nm(L.out))}</span> adlı kişiyi astı.${r ? ` O bir <span style="color:${R[r].c}">${WAS[r]}</span>` : ''}</p>`;
+}
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  document.body.className = v.phase === 'day' ? 'day' : 'night';
+  if (v.phase === 'lobby') {
+    if (!opt) opt = Object.assign({}, v.opt);
+    const n = P.length, nv = opt.vamp || Vampir.autoVamp(n);
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (4-12 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Vampir sayısı</span><span class="seg">${[0, 1, 2, 3].map(k => `<button data-v="${k}" class="${opt.vamp === k ? 'on' : ''}">${k ? k : 'Otomatik'}</button>`).join('')}</span></div>
+        <div class="toggles"><button data-t="doc" class="${opt.doc ? 'on' : ''}">Doktor ${opt.doc ? 'var' : 'yok'}</button><button data-t="seer" class="${opt.seer ? 'on' : ''}">Gözcü ${opt.seer ? 'var' : 'yok'}</button><button data-t="show" class="${opt.show ? 'on' : ''}">Ölenin rolü ${opt.show ? 'açıklanır' : 'gizli'}</button></div>
+        <p class="muted" style="font-size:.9rem">${n} kişi: ${Math.min(nv, Math.floor((n - 1) / 2))} vampir${n >= 5 && opt.doc ? ', doktor' : ''}${n >= 5 && opt.seer ? ', gözcü' : ''}, gerisi köylü. ${n < 5 ? 'Doktor ve gözcü 5 kişiden itibaren eklenir.' : ''}</p>
+        <button class="btn" id="start" ${n < 4 ? 'disabled' : ''}>Oyunu başlat</button>
+        ${n < 4 ? '<p class="muted">En az 4 kişi gerekiyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section>
+      <section class="panel"><h2>Nasıl oynanır?</h2>
+        <p class="muted">Anlatıcı oyunun kendisi, herkes oynar. Herkes kendi telefonunda gizli rolünü görür.</p>
+        <p class="muted"><b>Gece:</b> Vampirler bir kurban seçer. Doktor birini korur. Gözcü birinin vampir olup olmadığını öğrenir. Köylüler uyur.</p>
+        <p class="muted"><b>Gündüz:</b> Gece kimin öldüğü açıklanır. Sesli konuşun, tartışın, sonra herkes asmak istediği kişiye oy verir. En çok oyu alan köyden atılır.</p>
+        <p class="muted"><b>Kazanan:</b> Bütün vampirler atılırsa köy kazanır. Vampir sayısı köylülere eşit olursa vampirler kazanır. Ölenler konuşamaz!</p></section>`;
+    Ati.wireShare(app, ctx);
+    const send = () => ctx.act(Object.assign({ type: 'opt' }, opt));
+    app.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { opt.vamp = +b.dataset.v; send(); render(V, C) });
+    app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { opt[b.dataset.t] = !opt[b.dataset.t]; send(); render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => { send(); ctx.act({ type: 'start' }) };
+    return;
+  }
+  if (!mine) { app.innerHTML = `<section class="panel"><p class="muted">Oyun sürüyor, izliyorsun. Bir sonraki oyuna katılabilirsin.</p>${v.alive ? people(v) : ''}</section>`; return }
+  const role = v.me.role, alive = v.me.alive;
+  if (v.phase === 'roles') {
+    const waiting = P.filter(p => !v.seen[p.id]).length;
+    app.innerHTML = `<section class="panel"><div class="sky">${MOON}<div><h2>Roller dağıtıldı</h2><p class="muted">Rolünü gizlice gör, sonra hazır de.</p></div></div>
+      ${roleCard(role, peek)}
+      ${role === 'vampir' ? `<p class="muted">${(() => { const mates = P.filter(p => p.id !== me && v.roles[p.id] === 'vampir').map(p => esc(p.name)); return mates.length ? 'Diğer vampir: <b style="color:var(--blood)">' + mates.join(', ') + '</b>' : 'Tek vampir sensin.' })()}</p>` : ''}
+      ${v.seen[me] ? `<p><strong>Hazırsın.</strong> ${waiting} kişi bekleniyor...</p>` : '<button class="btn" id="seen">Gördüm, hazırım</button>'}</section>`;
+    app.querySelector('#peek').onclick = () => { peek = !peek; render(V, C) };
+    const sn = app.querySelector('#seen'); if (sn) sn.onclick = () => { peek = false; ctx.act({ type: 'seen' }) };
+    return;
+  }
+  const head = `<div class="row" style="justify-content:space-between"><span class="pill">${R[role].ad}${alive ? '' : ' · öldün'}</span><button class="btn ghost small" id="peek2">${peek ? 'Rolümü gizle' : 'Rolümü göster'}</button></div>
+    ${peek ? `<div class="priv" style="border-color:${R[role].c}"><b style="color:${R[role].c}">${R[role].ad}</b>${R[role].is}</div>` : ''}`;
+  if (v.phase === 'end') {
+    const vw = v.win === 'vampir';
+    app.innerHTML = `${head}<section class="panel"><div class="sky">${vw ? MOON : SUN}<div><h2>${vw ? 'Vampirler kazandı!' : 'Köy kazandı!'}</h2><p class="muted">${vw ? 'Köy karanlığa gömüldü.' : 'Bütün vampirler köyden atıldı.'}</p></div></div>
+      ${lastVoteText(v)}${v.lastNight && v.lastNight.day === v.day && !v.lastVote ? (v.lastNight.died ? `<p class="news">Son gece <span class="x">${esc(nm(v.lastNight.died))}</span> öldü.</p>` : '') : ''}
+      <span class="label">Herkesin rolü</span>${people(v)}
+      ${ctx.isHost ? '<button class="btn" id="again">Yeni oyun</button>' : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => { peek = false; ctx.act({ type: 'start' }) };
+    app.querySelector('#peek2').onclick = () => { peek = !peek; render(V, C) };
+    return;
+  }
+  const al = P.filter(p => v.alive[p.id]);
+  let body = '';
+  if (v.phase === 'night') {
+    const key = 'n' + v.day; if (key !== nightKey) { nightKey = key; deadline = performance.now() + v.left }
+    if (ctx.isHost && timerFor !== key) { timerFor = key; const day = v.day; setTimeout(() => ctx.act({ type: 'timeout', day }), v.left + 80) }
+    let act = '';
+    if (!alive) act = `<p class="muted">Öldün. Artık her şeyi görüyorsun ama <b>konuşmak yasak</b>.</p>${v.night.vamp ? `<div class="priv"><b>Vampirlerin seçimi</b>${Object.entries(v.night.vamp).map(([a, t]) => `<span>${esc(nm(a))} → ${esc(nm(t))}</span>`).join('') || '<span>Henüz seçmediler.</span>'}</div>` : ''}`;
+    else if (role === 'vampir') {
+      const mates = Object.entries(v.night.vamp || {}).filter(([a]) => a !== me);
+      act = `<p><strong>Kimi ısıracaksınız?</strong> Vampirler aynı kişide anlaşmazsa en çok seçilen ölür.</p>
+        <div class="targets">${al.filter(p => v.roles[p.id] !== 'vampir').map(p => `<button class="tg kill ${v.night.mine === p.id ? 'sel' : ''}" data-act="kill" data-t="${esc(p.id)}">${esc(p.name)}${mates.filter(([, t]) => t === p.id).length ? `<small>${mates.filter(([, t]) => t === p.id).map(([a]) => esc(nm(a))).join(', ')} seçti</small>` : ''}</button>`).join('')}</div>
+        ${v.night.mine ? '<p class="muted">Seçimini değiştirebilirsin, herkes seçince sabah olur.</p>' : ''}`;
+    } else if (role === 'doktor') {
+      act = `<p><strong>Bu gece kimi koruyacaksın?</strong> Kendini de seçebilirsin.</p>
+        <div class="targets">${al.map(p => `<button class="tg ${v.night.mine === p.id ? 'sel' : ''}" data-act="protect" data-t="${esc(p.id)}" ${v.night.mine ? 'disabled' : ''}>${esc(p.name)}${p.id === me ? '<small>sen</small>' : ''}</button>`).join('')}</div>`;
+    } else if (role === 'gozcu') {
+      act = `<p><strong>Bu gece kimin içini göreceksin?</strong> Sonucu sabah öğrenirsin.</p>
+        <div class="targets">${al.filter(p => p.id !== me).map(p => `<button class="tg ${v.night.mine === p.id ? 'sel' : ''}" data-act="inspect" data-t="${esc(p.id)}" ${v.night.mine ? 'disabled' : ''}>${esc(p.name)}</button>`).join('')}</div>${seerLog(v)}`;
+    } else act = `<div style="text-align:center"><div class="zz">z Z z</div><p><strong>Köy uyuyor.</strong> Gözlerini kapat, sabahı bekle.</p></div>`;
+    body = `<section class="panel"><div class="sky">${MOON}<div><h2>${v.day}. gece</h2><p class="muted">Köy uyurken karanlıkta bir şeyler oluyor... <span class="sec" id="tsec"></span></p></div></div>
+      ${lastVoteText(v)}${act}</section>`;
+  } else {
+    const N = v.lastNight, myVote = v.votes[me], voted = Object.keys(v.votes).length;
+    const news = N && N.died ? `<p class="news">Sabah oldu. <span class="x">${esc(nm(N.died))}</span> gece ölü bulundu.${v.roles[N.died] ? ` O bir <span style="color:${R[v.roles[N.died]].c}">${WAS[v.roles[N.died]]}</span>` : ''}</p>` : `<p class="news">Sabah oldu. Bu gece kimse ölmedi!</p>`;
+    body = `<section class="panel"><div class="sky">${SUN}<div><h2>${v.day}. gün</h2><p class="muted">Konuşun, tartışın, şüphelendiğinize oy verin.</p></div></div>${news}
+      ${role === 'gozcu' && alive ? seerLog(v) : ''}
+      ${alive ? `<p><strong>${myVote ? 'Oyun verildi: ' + (myVote === 'skip' ? 'kimseyi asma' : esc(nm(myVote))) : 'Kimi asalım?'}</strong></p>
+        <div class="targets">${al.filter(p => p.id !== me).map(p => `<button class="tg kill ${myVote === p.id ? 'sel' : ''}" data-act="vote" data-t="${esc(p.id)}" ${myVote ? 'disabled' : ''}>${esc(p.name)}</button>`).join('')}
+        <button class="tg skip ${myVote === 'skip' ? 'sel' : ''}" data-act="vote" data-t="skip" ${myVote ? 'disabled' : ''}>Kimseyi asma</button></div>`
+        : '<p class="muted">Öldün, oy veremezsin. Konuşmak yasak!</p>'}
+      <p class="muted">${voted}/${al.length} kişi oy verdi. Oylar herkes oy verince açıklanır.</p>
+      ${ctx.isHost ? '<button class="btn ghost small" id="endvote">Oylamayı şimdi bitir</button>' : ''}</section>`;
+  }
+  app.innerHTML = `${head}${body}<section class="panel"><span class="label">Köy</span>${people(v)}</section>`;
+  app.querySelector('#peek2').onclick = () => { peek = !peek; render(V, C) };
+  app.querySelectorAll('[data-act]').forEach(b => b.onclick = () => ctx.act({ type: b.dataset.act, t: b.dataset.t }));
+  const ev = app.querySelector('#endvote'); if (ev) ev.onclick = () => ctx.act({ type: 'endvote' });
+  if (v.phase === 'night' && !raf) raf = requestAnimationFrame(tick);
+}
+Ati.start({ game: 'vampir', el: app, logic: Vampir, render });
+</script>
+</body>
+</html>
