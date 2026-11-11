@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kim Bu?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:inherit;font-weight:800;font-size:.88rem;padding:9px 12px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.heads{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.hd{border-radius:16px;border:2px solid var(--edge);background:var(--table);padding:12px;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;position:relative}
+.hd.turn{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.hd .who{font-weight:800}
+.hd .tag{font-family:var(--display);font-weight:800;font-size:1.15rem;line-height:1.15;background:#fbf6ea;color:#1b1f33;border-radius:10px;padding:10px 8px;width:100%;transform:rotate(-1.5deg);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.hd .tag.me{background:repeating-linear-gradient(45deg,#2c3664,#2c3664 8px,#323d70 8px,#323d70 16px);color:var(--muted)}
+.hd .st{font-size:.78rem;font-weight:800;padding:2px 9px;border-radius:999px}
+.st.ok{background:var(--good);color:#06210f} .st.pes{background:var(--edge);color:var(--muted)}
+.box{border:2px solid var(--accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.box.judge{border-color:#b49cff}
+.entry{display:flex;gap:8px;flex-wrap:wrap}
+.entry input{flex:1 1 200px;font-weight:800;font-size:1.1rem}
+textarea{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--edge);background:var(--table);color:var(--ink);width:100%;min-height:70px;resize:vertical}
+.log{display:flex;flex-direction:column;gap:3px;font-size:.9rem;color:var(--muted)}
+.ideas{display:flex;gap:6px;flex-wrap:wrap}
+.ideas span{font-size:.82rem;padding:4px 10px;border-radius:999px;border:1px dashed var(--edge);color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td{padding:7px 6px;border-bottom:1px solid var(--edge)} td.n{text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Kim Bu?</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="kimlikler.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let cat = 'karisik', V, C, draft = '', notes = '', gameKey = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const IDEAS = ['Gerçek biri miyim?', 'Yaşıyor muyum?', 'Türk müyüm?', 'Kadın mıyım?', 'Sporcu muyum?', 'Hayvan mıyım?', 'Çizgi filmde var mıyım?', 'Şarkı söyler miyim?', '100 yıldan eski miyim?'];
+function render(v, ctx) {
+  const ae = document.activeElement, focusId = ae && ae.id, sel = ae && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null;
+  draw(v, ctx);
+  if (focusId) { const el = document.getElementById(focusId); if (el && el !== document.activeElement) { el.focus({ preventScroll: true }); if (sel && el.setSelectionRange) try { el.setSelectionRange(sel[0], sel[1]) } catch (e) {} } }
+}
+function draw(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-10 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
+        <div><span class="label">Kimlikler</span><div style="margin-top:6px"><span class="seg">${Object.entries(KimBu.CATS).map(([k, t]) => `<button data-c="${k}" class="${cat === k ? 'on' : ''}">${t}</button>`).join('')}</span></div></div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>
+      <p class="muted">Herkese gizli bir kimlik verilir: bir ünlü, bir karakter ya da bir hayvan. <b>Kendi kimliğini göremezsin</b>, ama herkesinkini görürsün. Alnına kart yapıştırılmış gibi.</p>
+      <p class="muted">Sıran gelince diğerlerine sesli bir evet/hayır sorusu sor: "Gerçek biri miyim?", "Sporcu muyum?" gibi. Cevaplara göre devam et ya da sırayı geçir. Bildiğini düşünürsen tahminini yaz.</p>
+      <p class="muted">Yazdığın tahmini oyun kendisi kontrol eder. Yazım farklıysa diğerleri "doğru say" diyebilir. İlk bulan en çok puanı alır.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { cat = b.dataset.c; draw(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', cat });
+    return;
+  }
+  if (!mine) { app.innerHTML = '<section class="panel"><p class="muted">Oyun sürüyor, izliyorsun.</p></section>'; return }
+  const gk = JSON.stringify(v.order); if (gk !== gameKey) { gameKey = gk; notes = ''; draft = '' }
+  const turnId = v.order[v.turnIdx], myTurn = v.phase === 'play' && turnId === me, done = me in v.done;
+  const heads = `<div class="heads">${v.order.map(id => {
+    const d = v.done[id], k = v.ids[id];
+    return `<div class="hd ${v.phase === 'play' && id === turnId ? 'turn' : ''}"><span class="who">${esc(nm(id))}${id === me ? ' (sen)' : ''}</span>
+      <div class="tag ${k === null ? 'me' : ''}">${k === null ? '???' : esc(KIMLIK[k][0])}</div>
+      ${d ? `<span class="st ${d.how === 'pes' ? 'pes' : 'ok'}">${d.how === 'pes' ? 'pes etti' : d.rank + '. buldu'}</span>` : v.phase === 'play' && id === turnId ? '<span class="st" style="background:var(--accent);color:var(--accentink)">soru soruyor</span>' : ''}</div>`;
+  }).join('')}</div>`;
+  if (v.phase === 'end') {
+    const r = P.slice().sort((a, b) => b.score - a.score);
+    app.innerHTML = `<section class="panel"><span class="label">Oyun bitti</span><h2>Herkes kim olduğunu öğrendi!</h2>${heads}</section>
+      <section class="panel"><span class="label">Puanlar</span><table><tbody>${r.map(p => `<tr><td>${esc(p.name)}</td><td class="n">${p.score}</td></tr>`).join('')}</tbody></table>
+      ${ctx.isHost ? '<button class="btn" id="again">Yeni tur</button>' : ''}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', cat: v.cat });
+    return;
+  }
+  let box = '';
+  const Pn = v.pending;
+  if (Pn) {
+    if (Pn.by === me) box = `<div class="box judge"><b>Tahminin: "${esc(Pn.t)}"</b><span class="muted">Oyun emin olamadı. Diğerleri doğru mu yanlış mı diye bakıyor...</span></div>`;
+    else box = `<div class="box judge"><b>${esc(nm(Pn.by))} tahmin etti: "${esc(Pn.t)}"</b><span>Gerçek cevap: <b>${esc(KIMLIK[v.ids[Pn.by]][0])}</b>. Sence doğru sayılır mı?</span>
+      <div class="row">${Pn.no[me] ? '<span class="muted">Hayır dedin, diğerleri bekleniyor.</span>' : '<button class="btn" id="jy">Doğru say</button><button class="btn ghost" id="jn">Yanlış</button>'}</div></div>`;
+  } else if (myTurn) {
+    box = `<div class="box"><b>Sıra sende!</b><span>Diğerlerine sesli bir evet/hayır sorusu sor. Cevaba göre sırayı geçir ya da tahminini yaz.</span>
+      <div class="ideas">${IDEAS.map(i => `<span>${i}</span>`).join('')}</div>
+      <div class="entry"><input id="g" maxlength="40" autocomplete="off" placeholder="Ben ... mıyım?" value="${esc(draft)}"><button class="btn" id="send">Tahmin et</button></div>
+      <div class="row"><button class="btn ghost small" id="pass">Sırayı geçir</button></div></div>`;
+  } else if (!done) box = `<p><strong>Sıra ${esc(ek(nm(turnId), 'de'))}.</strong> Sorusunu dürüstçe cevapla!</p>`;
+  else box = `<p><strong>Kimliğini buldun: ${esc(KIMLIK[v.ids[me]][0])}.</strong> Diğerlerinin sorularını cevaplamaya devam et.</p>`;
+  app.innerHTML = `<section class="panel">${box}</section><section class="panel"><span class="label">Alınlar</span>${heads}</section>
+    ${!done ? `<section class="panel"><span class="label">Notların (sadece sen görürsün)</span><textarea id="nt" placeholder="Gerçek kişi: evet. Türk: hayır...">${esc(notes)}</textarea>
+      <div class="row"><button class="btn ghost small" id="give">Pes et (kimliğimi göster)</button></div></section>` : ''}
+    ${v.log.length ? `<section class="panel"><span class="label">Tahminler</span><div class="log">${v.log.slice().reverse().map(l => `<span>${esc(nm(l.by))}: ${l.pes ? 'pes etti' : '"' + esc(l.t) + '" ' + (l.ok ? '✓' : '✗')}</span>`).join('')}</div></section>` : ''}`;
+  const g = app.querySelector('#g');
+  if (g) { g.oninput = () => draft = g.value; const go = () => { if (g.value.trim()) { ctx.act({ type: 'guess', t: g.value.trim() }); draft = '' } }; app.querySelector('#send').onclick = go; g.onkeydown = e => { if (e.key === 'Enter') go() } }
+  const ps = app.querySelector('#pass'); if (ps) ps.onclick = () => ctx.act({ type: 'pass' });
+  const nt = app.querySelector('#nt'); if (nt) nt.oninput = () => notes = nt.value;
+  const gv = app.querySelector('#give'); if (gv) gv.onclick = () => { gv.textContent = 'Emin misin? Tekrar bas'; gv.onclick = () => ctx.act({ type: 'giveup' }) };
+  const jy = app.querySelector('#jy'); if (jy) jy.onclick = () => ctx.act({ type: 'judge', ok: true });
+  const jn = app.querySelector('#jn'); if (jn) jn.onclick = () => ctx.act({ type: 'judge', ok: false });
+}
+Ati.start({ game: 'kimbu', el: app, logic: KimBu, render });
+</script>
+</body>
+</html>

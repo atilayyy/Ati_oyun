@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Casus</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--spy:#ff5a4f}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.card{border-radius:20px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;border:2px solid var(--rc);background:color-mix(in srgb,var(--rc) 14%,var(--table));cursor:pointer;font:inherit;color:var(--ink);width:100%}
+.card .big{font-family:var(--display);font-weight:800;font-size:clamp(2rem,9vw,3rem);color:var(--rc);line-height:1.05}
+.card.hidden{--rc:var(--edge)}
+.clock{font-family:var(--display);font-weight:800;font-size:2.2rem;font-variant-numeric:tabular-nums;text-align:center}
+.clock.low{color:var(--bad)}
+.locs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.lc{font:inherit;font-size:.88rem;font-weight:700;padding:8px 10px;border-radius:10px;border:1px solid var(--edge);background:var(--table);color:var(--ink);text-align:left;cursor:pointer}
+.lc.x{text-decoration:line-through;opacity:.4}
+.lc.me{border-color:var(--accent);color:var(--accent)}
+.lc.pick{background:var(--spy);color:#fff;border-color:var(--spy)}
+.tgs{display:flex;gap:8px;flex-wrap:wrap}
+.tg{font:inherit;font-weight:800;padding:10px 14px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer}
+.tg:hover:not(:disabled){border-color:var(--spy)}
+.tg.sel{border-color:var(--spy);background:color-mix(in srgb,var(--spy) 20%,var(--table))}
+.tg:disabled{cursor:default;opacity:.6}
+.alert{border:2px solid var(--spy);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;background:color-mix(in srgb,var(--spy) 10%,var(--table))}
+.news{font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.3}
+.hint{font-size:.9rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:7px 6px;border-bottom:1px solid var(--edge);text-align:left}
+td.n{text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Casus</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, M = Casus.MEKAN;
+let min = 8, V, C, peek = false, roundKey = '', deadline = 0, timerFor = '', raf = 0, crossed = {}, guessPick = null;
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+function fmt(ms) { const s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') }
+function tick() {
+  const el = document.getElementById('clock');
+  if (!el || !V || (V.phase !== 'play' && V.phase !== 'accuse')) { raf = 0; return }
+  const left = Math.max(0, deadline - performance.now()); el.textContent = fmt(left); el.classList.toggle('low', left < 60000);
+  raf = requestAnimationFrame(tick);
+}
+function scores(v) { return `<table><tbody>${v.players.slice().sort((a, b) => b.score - a.score).map(p => `<tr><td>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</td><td class="n">${p.score}</td></tr>`).join('')}</tbody></table>` }
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (3-12 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `
+        <div class="row"><span class="label">Süre</span><span class="seg">${[5, 8, 10].map(n => `<button data-m="${n}" class="${min === n ? 'on' : ''}">${n} dk</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length < 3 ? 'disabled' : ''}>Başlat</button>${P.length < 3 ? '<p class="muted">En az 3 kişi gerekiyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>
+      <p class="muted">Herkes aynı gizli mekânı görür, örneğin "Hamam". Bir kişiye ise sadece <b>"Casussun"</b> yazar, mekânı bilmez.</p>
+      <p class="muted">Sırayla birbirinize mekânla ilgili sorular sorun: "Buraya en son ne zaman geldin?", "Burada ne giyilir?" gibi. Çok açık soru sorarsan casus mekânı anlar, çok kapalı sorarsan seni casus sanırlar.</p>
+      <p class="muted"><b>Suçlama:</b> Biri casus sandığını suçlayabilir, diğer herkes oy birliğiyle "evet" derse o kişi açığa çıkar. Herkesin turda bir suçlama hakkı var.</p>
+      <p class="muted"><b>Casus</b> istediği an mekânı tahmin edebilir: bilirse kazanır, bilemezse kaybeder. Masum biri yakalanırsa da casus kazanır. Süre bitince son bir oylama yapılır.</p>
+      <p class="muted">${M.length} mekân var. Hepsi oyun ekranında listeli.</p></section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { min = +b.dataset.m; render(V, C) });
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start', min });
+    return;
+  }
+  if (!mine) { app.innerHTML = '<section class="panel"><p class="muted">Tur sürüyor, izliyorsun. Bir sonraki tura katılabilirsin.</p></section>'; return }
+  const rk = v.started + ':' + v.loc; if (rk !== roundKey) { roundKey = rk; crossed = {}; peek = false; guessPick = null }
+  if (v.phase === 'end') {
+    const spyName = nm(v.spy), mw = (v.win === 'casus') === (v.spy === me);
+    const why = { masum: `Köy masum birini suçladı: ${esc(nm(v.acc && v.acc.t))} casus değildi!`, yakalandi: `Casus yakalandı!`, bildi: `Casus mekânı doğru tahmin etti.`, bilemedi: `Casus mekânı yanlış tahmin etti: "${esc(M[v.spyGuess])}"`, kacti: 'Son oylamada casus yakalanamadı.' }[v.why];
+    app.innerHTML = `<section class="panel"><span class="label">Tur bitti</span><h2>${v.win === 'casus' ? 'Casus kazandı!' : 'Köy kazandı!'} ${mw ? '(Sen de kazandın)' : ''}</h2>
+      <p class="news">${why}</p><p>Casus: <b style="color:var(--spy)">${esc(spyName)}</b> · Mekân: <b style="color:var(--accent)">${esc(M[v.loc])}</b></p>
+      ${ctx.isHost ? '<button class="btn" id="again">Yeni tur</button>' : '<p class="muted">Ev sahibi yeni tur başlatabilir.</p>'}</section>
+      <section class="panel"><span class="label">Puanlar</span><p class="hint">Casus kazanırsa +2, köy kazanırsa casus dışındaki herkese +1, casusu doğru suçlayana +1.</p>${scores(v)}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start', min: v.min });
+    return;
+  }
+  if ((v.phase === 'play' || v.phase === 'accuse') && v.left !== undefined) { deadline = performance.now() + v.left }
+  if (ctx.isHost && v.phase === 'play' && timerFor !== rk) { timerFor = rk; const ms = v.left; const tryEnd = () => { if (V.phase === 'play' && performance.now() >= deadline) ctx.act({ type: 'timeout' }); else if (V.phase === 'play' || V.phase === 'accuse') setTimeout(tryEnd, 1000) }; setTimeout(tryEnd, ms + 300) }
+  const card = peek ? (v.amSpy ? `<button class="card" id="peek" style="--rc:var(--spy)"><span class="label">Sen</span><span class="big">CASUSSUN</span><span>Mekânı bilmiyorsun. Soruları dinle, çaktırma, mekânı tahmin et.</span><span class="hint">Gizlemek için dokun</span></button>`
+      : `<button class="card" id="peek" style="--rc:var(--accent)"><span class="label">Mekân</span><span class="big">${esc(M[v.loc])}</span><span>Casus değilsin. Casusu bul ama mekânı ele verme.</span><span class="hint">Gizlemek için dokun</span></button>`)
+    : `<button class="card hidden" id="peek"><span class="big" style="color:var(--ink)">?</span><span><b>Kartını görmek için dokun</b></span><span class="hint">Ekranını kimseye gösterme</span></button>`;
+  let mid = '';
+  if (v.phase === 'accuse') {
+    const A = v.acc, iAmT = A.t === me, voted = me in A.votes;
+    mid = `<div class="alert"><div class="news">${esc(nm(A.by))}, <span style="color:var(--spy)">${esc(nm(A.t))}</span> adlı kişiyi casuslukla suçluyor!</div>
+      ${iAmT ? '<p>Seni suçluyorlar! Kendini savun. Herkes "evet" derse açığa çıkacaksın.</p>' : voted ? `<p><strong>Oyunu verdin.</strong> Diğerleri bekleniyor (${Object.keys(A.votes).length}/${P.length - 1}).</p>` : '<p>Sence casus mu? Herkes "evet" derse açığa çıkar.</p><div class="row"><button class="btn" id="yes">Evet, casus</button><button class="btn ghost" id="no">Hayır</button></div>'}</div>`;
+  } else if (v.phase === 'final') {
+    const my = v.final.mine;
+    mid = `<div class="alert"><div class="news">Süre doldu! Son oylama.</div><p>${my ? 'Oyun verildi: ' + esc(nm(my)) + `. (${v.final.n}/${P.length})` : 'Sence casus kim?'}</p>
+      <div class="tgs">${P.filter(p => p.id !== me).map(p => `<button class="tg ${my === p.id ? 'sel' : ''}" data-f="${esc(p.id)}" ${my ? 'disabled' : ''}>${esc(p.name)}</button>`).join('')}</div>
+      ${v.amSpy ? '<p class="hint">Casus olarak hâlâ mekânı tahmin edebilirsin, aşağıdan seç.</p>' : ''}</div>`;
+  } else {
+    mid = `<p><strong>İlk soruyu ${v.first === me ? 'sen soruyorsun' : esc(nm(v.first)) + ' soruyor'}.</strong> Sonra cevap veren bir sonrakine sorar.</p>
+      ${v.lastFail ? `<p class="hint">Son suçlama tutmadı: ${esc(nm(v.lastFail.by))}, ${esc(nm(v.lastFail.t))} adlı kişiyi suçlamıştı.</p>` : ''}
+      ${v.accused[me] ? '<p class="hint">Bu turdaki suçlama hakkını kullandın.</p>' : `<details><summary>Birini casuslukla suçla</summary><div class="tgs" style="margin-top:8px">${P.filter(p => p.id !== me).map(p => `<button class="tg" data-a="${esc(p.id)}">${esc(p.name)}</button>`).join('')}</div></details>`}`;
+  }
+  const locs = `<div class="locs">${M.map((m, i) => `<button class="lc ${crossed[i] ? 'x' : ''} ${!v.amSpy && i === v.loc && peek ? 'me' : ''} ${guessPick === i ? 'pick' : ''}" data-l="${i}">${esc(m)}</button>`).join('')}</div>`;
+  app.innerHTML = `<section class="panel">${v.phase !== 'final' ? '<div class="clock" id="clock"></div>' : ''}${card}${mid}</section>
+    <section class="panel"><span class="label">Olası mekânlar</span>
+      <p class="hint">${v.amSpy ? 'Elemek için dokun, üstü çizilir. Tahmin için önce mekâna uzun bas ya da sağ tıkla, sonra "Tahmin et".' : 'Not almak için dokun, üstü çizilir. Sadece sen görürsün.'}</p>
+      ${locs}
+      ${v.amSpy && v.phase !== 'accuse' ? `<div class="row"><button class="btn" id="guess" ${guessPick === null ? 'disabled' : ''} style="background:var(--spy);color:#fff">${guessPick === null ? 'Mekân seç' : '"' + esc(M[guessPick]) + '" diye tahmin et'}</button><span class="hint">Yanlışsa kaybedersin!</span></div>` : ''}</section>
+    <section class="panel"><span class="label">Puanlar</span>${scores(v)}</section>`;
+  app.querySelector('#peek').onclick = () => { peek = !peek; render(V, C) };
+  app.querySelectorAll('[data-l]').forEach(b => {
+    const i = +b.dataset.l;
+    b.onclick = () => { crossed[i] = !crossed[i]; render(V, C) };
+    b.oncontextmenu = e => { e.preventDefault(); if (V.amSpy) { guessPick = guessPick === i ? null : i; render(V, C) } };
+    let t; b.addEventListener('touchstart', () => { t = setTimeout(() => { t = 'done'; if (V.amSpy) { guessPick = guessPick === i ? null : i; render(V, C) } }, 450) }, { passive: true });
+    b.addEventListener('touchend', e => { if (t === 'done') e.preventDefault(); else clearTimeout(t) });
+  });
+  const gb = app.querySelector('#guess'); if (gb) gb.onclick = () => { if (guessPick !== null) ctx.act({ type: 'guess', loc: guessPick }) };
+  app.querySelectorAll('[data-a]').forEach(b => b.onclick = () => ctx.act({ type: 'accuse', t: b.dataset.a }));
+  app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => ctx.act({ type: 'fvote', t: b.dataset.f }));
+  const y = app.querySelector('#yes'); if (y) y.onclick = () => ctx.act({ type: 'avote', yes: true });
+  const n = app.querySelector('#no'); if (n) n.onclick = () => ctx.act({ type: 'avote', yes: false });
+  if ((v.phase === 'play' || v.phase === 'accuse') && !raf) raf = requestAnimationFrame(tick);
+}
+Ati.start({ game: 'casus', el: app, logic: Casus, render });
+</script>
+</body>
+</html>

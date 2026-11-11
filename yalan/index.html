@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>İki Doğru Bir Yalan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--lie:#ff6b6b;--true:#5fd38a}
+.wrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.wrow input{width:100%}
+.liebtn{font:inherit;font-weight:800;font-size:.85rem;padding:9px 12px;border-radius:10px;border:2px solid var(--edge);background:var(--table);color:var(--muted);cursor:pointer;white-space:nowrap}
+.liebtn.on{border-color:var(--lie);background:color-mix(in srgb,var(--lie) 22%,var(--table));color:var(--ink)}
+.subj{font-family:var(--display);font-weight:800;font-size:clamp(1.4rem,5vw,1.9rem)}
+.sts{display:flex;flex-direction:column;gap:10px}
+.st{font:inherit;text-align:left;padding:16px;border-radius:14px;border:2px solid var(--edge);background:var(--table);color:var(--ink);font-weight:700;font-size:1.05rem;line-height:1.4;display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.st b{font-family:var(--display);width:28px;height:28px;flex:none;border-radius:8px;display:grid;place-items:center;background:var(--table2);border:1px solid var(--edge)}
+.st:hover:not(:disabled){border-color:var(--lie)}
+.st:disabled{cursor:default}
+.st.sel{border-color:var(--lie);background:color-mix(in srgb,var(--lie) 14%,var(--table))}
+.st.lie{border-color:var(--lie);background:color-mix(in srgb,var(--lie) 22%,var(--table))}
+.st.true{border-color:var(--true)}
+.st .v{margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
+.st .v span{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--table2);border:1px solid var(--edge)}
+.st .tag{font-size:.75rem;font-weight:800;padding:2px 9px;border-radius:999px}
+.tag.l{background:var(--lie);color:#2a0000} .tag.t{background:var(--true);color:#06210f}
+.ppl{display:flex;gap:8px;flex-wrap:wrap}
+.ppl span{font-weight:800;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid var(--edge)}
+.ppl span.ok{border-color:var(--good);color:var(--good)}
+.hint{font-size:.9rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td{padding:7px 6px;border-bottom:1px solid var(--edge)} td.n{text-align:right}
+.plus{color:var(--good);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>İki Doğru Bir Yalan</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, L = 'ABC';
+let V, C, draft = ['', '', ''], lie = null;
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+function table(v) { return `<table><tbody>${v.players.slice().sort((a, b) => b.score - a.score).map(p => `<tr><td>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</td><td class="n">${p.score}${v.phase === 'reveal' && v.gain[p.id] ? ` <span class="plus">+${v.gain[p.id]}</span>` : ''}</td></tr>`).join('')}</tbody></table>` }
+function render(v, ctx) {
+  const ae = document.activeElement, fid = ae && ae.id, sel = ae && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null;
+  draw(v, ctx);
+  if (fid) { const el = document.getElementById(fid); if (el && el !== document.activeElement) { el.focus({ preventScroll: true }); if (sel) try { el.setSelectionRange(sel[0], sel[1]) } catch (e) {} } }
+}
+function draw(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (3-10 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `<button class="btn" id="start" ${P.length < 3 ? 'disabled' : ''}>Başlat</button>${P.length < 3 ? '<p class="muted">En az 3 kişi gerekiyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>
+      <p class="muted">Herkes kendisi hakkında üç cümle yazar: ikisi doğru, biri yalan. Yalan olanı işaretlersin.</p>
+      <p class="muted">Sonra sırayla herkesin cümleleri karışık sırayla gelir, diğerleri yalanı bulmaya çalışır. Oylar açılınca yalan ortaya çıkar, hikâyesini anlatırsın.</p>
+      <p class="muted"><b>Puan:</b> Yalanı bulana +1. Senin yalanına kanan her kişi için sana +1.</p>
+      <p class="muted"><b>İpucu:</b> En iyi yalanlar küçük ve inanılır olanlardır. En iyi doğrular da en inanılmaz olanlar.</p></section>`;
+    Ati.wireShare(app, ctx);
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  if (!mine) { app.innerHTML = '<section class="panel"><p class="muted">Oyun sürüyor, izliyorsun.</p></section>'; return }
+  if (v.phase === 'write') {
+    const done = !!v.mine, n = Object.keys(v.wrote).length;
+    app.innerHTML = `<section class="panel"><h2>Kendin hakkında 3 cümle yaz</h2>
+      ${done ? `<p><strong>Gönderildi.</strong> ${n}/${P.length} kişi yazdı.</p><div class="sts">${v.mine.s.map((t, i) => `<div class="st ${i === v.mine.lie ? 'lie' : 'true'}"><b>${i + 1}</b><span>${esc(t)} <span class="tag ${i === v.mine.lie ? 'l' : 't'}">${i === v.mine.lie ? 'yalan' : 'doğru'}</span></span></div>`).join('')}</div>`
+      : `<p class="hint">İkisi doğru, biri yalan olsun. Yalan olanın yanındaki düğmeye bas.</p>
+        ${[0, 1, 2].map(i => `<div class="wrow"><input id="w${i}" maxlength="140" autocomplete="off" placeholder="${['Hiç uçağa binmedim.', 'İlkokulda tiyatroda ağaç rolü oynadım.', 'Bir kere 12 saat aralıksız uyudum.'][i]}" value="${esc(draft[i])}"><button class="liebtn ${lie === i ? 'on' : ''}" data-l="${i}">${lie === i ? 'Yalan bu' : 'Yalan mı?'}</button></div>`).join('')}
+        <button class="btn" id="send" ${draft.every(x => x.trim().length >= 3) && lie !== null ? '' : 'disabled'}>Gönder</button>`}
+      <div class="ppl">${P.map(p => `<span class="${v.wrote[p.id] ? 'ok' : ''}">${esc(p.name)} ${v.wrote[p.id] ? '✓' : '…'}</span>`).join('')}</div>
+      ${ctx.isHost && n >= 2 && n < P.length ? '<button class="btn ghost small" id="go">Yazanlarla başla</button>' : ''}</section>`;
+    [0, 1, 2].forEach(i => { const el = app.querySelector('#w' + i); if (el) el.oninput = () => { draft[i] = el.value; const b = app.querySelector('#send'); if (b) b.disabled = !(draft.every(x => x.trim().length >= 3) && lie !== null) } });
+    app.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { lie = +b.dataset.l; draw(V, C) });
+    const sd = app.querySelector('#send'); if (sd) sd.onclick = () => { ctx.act({ type: 'write', s: draft.map(x => x.trim()), lie }); draft = ['', '', '']; lie = null };
+    const go = app.querySelector('#go'); if (go) go.onclick = () => ctx.act({ type: 'go' });
+    return;
+  }
+  if (v.phase === 'over') {
+    const r = P.slice().sort((a, b) => b.score - a.score);
+    app.innerHTML = `<section class="panel"><span class="label">Oyun bitti</span><h2>${esc(r[0].name)} kazandı!</h2>${table(v)}
+      ${ctx.isHost ? '<button class="btn" id="again">Yeni tur</button>' : '<p class="muted">Ev sahibi yeni tur başlatabilir.</p>'}</section>`;
+    const g = app.querySelector('#again'); if (g) g.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  const S = v.show, iAmSubj = S.subj === me, reveal = v.phase === 'reveal';
+  const whoVoted = k => P.filter(p => v.votes[p.id] === k).map(p => `<span>${esc(p.name)}</span>`).join('');
+  const my = v.votes[me];
+  const sts = S.s.map((t, k) => {
+    let cls = '';
+    if (reveal) cls = k === S.lieK ? 'lie' : 'true'; else if (iAmSubj) cls = k === S.lieK ? 'lie' : ''; else if (my === k) cls = 'sel';
+    return `<button class="st ${cls}" data-k="${k}" ${reveal || iAmSubj || my !== undefined ? 'disabled' : ''}><b>${L[k]}</b><span>${esc(t)}
+      ${reveal ? `<span class="tag ${k === S.lieK ? 'l' : 't'}">${k === S.lieK ? 'YALAN' : 'doğru'}</span><span class="v">${whoVoted(k)}</span>` : iAmSubj && k === S.lieK ? '<span class="tag l">senin yalanın</span>' : ''}</span></button>`;
+  }).join('');
+  const others = P.filter(p => p.id !== S.subj), nv = Object.keys(v.votes).length;
+  let foot;
+  if (reveal) {
+    const found = others.filter(p => v.votes[p.id] === S.lieK).map(p => p.name);
+    foot = `<p><strong>${found.length ? found.map(esc).join(', ') + ' yalanı buldu.' : 'Kimse yalanı bulamadı!'}</strong> ${esc(nm(S.subj))}, hikâyeni anlat!</p>
+      <button class="btn" id="next">${v.cur + 1 >= v.order.length ? 'Sonuçları gör' : 'Sıradaki kişi'}</button>`;
+  } else foot = `${iAmSubj ? '<p><strong>Bunlar senin cümlelerin.</strong> Diğerleri yalanı arıyor, poker yüzünü koru!</p>' : my !== undefined ? '<p><strong>Oyunu verdin.</strong></p>' : '<p><strong>Sence hangisi yalan?</strong> Dilersen ona soru sor, sonra seç.</p>'}
+    <p class="hint">${nv}/${others.length} kişi oy verdi.</p>${ctx.isHost ? '<button class="btn ghost small" id="force">Oylamayı bitir</button>' : ''}`;
+  app.innerHTML = `<section class="panel"><span class="label">${v.cur + 1}. kişi / ${v.order.length}</span><div class="subj">${esc(nm(S.subj))}${iAmSubj ? ' (sen)' : ''}</div>
+    <div class="sts">${sts}</div>${foot}</section><section class="panel"><span class="label">Puanlar</span>${table(v)}</section>`;
+  app.querySelectorAll('.st[data-k]').forEach(b => b.onclick = () => ctx.act({ type: 'vote', k: +b.dataset.k }));
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+  const f = app.querySelector('#force'); if (f) f.onclick = () => ctx.act({ type: 'force' });
+}
+Ati.start({ game: 'yalan', el: app, logic: Yalan, render });
+</script>
+</body>
+</html>

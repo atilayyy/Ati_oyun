@@ -2,6 +2,9 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Casus**: 3-12 kişi. Herkes mekânı bilir, casus bilmez.
+- **Kim Bu?**: 2-10 kişi. Alnındaki gizli kimliği evet/hayır sorularıyla bul.
+- **İki Doğru Bir Yalan**: 3-10 kişi. Yalanı bul, arkadaşlarını kandır.
 - **Vampir Köylü**: 4-12 kişi. Gizli roller (vampir, köylü, doktor, gözcü); anlatıcı oyunun kendisi.
 - **Blöf Sözlük**: 2-8 kişi. Az bilinen kelimelere uydurma anlam yaz, gerçeği oyla.
 - **Harita Tahmini**: 2-8 kişi. Şehrin yerini yazısız haritada işaretle; Türkiye (81 il) ve dünya modu. Harita: Natural Earth, koordinatlar: GeoNames.
