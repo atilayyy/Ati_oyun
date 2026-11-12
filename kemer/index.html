@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kemer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--cw:min(54px,calc((100vw - 180px) / 6))}
+@media (max-width:560px){:root{--cw:min(54px,calc((100vw - 170px) / 5))}}
+@media (min-width:700px){:root{--cw:54px}}
+.hud{display:flex;gap:8px;flex-wrap:wrap}
+.k{width:var(--cw);border-radius:8px;background:var(--kb);color:#1b1f33;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 2px 5px;box-shadow:0 2px 0 rgba(0,0,0,.35);position:relative;flex:none;
+  font-family:var(--display);font-weight:800;font-size:calc(var(--cw) * .42);line-height:1;border:2px solid transparent}
+.k{height:calc(var(--cw) * 1.4)}
+.k .hd{display:flex;gap:1px;flex-wrap:wrap;justify-content:center;max-width:90%}
+.k .hd i{width:calc(var(--cw) * .12);height:calc(var(--cw) * .12);border-radius:50%;background:var(--kh)}
+.k .n{margin:auto 0}
+.k.h1{--kb:#f4f1e8;--kh:#8a8f9e}.k.h2{--kb:#bfe3ff;--kh:#2b6cb0}.k.h3{--kb:#ffe59a;--kh:#b7791f}.k.h5{--kb:#ffc2c2;--kh:#c53030}.k.h7{--kb:#d9c2ff;--kh:#6b2fb3}
+.k.new{border-color:var(--accent);animation:pop .35s ease-out}
+.k.sel{border-color:var(--accent);transform:translateY(-8px);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 45%,transparent)}
+.k.can{cursor:pointer}
+.k.can:hover{transform:translateY(-4px)}
+.k.done{opacity:.35}
+.k.cur{border-color:var(--accent);transform:scale(1.08)}
+@keyframes pop{from{transform:translateY(-12px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row6{display:flex;gap:4px;align-items:center;padding:6px;border-radius:12px;border:2px solid transparent;background:var(--table)}
+.row6.pickable{cursor:pointer;border-color:var(--accent)}
+.row6.pickable:hover{background:color-mix(in srgb,var(--accent) 12%,var(--table))}
+.row6.hit{border-color:var(--bad)}
+.slot{width:var(--cw);height:calc(var(--cw) * 1.4);border-radius:8px;border:2px dashed var(--edge);flex:none}
+.slot.six{border-color:color-mix(in srgb,var(--bad) 60%,transparent);display:grid;place-items:center;color:var(--bad);font-weight:800;font-size:.7rem;text-align:center}
+.rsum{margin-left:auto;font-weight:800;font-size:.7rem;color:var(--muted);text-align:right;min-width:30px}
+.rsum b{display:block;font-family:var(--display);font-size:1.1rem;color:var(--ink)}
+.hand{display:flex;gap:5px;flex-wrap:wrap}
+.plays{display:flex;gap:8px;flex-wrap:wrap}
+.play{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;font-weight:800;color:var(--muted);max-width:70px;text-align:center;overflow:hidden}
+.ppl{display:flex;flex-direction:column;gap:6px}
+.pp{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:var(--table);font-weight:700}
+.pp .st{font-size:.75rem;color:var(--muted);font-weight:800}
+.pp .st.ok{color:var(--good)}
+.pp .sc{margin-left:auto;font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.pp .sc small{display:block;font-family:var(--body);font-size:.7rem;color:var(--bad)}
+.msg{font-weight:800;font-size:1.05rem}
+.msg.bad{color:var(--bad)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.rules{font-size:.95rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:70ch}
+.rules b{color:var(--ink)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Kemer</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let V, C, sel = null, stepFor = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+function card(c, cls = '', attr = '') {
+  const h = Kemer.heads(c);
+  return `<div class="k h${h} ${cls}" ${attr}><span class="hd">${'<i></i>'.repeat(h)}</span><span class="n">${c}</span></div>`;
+}
+const RULES = `<div class="rules">
+  <p><b>Amaç:</b> en az ceza toplamak. Biri ${Kemer.LIMIT} cezayı geçince oyun biter, en az cezalı kazanır.</p>
+  <p>Herkese 10 kart dağıtılır, masada 4 sıra vardır. <b>Her tur herkes aynı anda bir kart seçer.</b> Kartlar açılır ve en küçükten başlayarak sıralara dizilir.</p>
+  <p><b>Kart nereye gider?</b> Son kartı, senin kartından küçük olan sıralardan en yakın olanına. 34 attıysan ve sıraların sonu 20, 31, 50, 9 ise kartın 31'in yanına gider.</p>
+  <p><b>6. kart kuralı:</b> Sırada 5 kart varken oraya giden kart 6. olur. Koyan kişi o 5 kartı ceza olarak alır, kendi kartı yeni sıranın başı olur.</p>
+  <p><b>Çok küçük kart:</b> Kartın hiçbir sıranın sonundan büyük değilse, istediğin bir sırayı alırsın (cezası sana), kartın o sıranın başına geçer.</p>
+  <p><b>Ceza boynuzları:</b> kartın üstündeki noktalar. Çoğu kart 1, 5'in katları 2, 10'un katları 3, aynı rakamlılar (11, 22...) 5, 55 ise 7 ceza.</p>
+  <div class="legend">${[3, 15, 30, 44, 55].map(c => card(c)).join('')}</div>
+</div>`;
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me), isHost = ctx.isHost;
+  if (v.phase === 'lobby') {
+    const bots = P.filter(p => p.bot).length;
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-${Kemer.MAX})</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `<div class="row"><button class="btn ghost small" id="addbot" ${P.length >= Kemer.MAX ? 'disabled' : ''}>+ Bilgisayar ekle</button>${bots ? '<button class="btn ghost small" id="rmbot">− Bilgisayar çıkar</button>' : ''}</div>
+        <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>
+        <p class="muted">3-6 kişiyle en eğlencelisi. İkiniz oynuyorsanız 1-2 bilgisayar ekleyin.</p>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>`;
+    Ati.wireShare(app, ctx);
+    const on = (s, a) => { const b = app.querySelector(s); if (b) b.onclick = () => ctx.act(a) };
+    on('#addbot', { type: 'addbot' }); on('#rmbot', { type: 'rmbot' }); on('#start', { type: 'start' });
+    return;
+  }
+  if (!mine) { app.innerHTML = '<section class="panel"><p class="muted">Oyun sürüyor, izliyorsun.</p></section>'; return }
+
+  // ev sahibi kartları sırayla yerleştirir
+  if (isHost && v.phase === 'resolve') {
+    const key = v.round + ':' + v.turn + ':' + v.qi;
+    if (stepFor !== key) { stepFor = key; const a = { type: 'step', turn: v.turn, qi: v.qi }; setTimeout(() => C.act(a), v.qi === 0 ? 1500 : 1000) }
+  }
+  const playing = v.phase === 'pick' || v.phase === 'resolve' || v.phase === 'choose';
+  const chooseMe = v.phase === 'choose' && v.pending.id === me;
+  const ev = v.ev;
+
+  const hud = `<div class="hud"><span class="pill">${v.round}. el</span>${playing ? `<span class="pill">Tur ${v.turn}/${Kemer.HAND}</span>` : ''}<span class="pill">Sınır ${Kemer.LIMIT} ceza</span>${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>`;
+
+  const rows = v.rows.map((r, i) => {
+    const cells = r.map((c, j) => card(c, ev && ev.row === i && j === r.length - 1 && v.phase !== 'pick' ? 'new' : '')).join('');
+    const empty = Array.from({ length: 5 - r.length }, () => '<div class="slot"></div>').join('');
+    return `<div class="row6 ${chooseMe ? 'pickable' : ''} ${ev && ev.took && ev.row === i && v.phase !== 'pick' ? 'hit' : ''}" ${chooseMe ? `data-r="${i}" role="button" tabindex="0"` : ''}>
+      ${cells}${empty}<div class="slot six">6.<br>alır</div><div class="rsum"><b>${Kemer.sum(r)}</b>ceza</div></div>`;
+  }).join('');
+
+  let top = '';
+  if (v.phase === 'pick') {
+    const myPick = v.picks[me];
+    top = myPick != null ? `<div class="controls"><span class="msg">Seçtin: ${myPick}</span><button class="btn ghost small" id="unpick">Değiştir</button><span class="muted">Diğerleri bekleniyor...</span></div>`
+      : `<div class="controls"><span class="msg">Bir kart seç</span>${sel != null && v.hand.includes(sel) ? `<button class="btn" id="play">${sel} oyna</button>` : '<span class="muted">Aşağıdan kartına dokun.</span>'}</div>`;
+    if (ev && ev.took) top += `<p class="muted">Son olarak ${esc(nm(ev.id))} ${ev.h} ceza aldı.</p>`;
+  } else if (v.phase === 'resolve' || v.phase === 'choose') {
+    const plays = v.queue.map((q, i) => `<div class="play">${card(q.c, i < v.qi ? 'done' : i === v.qi ? 'cur' : '')}<span>${esc(nm(q.id))}</span></div>`).join('');
+    let msg = '';
+    if (chooseMe) msg = `<p class="msg bad">${v.pending.c} hiçbir sıraya sığmıyor. Alacağın sırayı seç (cezası sana yazılır):</p>`;
+    else if (v.phase === 'choose') msg = `<p class="msg">${esc(nm(v.pending.id))} hangi sırayı alacağını seçiyor...</p>`;
+    else if (ev && ev.took) msg = `<p class="msg bad">${esc(nm(ev.id))} ${ev.took} kart aldı: ${ev.h} ceza!</p>`;
+    top = `<span class="label">Açılan kartlar</span><div class="plays">${plays}</div>${msg}`;
+  } else if (v.phase === 'roundEnd' || v.phase === 'over') {
+    const rs = P.slice().sort((a, b) => a.score - b.score);
+    const title = v.phase === 'over' ? `${v.winners.map(nm).map(esc).join(' ve ')} kazandı!` : `${v.round}. el bitti`;
+    top = `<h2>${title}</h2><table><thead><tr><th>Oyuncu</th><th class="n">Bu el</th><th class="n">Toplam</th></tr></thead><tbody>
+      ${rs.map(p => `<tr><td>${esc(p.name)}${p.id === me ? ' (sen)' : ''}</td><td class="n">+${v.res[p.id]}</td><td class="n">${p.score}</td></tr>`).join('')}</tbody></table>
+      ${isHost ? `<button class="btn" id="${v.phase === 'over' ? 'again' : 'next'}">${v.phase === 'over' ? 'Yeni oyun' : 'Sonraki el'}</button>` : '<p class="muted">Ev sahibi devam ettirecek.</p>'}`;
+  }
+
+  const waiting = v.phase === 'pick' && P.some(p => !p.bot && v.picks[p.id] == null && p.online === false);
+  const ppl = P.map(p => {
+    const st = v.phase === 'pick' ? (p.bot ? '' : v.picks[p.id] != null ? '<span class="st ok">seçti ✓</span>' : '<span class="st">düşünüyor…</span>') : '';
+    return `<div class="pp">${esc(p.name)}${p.id === me ? ' (sen)' : ''}${p.online === false ? ' <span class="st">bağlantı yok</span>' : ''} ${st}
+      <span class="sc">${p.score + (playing ? v.pen[p.id] : 0)}${playing && v.pen[p.id] ? `<small>bu el +${v.pen[p.id]}</small>` : ''}</span></div>`;
+  }).join('');
+
+  const myHand = playing ? `<section class="panel"><span class="label">Elin</span><div class="hand">${v.hand.map(c => {
+      const can = v.phase === 'pick' && v.picks[me] == null;
+      return card(c, (can ? 'can ' : '') + (sel === c && can ? 'sel' : '') + (v.picks[me] === c ? 'sel' : ''), can ? `data-c="${c}" role="button" tabindex="0"` : '');
+    }).join('') || '<span class="muted">Kartın kalmadı.</span>'}</div></section>` : '';
+
+  app.innerHTML = `${hud}<section class="panel">${top}</section>
+    ${playing ? `<section class="panel"><div class="rows">${rows}</div></section>` : ''}
+    ${myHand}
+    <section class="panel"><span class="label">Oyuncular · ceza</span><div class="ppl">${ppl}</div>
+      ${isHost && (waiting || (v.phase === 'choose' && P.some(p => p.id === v.pending.id && p.online === false))) ? '<button class="btn ghost small" id="force">Bekleyenler için otomatik oyna</button>' : ''}</section>
+    <details class="panel"><summary>Kurallar</summary>${RULES}</details>`;
+
+  const on = (s, a) => { const b = app.querySelector(s); if (b) b.onclick = () => ctx.act(a) };
+  on('#unpick', { type: 'unpick' }); on('#next', { type: 'next' }); on('#again', { type: 'start' }); on('#force', { type: 'force' });
+  const pl = app.querySelector('#play'); if (pl) pl.onclick = () => { ctx.act({ type: 'pick', c: sel }); sel = null };
+  app.querySelectorAll('[data-c]').forEach(el => el.onclick = () => { const c = +el.dataset.c; sel = sel === c ? null : c; render(V, C) });
+  app.querySelectorAll('[data-r]').forEach(el => { const go = () => ctx.act({ type: 'row', r: +el.dataset.r }); el.onclick = go; el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } } });
+}
+Ati.start({ game: 'kemer', el: app, logic: Kemer, render });
+</script>
+</body>
+</html>

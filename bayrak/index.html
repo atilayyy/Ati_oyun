@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bayrak & Başkent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--o0:#4f8cff;--o1:#ff8a3d;--o2:#b49cff;--o3:#3fc1a5}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:inherit;font-weight:800;font-size:.88rem;padding:9px 12px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.opts-row{display:flex;flex-direction:column;gap:12px}
+.stage{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;min-height:180px;justify-content:center}
+.flag{width:min(300px,78vw);aspect-ratio:4/3;border-radius:10px;box-shadow:0 6px 0 rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.12);background:#fff center/cover no-repeat}
+@supports not (aspect-ratio:4/3){.flag{height:calc(min(300px,78vw) * .75)}}
+.ask{font-size:.95rem;color:var(--muted);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(1.8rem,7vw,2.8rem);line-height:1.1;text-wrap:balance}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{font:inherit;font-weight:800;font-size:1.05rem;text-align:left;padding:14px;border-radius:14px;border:3px solid transparent;background:var(--c);color:#0d1126;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-height:62px;justify-content:center;transition:transform .12s,opacity .2s,filter .2s}
+.opt:hover:not(:disabled){transform:translateY(-2px)}
+.opt:disabled{cursor:default}
+.opt.dim{opacity:.35;filter:saturate(.4)}
+.opt.mine{border-color:var(--ink);box-shadow:0 0 0 3px var(--table2) inset}
+.opt.right{background:var(--good);opacity:1;filter:none}
+.opt.wrong{background:var(--bad);opacity:1;filter:none}
+.opt .who{display:flex;gap:4px;flex-wrap:wrap}
+.opt .who span{font-size:.72rem;background:rgba(13,17,38,.75);color:#fff;border-radius:999px;padding:2px 8px}
+.bar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:100%}
+.bar i.low{background:var(--bad)}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.sec{font-family:var(--display);font-weight:800;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.ppl{display:flex;gap:8px;flex-wrap:wrap}
+.ppl span{font-weight:800;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid var(--edge)}
+.ppl span.ok{border-color:var(--good);color:var(--good)}
+.fact{font-weight:700}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.plus{color:var(--good);font-weight:800}
+.mini{width:34px;height:25px;border-radius:4px;vertical-align:middle;margin-right:8px;box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Bayrak & Başkent</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="ulkeler.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+const flagUrl = k => 'flags/' + ULKE[k][0] + '.svg';
+const pre = {}; function preload(k) { if (k == null || pre[k]) return; const i = new Image(); i.src = flagUrl(k); pre[k] = i }
+let V, C, qKey = '', deadline = 0, timerFor = '', nextFor = '', raf = 0;
+
+function scoreTable(v, final) {
+  const rows = v.players.slice().sort((a, b) => b.score - a.score);
+  return `<table><thead><tr><th>#</th><th>Oyuncu</th>${final ? '<th class="n">Doğru</th>' : ''}<th class="n">Puan</th></tr></thead><tbody>${rows.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</td>${final ? `<td class="n">${p.right || 0}/${v.total}</td>` : ''}<td class="n">${p.score}${!final && v.phase === 'reveal' && v.gain && v.gain[p.id] ? ` <span class="plus">+${v.gain[p.id]}</span>` : ''}</td></tr>`).join('')}</tbody></table>`;
+}
+function tick() {
+  const bar = document.getElementById('tbar'), sec = document.getElementById('tsec');
+  if (!bar || !V || V.phase !== 'q') { raf = 0; return }
+  const left = Math.max(0, deadline - performance.now());
+  bar.style.width = (left / Bayrak.TIME * 100) + '%'; bar.classList.toggle('low', left < 3000);
+  sec.textContent = Math.ceil(left / 1000);
+  raf = requestAnimationFrame(tick);
+}
+const seg = (name, items, cur) => `<span class="seg">${Object.entries(items).map(([k, t]) => `<button data-${name}="${k}" class="${cur == k ? 'on' : ''}">${t}</button>`).join('')}</span>`;
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me);
+  if (v.phase === 'lobby' || v.phase === 'over') {
+    const opts = ctx.isHost ? `
+        <div class="row"><span class="label">Sorular</span>${seg('mode', Bayrak.MODES, v.mode)}</div>
+        <div class="row"><span class="label">Ülkeler</span>${seg('diff', { kolay: 'Bilinenler (94)', zor: 'Hepsi (196)' }, v.diff)}</div>
+        <div class="row"><span class="label">Soru sayısı</span>${seg('count', { 10: '10', 15: '15', 20: '20' }, v.count)}</div>` : '';
+    if (v.phase === 'lobby') {
+      app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+        <div><span class="label">Oyuncular (2-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+        ${!mine ? '<p class="muted">Oyun başladı, izliyorsun.</p>' : ctx.isHost ? `${opts}
+          <button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>
+          ${P.length < 2 ? '<p class="muted">En az 2 kişi gerekiyor.</p>' : ''}` : `<p class="muted">Ev sahibinin başlatması bekleniyor... (${esc(Bayrak.MODES[v.mode])}, ${v.diff === 'kolay' ? 'bilinen ülkeler' : 'bütün ülkeler'}, ${v.count} soru)</p>`}
+        </section><section class="panel"><p class="muted">Bayrak çıkar, hangi ülke olduğunu bul. Ya da ülke çıkar, başkentini bul. Herkes aynı anda cevaplar, ${Bayrak.TIME / 1000} saniyen var. Doğru cevap 100 puan, hızlıysan +50'ye kadar bonus. Şıklar hep aynı bölgeden gelir, yani komşular birbirine karışır.</p></section>`;
+    } else {
+      const top = P.slice().sort((a, b) => b.score - a.score), tie = top[1] && top[0].score === top[1].score;
+      app.innerHTML = `<section class="panel"><span class="label">Yarış bitti</span><h2>${tie ? 'Berabere!' : esc(top[0].name) + ' kazandı!'}</h2>${scoreTable(v, true)}
+        ${ctx.isHost ? `${opts}<button class="btn" id="start">Yeni yarış</button>` : '<p class="muted">Ev sahibi yeni yarış başlatabilir.</p>'}</section>`;
+    }
+    Ati.wireShare(app, ctx);
+    const o = { mode: v.mode, diff: v.diff, count: v.count };
+    app.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => ctx.act({ type: 'opts', ...o, mode: b.dataset.mode }));
+    app.querySelectorAll('[data-diff]').forEach(b => b.onclick = () => ctx.act({ type: 'opts', ...o, diff: b.dataset.diff }));
+    app.querySelectorAll('[data-count]').forEach(b => b.onclick = () => ctx.act({ type: 'opts', ...o, count: +b.dataset.count }));
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  const q = v.q, key = v.cur + ':' + q.k, reveal = v.phase === 'reveal';
+  if (v.phase === 'q' && key !== qKey) { qKey = key; deadline = performance.now() + v.left }
+  if (ctx.isHost && v.phase === 'q' && timerFor !== key) { timerFor = key; const cur = v.cur; setTimeout(() => ctx.act({ type: 'timeout', cur }), v.left + 80) }
+  if (ctx.isHost && reveal && nextFor !== key) { nextFor = key; const cur = v.cur; setTimeout(() => ctx.act({ type: 'next', cur }), Bayrak.SHOW) }
+  preload(v.nextFlag);
+  const U = ULKE[q.k];
+  const stage = q.t === 'f' ? `<span class="ask">Bu hangi ülkenin bayrağı?</span><div class="flag" style="background-image:url('${flagUrl(q.k)}')" role="img" aria-label="Bayrak"></div>`
+    : q.t === 'c' ? `<span class="ask">Başkenti neresi?</span><div class="big"><img class="mini" src="${flagUrl(q.k)}" alt="">${esc(U[1])}</div>`
+    : `<span class="ask">Hangi ülkenin başkenti?</span><div class="big">${esc(U[2])}</div>`;
+  const label = i => q.t === 'c' ? ULKE[i][2] : ULKE[i][1];
+  const myAns = v.ans[me];
+  const whoPicked = k => P.filter(p => v.ans[p.id] && v.ans[p.id].k === k).map(p => `<span>${esc(p.name)}</span>`).join('');
+  const optHtml = q.opts.map((i, k) => {
+    let cls = '';
+    if (reveal) cls = k === q.right ? 'right' : (myAns && myAns.k === k ? 'wrong' : 'dim');
+    else if (myAns) cls = myAns.k === k ? 'mine' : 'dim';
+    return `<button class="opt ${cls}" style="--c:var(--o${k})" data-k="${k}" ${myAns || reveal || !mine ? 'disabled' : ''}><span>${esc(label(i))}</span>${reveal ? `<span class="who">${whoPicked(k)}</span>` : ''}</button>`;
+  }).join('');
+  let foot;
+  if (reveal) {
+    const g = v.gain[me];
+    foot = `<p class="fact"><strong style="color:var(${g ? '--good' : '--bad'})">${!mine ? '' : g ? 'Doğru! +' + g : myAns ? 'Yanlış.' : 'Süre doldu.'}</strong>
+      ${esc(U[1])}${U[2] ? ', başkenti ' + esc(U[2]) : ''}.</p>`;
+  } else foot = `<div class="ppl">${P.map(p => `<span class="${v.ans[p.id] ? 'ok' : ''}">${esc(p.name)} ${v.ans[p.id] ? '✓' : '…'}</span>`).join('')}</div>`;
+  app.innerHTML = `<section class="panel opts-row">
+      <div class="topline"><span class="pill">Soru ${v.cur + 1}/${v.total}</span>${reveal ? '' : '<span class="sec" id="tsec"></span>'}</div>
+      ${reveal ? '<div class="bar"><i style="width:0"></i></div>' : '<div class="bar"><i id="tbar"></i></div>'}
+      <div class="stage">${stage}</div>
+      <div class="opts">${optHtml}</div>
+      ${foot}</section>
+    <section class="panel"><span class="label">Puan durumu</span>${scoreTable(v, false)}</section>`;
+  app.querySelectorAll('.opt[data-k]').forEach(b => b.onclick = () => ctx.act({ type: 'answer', k: +b.dataset.k, ms: Math.round(Bayrak.TIME - Math.max(0, deadline - performance.now())) }));
+  if (!reveal && !raf) raf = requestAnimationFrame(tick); else if (!reveal) tick();
+}
+Ati.start({ game: 'bayrak', el: app, logic: Bayrak, render });
+</script>
+</body>
+</html>

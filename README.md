@@ -2,6 +2,8 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Bayrak & Başkent**: 2-8 kişi. Bayraktan ülkeyi, ülkeden başkenti bul; şıklar aynı bölgeden. Veri: mledoze/countries (ODbL), bayraklar: lipis/flag-icons (MIT).
+- **Kemer**: 2-10 kişi (bilgisayar eklenebilir). 6 nimmt! kurallarından esinlenen kart oyunu: sıranın 6. kartını koyan cezayı alır.
 - **Casus**: 3-12 kişi. Herkes mekânı bilir, casus bilmez.
 - **Kim Bu?**: 2-10 kişi. Alnındaki gizli kimliği evet/hayır sorularıyla bul.
 - **İki Doğru Bir Yalan**: 3-10 kişi. Yalanı bul, arkadaşlarını kandır.
@@ -44,3 +46,4 @@ Cihazlar birbirine doğrudan bağlanır (WebRTC). Eşleşme için PeerJS'in ücr
 - Kelime listeleri: [mertemin/turkish-word-list](https://github.com/mertemin/turkish-word-list) (Vikisözlük) ve [hermitdave/FrequencyWords](https://github.com/hermitdave/FrequencyWords) (OpenSubtitles sıklık verisi).
 - Bağlantı: [PeerJS](https://peerjs.com).
 - Flip 7, The Op Games'in oyunudur. Ati7 kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.
+- 6 nimmt!, Wolfgang Kramer'in tasarladığı, Amigo Spiele'nin oyunudur. Kemer kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.
