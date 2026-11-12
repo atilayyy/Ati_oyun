@@ -37,6 +37,12 @@
 .lens button{font:inherit;font-weight:800;width:44px;height:44px;border-radius:10px;border:1px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer}
 .lens button.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
 .msg{min-height:1.5em;text-align:center;font-weight:800}
+.dboard{display:grid;gap:6px;margin:0 auto;width:100%;max-width:calc(var(--n) * 58px + 76px)}
+.drow{display:grid;grid-template-columns:minmax(0,1fr) 70px;gap:8px;align-items:center}
+.drow .by{font-size:.78rem;font-weight:800;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drow .by.me{color:var(--accent)}
+.turnmsg{text-align:center;font-family:var(--display);font-weight:800;font-size:1.25rem}
+.turnmsg.mine{color:var(--accent)}
 @supports not (aspect-ratio:1/1){.tile{height:clamp(28px,calc((100vw - 80px) / var(--n)),52px)}}
 </style>
 </head>
@@ -77,7 +83,7 @@ function kbHtml(rows) {
   const ks = keyState(rows);
   return `<div class="kb">${ROWS.map(r => `<div class="kr">${r.map(k => k === 'ENTER' ? '<button class="k wide" data-k="ENTER">GİR</button>' : k === 'DEL' ? '<button class="k wide" data-k="DEL" aria-label="Sil">⌫</button>' : `<button class="k ${ks[k] != null ? 's' + ks[k] : ''}" data-k="${k}">${UP(k)}</button>`).join('')}</div>`).join('')}</div>`;
 }
-function lensHtml(cur) { return `<div class="lens">${[4, 5, 6, 7, 8, 9, 10].map(n => `<button data-len="${n}" class="${n === cur ? 'on' : ''}">${n}</button>`).join('')}</div>` }
+function lensHtml(cur, from = 4) { return `<div class="lens">${[4, 5, 6, 7, 8, 9, 10].filter(n => n >= from).map(n => `<button data-len="${n}" class="${n === cur ? 'on' : ''}">${n}</button>`).join('')}</div>` }
 function scoresHtml(v) {
   return v.players.slice().sort((a, b) => b.score - a.score).map(p => `<div class="score"><span>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</span><strong>${p.score}</strong></div>`).join('');
 }
@@ -86,12 +92,16 @@ async function ensureList(n) { try { validCache = await Kelime.list(n) } catch (
 
 function press(k) {
   if (!V || V.phase !== 'play') return;
-  const b = V.boards[C.me]; if (!b || b.done) return;
+  const duel = isDuel(V);
+  const b = V.boards[C.me]; if (!duel && (!b || b.done)) return;
+  if (duel && !V.players.some(p => p.id === C.me)) return;
   const n = V.len;
   if (k === 'DEL') typed = Array.from(typed).slice(0, -1).join('');
   else if (k === 'ENTER') {
     if (Array.from(typed).length !== n) { msg = n + ' harf olmalı'; return draw(true) }
     if (validCache && !validCache.v.has(typed)) { msg = 'Listede yok: ' + UP(typed); return draw(true) }
+    if (duel && V.players[V.turnIdx].id !== C.me) { msg = 'Sıra sende değil, bekle.'; return draw(true) }
+    if (duel && V.shared.some(r => r.w === typed)) { msg = 'Bu kelime zaten denendi.'; return draw(true) }
     C.act({ type: 'guess', w: typed }); typed = ''; msg = '';
   } else if (Kelime.ALPHA.includes(k) && Array.from(typed).length < n) typed += k;
   draw();
@@ -106,11 +116,20 @@ document.addEventListener('keydown', e => {
 let chosenMode = null, pickDraft = '';
 function modeHtml(m) {
   return `<div class="lens" style="flex-wrap:wrap"><button data-mode="rastgele" class="${m === 'rastgele' ? 'on' : ''}" style="width:auto;padding:0 14px">Rastgele kelime</button>
-    <button data-mode="sira" class="${m === 'sira' ? 'on' : ''}" style="width:auto;padding:0 14px">Sırayla biz seçelim</button></div>`;
+    <button data-mode="sira" class="${m === 'sira' ? 'on' : ''}" style="width:auto;padding:0 14px">Sırayla biz seçelim</button>
+    <button data-mode="duello" class="${m === 'duello' ? 'on' : ''}" style="width:auto;padding:0 14px">Düello: aynı tahta, sırayla</button></div>`;
 }
 function hostSetup(v, isLobby) {
   const m = chosenMode || v.mode || 'rastgele', n = chosenLen || v.len || 5;
   const label = isLobby ? 'Başlat' : 'Sonraki tur';
+  if (m === 'duello') {
+    const dn = Math.max(5, n);
+    return `<div><span class="label">Kelimeyi kim seçsin?</span>${modeHtml(m)}</div>
+      <p class="muted">Kelimeyi bilgisayar seçer, herkes aynı tahtada sırayla tahmin eder. Birinin tahmininin renklerini herkes görür, ondan faydalanabilirsin. Kelimeyi bilen turu kazanır.</p>
+      <div><span class="label">Kaç harfli?</span>${lensHtml(dn, 5)}</div>
+      <button class="btn" id="start" ${v.players.length < 2 ? 'disabled' : ''}>${label} (${dn} harf)</button>
+      ${v.players.length < 2 ? '<p class="muted">Bu mod için en az 2 kişi lazım.</p>' : ''}`;
+  }
   if (m === 'sira') {
     const i = v.players.findIndex(p => p.id === v.setterId), nx = v.players[(i + 1) % v.players.length];
     return `<div><span class="label">Kelimeyi kim seçsin?</span>${modeHtml(m)}</div>
@@ -122,7 +141,49 @@ function hostSetup(v, isLobby) {
     <div><span class="label">Kaç harfli?</span>${lensHtml(n)}</div><button class="btn" id="start">${label} (${n} harf)</button>`;
 }
 
+const isDuel = v => v.mode === 'duello' && Array.isArray(v.shared) && (v.phase === 'play' || v.phase === 'roundEnd');
+function drawDuel(shake) {
+  const v = V, ctx = C, me = ctx.me, isHost = ctx.isHost, n = v.len;
+  const pl = id => v.players.find(p => p.id === id) || { name: '?' };
+  const key = v.round + ':' + n; if (key !== roundKey) { roundKey = key; typed = ''; msg = ''; ensureList(n) }
+  const cur = v.players[v.turnIdx], myTurn = v.phase === 'play' && cur && cur.id === me, playing = v.players.some(p => p.id === me);
+  let rows = '';
+  for (let i = 0; i < v.max; i++) {
+    const r = v.shared[i]; let cells = '', by = '';
+    for (let j = 0; j < n; j++) {
+      if (r) cells += `<div class="tile s${r.r[j]}">${esc(UP(Array.from(r.w)[j]))}</div>`;
+      else if (i === v.shared.length && v.phase === 'play' && playing) { const ch = Array.from(typed)[j]; cells += `<div class="tile ${ch ? 'f' : ''}">${ch ? esc(UP(ch)) : ''}</div>` }
+      else cells += '<div class="tile"></div>';
+    }
+    if (r) by = `<span class="by ${r.by === me ? 'me' : ''}">${r.by === me ? 'Sen' : esc(pl(r.by).name)}</span>`;
+    else if (i === v.shared.length && v.phase === 'play' && cur) by = `<span class="by ${myTurn ? 'me' : ''}">${myTurn ? 'Sen →' : esc(cur.name) + '…'}</span>`;
+    else by = '<span></span>';
+    rows += `<div class="drow"><div class="brow ${i === v.shared.length ? 'cur' : ''}">${cells}</div>${by}</div>`;
+  }
+  let top;
+  if (v.phase === 'play') top = `<div class="turnmsg ${myTurn ? 'mine' : ''}">${myTurn ? 'Sıra sende!' : `Sıra ${esc(ek(cur.name, 'de'))}`}</div>
+    <p class="muted" style="text-align:center;margin:0">${v.shared.length}/${v.max} tahmin kullanıldı${myTurn ? '' : '. Bu arada sıradaki tahminini yazabilirsin.'}</p><p class="msg">${esc(msg)}</p>`;
+  else top = `<div style="text-align:center"><span class="label">Kelime</span><div class="reveal">${esc(UP(v.secret))}</div></div>
+    <div class="turnmsg ${v.winner === me ? 'mine' : ''}">${v.winner ? (v.winner === me ? 'Sen buldun, turu aldın!' : esc(pl(v.winner).name) + ' buldu, turu aldı!') : 'Kimse bulamadı, berabere.'}</div>`;
+  const host = isHost ? (v.phase === 'play' ? '<div class="row"><button class="btn ghost small" id="skip">Sırayı atla</button><button class="btn ghost small" id="end">Turu bitir</button></div>' : hostSetup(v, false))
+    : (v.phase === 'roundEnd' ? '<p class="muted">Ev sahibi sonraki turu başlatacak.</p>' : '');
+  app.innerHTML = `<div class="row"><span class="pill">${v.round}. tur</span><span class="pill">Düello · ${n} harf · ${v.max} hak</span>${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>
+    <div class="layout">
+      <section class="panel">${top}<div class="dboard" style="--n:${n}">${rows}</div>
+        ${v.phase === 'play' && playing ? kbHtml(v.shared) : ''}</section>
+      <aside class="side">
+        <section class="panel"><span class="label">Kazanılan turlar</span>${scoresHtml(v)}</section>
+        ${host ? `<section class="panel">${host}</section>` : ''}
+      </aside></div>`;
+  if (shake) { const r = app.querySelector('.brow.cur'); if (r) r.classList.add('shake') }
+  app.querySelectorAll('.k').forEach(x => x.onclick = () => press(x.dataset.k));
+  const e = app.querySelector('#end'); if (e) e.onclick = () => ctx.act({ type: 'end' });
+  const sk = app.querySelector('#skip'); if (sk) sk.onclick = () => ctx.act({ type: 'skip' });
+  wireHostControls();
+}
+
 function draw(shake) {
+  if (isDuel(V)) return drawDuel(shake);
   const v = V, ctx = C, me = ctx.me, isHost = ctx.isHost;
   const pl = id => v.players.find(p => p.id === id) || { name: '?' };
   if (v.phase === 'lobby') {
@@ -130,7 +191,8 @@ function draw(shake) {
       <div><span class="label">Oyuncular</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
       ${isHost ? hostSetup(v, true) : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
     </section>
-    <section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Yeşil: harf doğru yerde. Sarı: kelimede var ama başka yerde. Lacivert: kelimede yok. Rakiplerinin sadece renklerini görürsün, harflerini değil. Az tahminde bulan çok puan alır, ilk bulan +2 bonus kazanır. İstersen kelimeyi bilgisayar seçer, istersen sırayla siz seçersiniz.</p></section>`;
+    <section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Yeşil: harf doğru yerde. Sarı: kelimede var ama başka yerde. Lacivert: kelimede yok. Rakiplerinin sadece renklerini görürsün, harflerini değil. Az tahminde bulan çok puan alır, ilk bulan +2 bonus kazanır. İstersen kelimeyi bilgisayar seçer, istersen sırayla siz seçersiniz.</p>
+      <p class="muted"><b>Düello modu:</b> herkes aynı kelimeyi aynı tahtada sırayla tahmin eder. İlk tahmini biri, ikinciyi diğeri yapar. Kelimeyi bilen turu kazanır.</p></section>`;
     Ati.wireShare(app, ctx); wireHostControls(); return;
   }
   if (v.phase === 'pick') {

@@ -20,6 +20,12 @@ const Kelime = (() => {
     return { phase: 'lobby', hostId, players: [{ id: hostId, name: hostName, online: true, score: 0 }], round: 0, len: 5, log: [] };
   }
   function pointsFor(k, max) { return max + 1 - k }
+  /* Düello: tek ortak tahta, oyuncular sırayla tahmin eder, kelimeyi bilen turu alır */
+  const duelMax = n => maxFor(n) + 2;
+  function duelNext(s) {
+    const n = s.players.length;
+    for (let k = 1; k <= n; k++) { const p = s.players[(s.turnIdx + k) % n]; if (p.online) { s.turnIdx = (s.turnIdx + k) % n; return } }
+  }
   function checkEnd(s) {
     const on = s.players.filter(p => s.boards[p.id]);
     if (on.every(p => s.boards[p.id].done)) finish(s);
@@ -55,7 +61,18 @@ const Kelime = (() => {
     const isHost = pid === s.hostId;
     if (a.type === 'start' && isHost && s.phase !== 'play') {
       const n = Math.min(10, Math.max(4, a.len | 0 || 5));
-      if (a.mode === 'sira' || a.mode === 'rastgele') s.mode = a.mode;
+      if (a.mode === 'sira' || a.mode === 'rastgele' || a.mode === 'duello') s.mode = a.mode;
+      if (s.mode === 'duello') {
+        promote(s);
+        if (s.players.length < 2) return s;
+        s.setterId = null;
+        await startRound(s, Math.max(5, n));
+        s.max = duelMax(s.len); s.boards = {}; s.shared = []; s.winner = null;
+        s.starter = ((s.starter == null ? -1 : s.starter) + 1) % s.players.length; s.turnIdx = s.starter;
+        if (!s.players[s.turnIdx].online) duelNext(s);
+        return s;
+      }
+      s.shared = null;
       if (s.mode === 'sira') {
         promote(s);
         if (s.players.length < 2) return s;
@@ -75,6 +92,18 @@ const Kelime = (() => {
       await startRound(s, n, w); return s;
     }
     if (a.type === 'end' && isHost && s.phase === 'play') { finish(s); return s }
+    if (a.type === 'guess' && s.phase === 'play' && s.mode === 'duello' && s.shared) {
+      if (s.players[s.turnIdx].id !== pid) return s;
+      const w = String(a.w || '').toLocaleLowerCase('tr'), ch = Array.from(w);
+      if (ch.length !== s.len || ch.some(c => !ALPHA.includes(c))) return s;
+      const L = await list(s.len); if (!L.v.has(w)) return s;
+      s.shared.push({ w, r: evaluate(w, s.secret), by: pid });
+      if (w === s.secret) { s.winner = pid; s.players.find(p => p.id === pid).score += 1; finish(s) }
+      else if (s.shared.length >= s.max) finish(s);
+      else duelNext(s);
+      return s;
+    }
+    if (a.type === 'skip' && isHost && s.phase === 'play' && s.shared) { duelNext(s); return s }
     if (a.type === 'guess' && s.phase === 'play') {
       const b = s.boards[pid]; if (!b || b.done) return s;
       const w = String(a.w || '').toLocaleLowerCase('tr');
