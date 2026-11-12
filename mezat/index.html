@@ -73,7 +73,7 @@ const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
 const RULES = `<div class="rules">
   <p>Herkesin <b>${Mezat.BUDGET} TL</b> bütçesi var ve herkes <b>tam ${Mezat.SLOTS} ürün</b> alacak.</p>
   <p>Ürünler tek tek gelir. Eli dolmamış herkes <b>sırayla teklif verir, teklif zorunlu</b> (en az 1 TL). Önceki teklifleri görürsün. En yüksek teklifi veren alır ve parayı öder. Eşitlikte önce teklif veren kazanır. İlk teklif sırası her üründe kayar.</p>
-  <p>Kalan ürünler için 1'er TL ayırman gerektiği için verebileceğin en yüksek teklifi oyun kendisi sınırlar. Eli dolan, sonraki ürünlerin teklifine katılmaz.</p>
+  <p>Kalan ürünler için 1'er TL ayırman gerektiği için verebileceğin en yüksek teklifi oyun kendisi sınırlar. Eli dolan, sonraki ürünlerin teklifine katılmaz. <b>Sırada ne geleceğini kimse bilmez</b>, o yüzden parayı iyi idare et.</p>
   <p><b>Sonunda jüri karar verir:</b> her ürünün gizli bir puanı var. Birbirine yakışan ikililer bonus, eksikler ve saçmalıklar ceza getirir. Eşitlikte cebinde çok para kalan kazanır.</p>
 </div>`;
 const chip = (i, cls = '') => { const it = TEMALAR[V.theme].items[i]; return `<span class="chip ${cls}">${it[1]} ${esc(it[0])}</span>` };
@@ -149,7 +149,6 @@ function render(v, ctx) {
     const slots = own.map((i, j) => chip(i, v.phase === 'sold' && v.sold.id === p.id && j === own.length - 1 ? 'new' : '')).join('') + '<span class="chip empty">boş</span>'.repeat(Mezat.SLOTS - own.length);
     return `<div class="pp"><div class="hd">${esc(p.name)}${p.id === me ? ' (sen)' : ''}${p.online === false ? ' <span class="muted">bağlantı yok</span>' : ''}<span class="mo">${v.money[p.id]} TL</span></div><div class="slots">${slots}</div></div>`;
   }).join('');
-  const rest = v.deck.slice(v.pos + 1);
 
   app.innerHTML = `<div class="hud"><span class="pill">${th.emoji} ${esc(th.name)}</span><span class="pill">Ürün ${v.pos + 1}/${v.deck.length}</span><span class="pill">Cebinde ${v.money[me]} TL</span>${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>
     <section class="panel">
@@ -160,7 +159,6 @@ function render(v, ctx) {
       ${isHost && v.phase === 'bid' && !myTurn && v.players.some(p => p.id === cur && p.online === false) ? '<button class="btn ghost small" id="skip">Bağlantısı kopan için 1 TL ver</button>' : ''}
     </section>
     <section class="panel"><span class="label">Kadrolar</span><div class="ppl">${ppl}</div></section>
-    ${rest.length ? `<section class="panel"><span class="label">Sıradaki ürünler (${rest.length})</span><div class="upcoming">${rest.map(i => chip(i)).join('')}</div></section>` : ''}
     <details class="panel"><summary>Kurallar ve jüri ipuçları</summary>${RULES}<ul class="hints">${th.hints.map(h => `<li>${esc(h)}</li>`).join('')}</ul></details>`;
 
   const on = (s, f) => { const b = app.querySelector(s); if (b) b.onclick = f };

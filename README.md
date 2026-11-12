@@ -2,7 +2,7 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
-- **Mezat**: 2-6 kişi (bilgisayar eklenebilir). 20 TL bütçeyle sırayla teklif verip 5 ürünlük kadro kur; jüri gizli puanlar ve ikili bonuslarıyla kazananı seçer. Temalar: hamburger, pizza, Türk kahvaltısı, süper kahraman, rüya futbol takımı, zombi çantası.
+- **Mezat**: 2-6 kişi (bilgisayar eklenebilir). 20 TL bütçeyle sırayla teklif verip 5 ürünlük kadro kur; jüri gizli puanlar ve ikili bonuslarıyla kazananı seçer. Temalar: hamburger, pizza, Türk kahvaltısı, sokak lezzetleri, süper kahraman, süper güçler, rüya futbol takımı, zombi çantası, rüya tatil, hayalindeki ev, ev arkadaşı, müzik grubu. Sıradaki ürünler gizlidir.
 - **Bayrak & Başkent**: 2-8 kişi. Bayraktan ülkeyi, ülkeden başkenti bul; şıklar aynı bölgeden. Veri: mledoze/countries (ODbL), bayraklar: lipis/flag-icons (MIT).
 - **Kemer**: 2-10 kişi (bilgisayar eklenebilir). 6 nimmt! kurallarından esinlenen kart oyunu: sıranın 6. kartını koyan cezayı alır.
 - **Casus**: 3-12 kişi. Herkes mekânı bilir, casus bilmez.

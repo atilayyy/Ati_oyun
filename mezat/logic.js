@@ -116,7 +116,12 @@ const Mezat = (() => {
     if (a.type === 'skip' && isHost && s.phase === 'bid') { placeBid(s, s.order[s.bi], 1); autoBids(s); return s }
     return s;
   }
-  function view(s, pid) { return clone(s) }
+  function view(s, pid) {
+    const v = clone(s);
+    // sıradaki ürünler gizli: henüz açılmamış ürünler gönderilmez
+    if (v.deck && v.phase !== 'over') v.deck = v.deck.map((x, i) => i <= v.pos ? x : null);
+    return v;
+  }
   return { create, act, view, judge, maxBid, maxPlayers, BUDGET, SLOTS, SHOW };
 })();
 if (typeof module !== 'undefined') module.exports = Mezat;

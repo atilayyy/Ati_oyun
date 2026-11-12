@@ -177,6 +177,178 @@ const TEMALAR = {
       { t: 'combo', items: ['Gitar', 'Kibrit'], pts: 2, msg: 'Kamp ateşi başında moral yükseldi.' },
       { t: 'combo', items: ['Davul', 'Gitar'], pts: -3, msg: 'Konser verdin, bütün zombiler geldi.' }
     ]
+  },
+  sokak: {
+    name: 'Sokak Lezzetleri Gecesi', emoji: '🌯', desc: 'Gece 2, acıktınız. 5 sokak lezzetiyle efsane bir gece menüsü kur.',
+    hints: ['Gece menüsünde içecek olmazsa jüri boğulur.', 'Bazı lezzetler birbirini çağırır.', 'Tatlısız gece eksik kalır.'],
+    tags: { ana: 'Ana yemek', ara: 'Atıştırmalık', tatli: 'Tatlı', icecek: 'İçecek' },
+    items: [
+      ['Et döner dürüm', '🌯', 14, 'ana'], ['Tavuk döner', '🌯', 11, 'ana'], ['İskender', '🍖', 13, 'ana'], ['Kokoreç', '🥖', 12, 'ana'], ['Islak hamburger', '🍔', 10, 'ana'],
+      ['Tantuni', '🌮', 12, 'ana'], ['Çiğ köfte dürüm', '🌯', 8, 'ana'], ['Lahmacun', '🫓', 11, 'ana'], ['Pide', '🥖', 10, 'ana'], ['Balık ekmek', '🐟', 11, 'ana'],
+      ['Midye dolma', '🦪', 10, 'ara'], ['Kumpir', '🥔', 9, 'ara'], ['Tost', '🥪', 7, 'ara'], ['Simit', '🥯', 5, 'ara'], ['Mısır', '🌽', 5, 'ara'], ['Kestane', '🌰', 5, 'ara'],
+      ['Çiğ köfte (tabak)', '🥗', 6, 'ara'], ['Patates kızartması', '🍟', 6, 'ara'], ['Gözleme', '🫓', 8, 'ara'], ['Kokina turşu', '🥒', 4, 'ara'],
+      ['Künefe', '🧀', 12, 'tatli'], ['Baklava', '🍯', 11, 'tatli'], ['Sütlaç', '🍮', 7, 'tatli'], ['Dondurma', '🍦', 7, 'tatli'], ['Pamuk şeker', '🍭', 3, 'tatli'], ['Lokma', '🍩', 8, 'tatli'],
+      ['Ayran', '🥛', 9, 'icecek'], ['Şalgam', '🍷', 9, 'icecek'], ['Çay', '🫖', 7, 'icecek'], ['Boza', '🥤', 6, 'icecek'], ['Kola', '🥤', 5, 'icecek'], ['Salep', '☕', 6, 'icecek']
+    ],
+    rules: [
+      { t: 'need', tag: 'icecek', pts: -8, msg: 'İçecek yok, lokmalar boğazda kaldı.' },
+      { t: 'need', tag: 'ana', pts: -8, msg: 'Ana yemek yok, gece aç bitti.' },
+      { t: 'need', tag: 'tatli', pts: -3, msg: 'Tatlısız gece eksik kaldı.' },
+      { t: 'max', tag: 'ana', k: 2, pts: -4, msg: 'Üç ana yemek, mide isyan etti.' },
+      { t: 'combo', items: ['Kokoreç', 'Ayran'], pts: 4, msg: 'Kokoreç ve ayran, gece klasiği.' },
+      { t: 'combo', items: ['Et döner dürüm', 'Ayran'], pts: 4, msg: 'Döner-ayran, milli ikili.' },
+      { t: 'combo', items: ['Tantuni', 'Şalgam'], pts: 5, msg: 'Tantuni ve şalgam, Mersin usulü.' },
+      { t: 'combo', items: ['Lahmacun', 'Ayran'], pts: 4, msg: 'Lahmacun yanında ayran.' },
+      { t: 'combo', items: ['Simit', 'Çay'], pts: 3, msg: 'Simit-çay, her saatte iyi gider.' },
+      { t: 'combo', items: ['Balık ekmek', 'Kokina turşu'], pts: 4, msg: 'Balık ekmeğe turşu suyu, Eminönü hissi.' },
+      { t: 'combo', items: ['Boza', 'Kestane'], pts: 3, msg: 'Kış gecesi: boza ve kestane.' },
+      { t: 'combo', items: ['Künefe', 'Dondurma'], pts: 3, msg: 'Sıcak künefe üstüne dondurma.' },
+      { t: 'combo', items: ['Midye dolma', 'Kola'], pts: -3, msg: 'Midyeye kola mı? Jüri itiraz etti.' }
+    ]
+  },
+  guc: {
+    name: 'Süper Güçler', emoji: '⚡', desc: 'Sadece senin olacak 5 süper güç seç. En işe yarar güç seti kazanır.',
+    hints: ['Bazı güçler birlikte çok daha işe yarar.', 'Çok sayıda saldırı gücü kafa karıştırır.', 'Komik güçler de bazen kurtarır.'],
+    tags: { hareket: 'Hareket', zihin: 'Zihin', savas: 'Savaş', doga: 'Doğa', gunluk: 'Günlük hayat' },
+    items: [
+      ['Uçmak', '🕊️', 12, 'hareket'], ['Işınlanma', '✨', 14, 'hareket'], ['Süper hız', '⚡', 12, 'hareket'], ['Duvardan geçmek', '🧱', 9, 'hareket'], ['Su altında nefes', '🫧', 6, 'hareket'],
+      ['Zaman durdurma', '⏸️', 16, 'zihin'], ['Zihin okuma', '🧠', 13, 'zihin'], ['Geleceği görme', '🔮', 13, 'zihin'], ['Her dili konuşmak', '🗣️', 8, 'zihin'], ['Fotografik hafıza', '📸', 7, 'zihin'],
+      ['Görünmezlik', '👻', 11, 'savas'], ['Süper güç', '💪', 11, 'savas'], ['Ölümsüzlük', '♾️', 15, 'savas'], ['Kendini iyileştirme', '❤️‍🩹', 12, 'savas'], ['Lazer göz', '👁️', 9, 'savas'], ['Kalkan', '🛡️', 8, 'savas'],
+      ['Ateş kontrolü', '🔥', 10, 'doga'], ['Buz kontrolü', '❄️', 9, 'doga'], ['Hava durumu kontrolü', '⛈️', 10, 'doga'], ['Hayvanlarla konuşmak', '🐾', 7, 'doga'], ['Bitkileri büyütmek', '🌱', 6, 'doga'],
+      ['Hiç uykusuz kalmamak', '😴', 8, 'gunluk'], ['Trafikte hep yeşil ışık', '🚦', 6, 'gunluk'], ['Kaybolanı bulmak', '🔍', 7, 'gunluk'], ['Her yemeği yakmadan pişirmek', '🍳', 5, 'gunluk'],
+      ['Şarjı hiç bitmeyen telefon', '🔋', 6, 'gunluk'], ['Asla ıslanmamak', '☂️', 3, 'gunluk'], ['Kalabalıkta hep boş koltuk', '💺', 4, 'gunluk'],
+      ['Hapşırınca ışınlanmak', '🤧', 1, 'hareket'], ['Sadece kimse bakmazken görünmezlik', '🙈', -2, 'savas']
+    ],
+    rules: [
+      { t: 'max', tag: 'savas', k: 2, pts: -3, msg: 'Fazla savaş gücü, kafa karıştı.' },
+      { t: 'many', tag: 'gunluk', k: 2, pts: 4, msg: 'Günlük hayatı kolaylaştıran pratik kahraman.' },
+      { t: 'need', tag: 'hareket', pts: -3, msg: 'Hiç hareket gücü yok, her yere yürüyorsun.' },
+      { t: 'combo', items: ['Zaman durdurma', 'Süper hız'], pts: 5, msg: 'Zamanı durdur, hızla çık, kimse anlamaz.' },
+      { t: 'combo', items: ['Ölümsüzlük', 'Kendini iyileştirme'], pts: -4, msg: 'Ölümsüzsen iyileşmeye gerek yok, israf.' },
+      { t: 'combo', items: ['Uçmak', 'Lazer göz'], pts: 4, msg: 'Uçan lazer, tam bir süper kahraman.' },
+      { t: 'combo', items: ['Zihin okuma', 'Geleceği görme'], pts: 4, msg: 'Kimse seni kandıramaz.' },
+      { t: 'combo', items: ['Ateş kontrolü', 'Buz kontrolü'], pts: 3, msg: 'Ateş ve buz, iki element birden.' },
+      { t: 'combo', items: ['Görünmezlik', 'Duvardan geçmek'], pts: 4, msg: 'Hayalet gibisin, hiçbir kapı durduramaz.' },
+      { t: 'combo', items: ['Hiç uykusuz kalmamak', 'Şarjı hiç bitmeyen telefon'], pts: 3, msg: 'Gece boyu dizi, sabah zinde.' },
+      { t: 'combo', items: ['Hayvanlarla konuşmak', 'Bitkileri büyütmek'], pts: 3, msg: 'Doğanın dostu.' }
+    ]
+  },
+  tatil: {
+    name: 'Rüya Tatil', emoji: '🏖️', desc: 'Rüya tatilini 5 parçadan kur: yer, konaklama, ulaşım ve keyif.',
+    hints: ['Gidecek yer ve kalacak yer olmadan tatil olmaz.', 'Ulaşımı unutma.', 'Yere uygun aktiviteler bonus getirir.'],
+    tags: { yer: 'Destinasyon', konak: 'Konaklama', ulasim: 'Ulaşım', aktivite: 'Aktivite', ekstra: 'Ekstra' },
+    items: [
+      ['Maldivler', '🏝️', 14, 'yer'], ['Kapadokya', '🎈', 11, 'yer'], ['Paris', '🗼', 11, 'yer'], ['Tokyo', '🗾', 12, 'yer'], ['Bodrum', '⛵', 10, 'yer'],
+      ['İsviçre Alpleri', '🏔️', 12, 'yer'], ['Kaş', '🌊', 9, 'yer'], ['New York', '🗽', 11, 'yer'], ['Karadeniz yaylası', '🌲', 8, 'yer'],
+      ['Su üstü villa', '🛖', 13, 'konak'], ['Mağara otel', '🪨', 10, 'konak'], ['5 yıldızlı her şey dahil', '🏨', 11, 'konak'], ['Dağ evi', '🏡', 9, 'konak'], ['Çadır', '⛺', 4, 'konak'], ['Kuzenin evi', '🛋️', 2, 'konak'],
+      ['Business class uçuş', '✈️', 12, 'ulasim'], ['Özel jet', '🛩️', 15, 'ulasim'], ['Ekonomi uçuş', '✈️', 6, 'ulasim'], ['Karavan', '🚐', 8, 'ulasim'], ['Gece otobüsü', '🚌', 2, 'ulasim'],
+      ['Balon turu', '🎈', 9, 'aktivite'], ['Tüplü dalış', '🤿', 9, 'aktivite'], ['Kayak', '⛷️', 9, 'aktivite'], ['Tekne turu', '🚤', 8, 'aktivite'], ['Müze gezisi', '🖼️', 6, 'aktivite'],
+      ['Sushi kursu', '🍣', 7, 'aktivite'], ['Yayla kahvaltısı', '🍳', 7, 'aktivite'],
+      ['Spa günü', '💆', 8, 'ekstra'], ['Sınırsız alışveriş', '🛍️', 9, 'ekstra'], ['Yanında kayınvalide', '👵', -5, 'ekstra'], ['Yağmurlu hafta', '🌧️', -6, 'ekstra'], ['İş maili açık telefon', '📧', -7, 'ekstra']
+    ],
+    rules: [
+      { t: 'need', tag: 'yer', pts: -12, msg: 'Tatile çıktın ama nereye gittiğin belli değil.' },
+      { t: 'need', tag: 'konak', pts: -7, msg: 'Kalacak yer yok, parkta yattın.' },
+      { t: 'need', tag: 'ulasim', pts: -5, msg: 'Ulaşım yok, yürüyerek gittin.' },
+      { t: 'max', tag: 'yer', k: 1, pts: -4, msg: 'İki yeri birden gezmeye çalıştın, yol yorgunu oldun.' },
+      { t: 'combo', items: ['Maldivler', 'Su üstü villa'], pts: 6, msg: 'Maldivlerde su üstü villa, kartpostal gibi.' },
+      { t: 'combo', items: ['Maldivler', 'Tüplü dalış'], pts: 4, msg: 'Mercanların arasında dalış.' },
+      { t: 'combo', items: ['Kapadokya', 'Balon turu'], pts: 6, msg: 'Kapadokya\'da gün doğumunda balon.' },
+      { t: 'combo', items: ['Kapadokya', 'Mağara otel'], pts: 5, msg: 'Peri bacalarında mağara otel.' },
+      { t: 'combo', items: ['İsviçre Alpleri', 'Kayak'], pts: 5, msg: 'Alplerde kayak.' },
+      { t: 'combo', items: ['İsviçre Alpleri', 'Dağ evi'], pts: 4, msg: 'Şömineli dağ evi.' },
+      { t: 'combo', items: ['Tokyo', 'Sushi kursu'], pts: 4, msg: 'Tokyo\'da sushi ustasından ders.' },
+      { t: 'combo', items: ['Paris', 'Müze gezisi'], pts: 4, msg: 'Louvre gezisi.' },
+      { t: 'combo', items: ['Bodrum', 'Tekne turu'], pts: 4, msg: 'Bodrum koylarında tekne.' },
+      { t: 'combo', items: ['Kaş', 'Tüplü dalış'], pts: 4, msg: 'Kaş\'ın berrak suyunda dalış.' },
+      { t: 'combo', items: ['Karadeniz yaylası', 'Yayla kahvaltısı'], pts: 4, msg: 'Yaylada kuymaklı kahvaltı.' },
+      { t: 'combo', items: ['New York', 'Sınırsız alışveriş'], pts: 4, msg: 'Manhattan\'da alışveriş çılgınlığı.' },
+      { t: 'combo', items: ['Karavan', 'Çadır'], pts: 2, msg: 'Kamp ruhu.' }
+    ]
+  },
+  ev: {
+    name: 'Hayalindeki Ev', emoji: '🏡', desc: 'Hayalindeki evi 5 özellikle kur. Jüri en yaşanır evi seçecek.',
+    hints: ['Mutfaksız ve yatak odasız ev olmaz.', 'Bazı odalar birlikte daha güzel.', 'Kötü komşular evin puanını düşürür.'],
+    tags: { temel: 'Temel oda', keyif: 'Keyif odası', dis: 'Dış mekân', teknik: 'Teknoloji', komsu: 'Komşuluk' },
+    items: [
+      ['Kocaman mutfak', '🍳', 12, 'temel'], ['Giyinme odalı yatak odası', '🛏️', 12, 'temel'], ['Jakuzili banyo', '🛁', 10, 'temel'], ['Geniş salon', '🛋️', 10, 'temel'], ['Çalışma odası', '💻', 7, 'temel'],
+      ['Sinema odası', '🎬', 11, 'keyif'], ['Oyun odası', '🎮', 10, 'keyif'], ['Kütüphane', '📚', 8, 'keyif'], ['Spor salonu', '🏋️', 8, 'keyif'], ['Şarap mahzeni', '🍷', 7, 'keyif'], ['Sauna', '🧖', 8, 'keyif'], ['Gizli oda', '🚪', 9, 'keyif'],
+      ['Havuz', '🏊', 13, 'dis'], ['Deniz manzarası', '🌊', 14, 'dis'], ['Bahçe', '🌳', 10, 'dis'], ['Mangal köşesi', '🔥', 9, 'dis'], ['Çatı terası', '🌇', 10, 'dis'], ['Hamak', '🏝️', 5, 'dis'],
+      ['Akıllı ev sistemi', '🤖', 9, 'teknik'], ['Robot süpürge', '🧹', 6, 'teknik'], ['Güneş paneli', '☀️', 7, 'teknik'], ['Fiber internet', '📶', 9, 'teknik'], ['Asansör', '🛗', 6, 'teknik'],
+      ['Kapıcı', '🧑‍🔧', 7, 'komsu'], ['Sessiz komşular', '🤫', 8, 'komsu'], ['Alt katta fırın', '🥖', 8, 'komsu'],
+      ['Duvar arkasında tadilat', '🔨', -6, 'komsu'], ['Her akşam karaoke yapan komşu', '🎤', -5, 'komsu'], ['Sadece 1 priz', '🔌', -4, 'teknik'], ['5. kat asansörsüz', '🪜', -4, 'temel']
+    ],
+    rules: [
+      { t: 'need', tag: 'temel', pts: -8, msg: 'Evde mutfak da yatak odası da yok, burası ofis.' },
+      { t: 'many', tag: 'dis', k: 2, pts: 4, msg: 'Dışarıda yaşam, bol hava.' },
+      { t: 'combo', items: ['Havuz', 'Deniz manzarası'], pts: 6, msg: 'Sonsuzluk havuzundan denize bakış.' },
+      { t: 'combo', items: ['Mangal köşesi', 'Bahçe'], pts: 4, msg: 'Pazar günü bahçede mangal.' },
+      { t: 'combo', items: ['Sinema odası', 'Fiber internet'], pts: 3, msg: 'Kesintisiz film gecesi.' },
+      { t: 'combo', items: ['Oyun odası', 'Fiber internet'], pts: 4, msg: 'Lag yok, oyun var.' },
+      { t: 'combo', items: ['Kütüphane', 'Gizli oda'], pts: 5, msg: 'Kitaplığın arkasında gizli kapı!' },
+      { t: 'combo', items: ['Spor salonu', 'Sauna'], pts: 3, msg: 'Antrenman sonrası sauna.' },
+      { t: 'combo', items: ['Kocaman mutfak', 'Alt katta fırın'], pts: 2, msg: 'Sabah taze ekmek, mutfakta keyif.' },
+      { t: 'combo', items: ['Akıllı ev sistemi', 'Robot süpürge'], pts: 3, msg: 'Ev kendi kendini temizliyor.' },
+      { t: 'combo', items: ['Çalışma odası', 'Duvar arkasında tadilat'], pts: -4, msg: 'Toplantıdayken matkap sesi.' }
+    ]
+  },
+  evarkadasi: {
+    name: 'Ev Arkadaşı', emoji: '🏠', desc: 'Aynı evi paylaşacağın 5 ev arkadaşını seç. En huzurlu ev kazanır.',
+    hints: ['Herkes temizlik yapmazsa ev batar.', 'Bazı tipler birbiriyle anlaşamaz.', 'Gürültücüler uyku düşmanıdır.'],
+    tags: { temiz: 'Düzenli', eglence: 'Eğlenceli', sakin: 'Sakin', dert: 'Dertli' },
+    items: [
+      ['Bulaşığı hemen yıkayan', '🧽', 12, 'temiz'], ['Her hafta temizlik yapan', '🧹', 12, 'temiz'], ['Faturaları zamanında ödeyen', '🧾', 11, 'temiz'], ['Çöpü kendiliğinden atan', '🗑️', 9, 'temiz'],
+      ['Buzdolabını dolduran', '🧊', 10, 'temiz'], ['Her şeyi tamir eden', '🔧', 10, 'temiz'],
+      ['Harika yemek yapan', '👩‍🍳', 14, 'eglence'], ['Oyun gecesi düzenleyen', '🎲', 9, 'eglence'], ['Netflix şifresini paylaşan', '📺', 8, 'eglence'], ['Gitar çalıp şarkı söyleyen', '🎸', 6, 'eglence'],
+      ['Esprili olan', '😂', 8, 'eglence'], ['Kedisi olan', '🐈', 7, 'eglence'], ['Köpeği olan', '🐕', 7, 'eglence'], ['Börek yapan teyzesi gelen', '🥧', 8, 'eglence'],
+      ['Hep işte olan', '💼', 8, 'sakin'], ['Erken yatan', '🌙', 6, 'sakin'], ['Kitap kurdu', '📚', 6, 'sakin'], ['Yoga yapan', '🧘', 6, 'sakin'], ['Çok tatile çıkan', '✈️', 9, 'sakin'],
+      ['Gece 3\'te davul çalan', '🥁', -8, 'dert'], ['Yemeğini çalan', '🍕', -7, 'dert'], ['Banyoyu 1 saat işgal eden', '🚿', -5, 'dert'], ['Sevgilisi hep evde olan', '💑', -5, 'dert'],
+      ['Faturayı hep unutan', '💸', -6, 'dert'], ['Sürekli misafir getiren', '🎉', -3, 'dert'], ['Horlayan', '😴', -4, 'dert'], ['Bulaşığı haftalarca bekleten', '🍽️', -8, 'dert'],
+      ['Gizemli, hiç görünmeyen', '👻', 4, 'sakin'], ['Kriptodan zengin olacağını söyleyen', '📈', -2, 'dert'], ['Ev bitkilerine bakan', '🪴', 6, 'temiz']
+    ],
+    rules: [
+      { t: 'need', tag: 'temiz', pts: -10, msg: 'Kimse temizlik yapmıyor, ev çöplüğe döndü.' },
+      { t: 'many', tag: 'eglence', k: 2, pts: 4, msg: 'Evde hep keyif var.' },
+      { t: 'max', tag: 'dert', k: 1, pts: -4, msg: 'Dertli tipler birbirini buldu, kaos.' },
+      { t: 'combo', items: ['Harika yemek yapan', 'Bulaşığı hemen yıkayan'], pts: 6, msg: 'Biri pişiriyor, biri yıkıyor. Cennet.' },
+      { t: 'combo', items: ['Harika yemek yapan', 'Yemeğini çalan'], pts: -5, msg: 'Yemek yapılıyor ama yarısı kayboluyor.' },
+      { t: 'combo', items: ['Erken yatan', 'Gece 3\'te davul çalan'], pts: -6, msg: 'Erken yatan uyuyamadı, ev savaş alanı.' },
+      { t: 'combo', items: ['Kedisi olan', 'Köpeği olan'], pts: -2, msg: 'Kedi ve köpek kavgası.' },
+      { t: 'combo', items: ['Faturaları zamanında ödeyen', 'Faturayı hep unutan'], pts: 2, msg: 'Biri unutuyor, öbürü kurtarıyor.' },
+      { t: 'combo', items: ['Oyun gecesi düzenleyen', 'Esprili olan'], pts: 3, msg: 'Oyun gecesi kahkaha dolu.' },
+      { t: 'combo', items: ['Yoga yapan', 'Kitap kurdu'], pts: 2, msg: 'Evde huzur var.' },
+      { t: 'combo', items: ['Gitar çalıp şarkı söyleyen', 'Erken yatan'], pts: -3, msg: 'Gece konserine erken yatan itiraz etti.' }
+    ]
+  },
+  grup: {
+    name: 'Müzik Grubu', emoji: '🎸', desc: '5 kişilik grubunu kur, sahneye çık. En iyi konseri jüri seçecek.',
+    hints: ['Vokalsiz ve davulcusuz grup olmaz.', 'Bazı ikililer sahnede ateş gibi.', 'Herkes vokal olmak isterse kavga çıkar.'],
+    tags: { vokal: 'Vokal', ritim: 'Ritim', melodi: 'Melodi', sahne: 'Sahne ekibi', garip: 'Sürpriz' },
+    items: [
+      ['Güçlü kadın vokal', '🎤', 13, 'vokal'], ['Rock vokal', '🎤', 12, 'vokal'], ['Arabesk vokal', '🎙️', 11, 'vokal'], ['Rap yapan', '🧢', 9, 'vokal'], ['Opera sanatçısı', '🎭', 8, 'vokal'],
+      ['Davulcu', '🥁', 12, 'ritim'], ['Bas gitarist', '🎸', 10, 'ritim'], ['Darbuka ustası', '🪘', 9, 'ritim'], ['Beatbox yapan', '👄', 6, 'ritim'],
+      ['Elektro gitarist', '🎸', 12, 'melodi'], ['Klavyeci', '🎹', 10, 'melodi'], ['Bağlama ustası', '🪕', 10, 'melodi'], ['Kemancı', '🎻', 9, 'melodi'], ['Saksofoncu', '🎷', 9, 'melodi'],
+      ['Klarnetçi', '🎶', 9, 'melodi'], ['Kanun çalan', '🎼', 8, 'melodi'], ['Akustik gitarist', '🎸', 8, 'melodi'],
+      ['DJ', '🎧', 9, 'sahne'], ['Ses mühendisi', '🎚️', 9, 'sahne'], ['Işık ustası', '💡', 7, 'sahne'], ['Dansçı', '💃', 7, 'sahne'], ['Menajer', '📋', 6, 'sahne'],
+      ['Ziller çalan amca', '🔔', 3, 'garip'], ['Üçgen çalan', '🔺', 2, 'garip'], ['Yan flütle Titanik çalan', '🪈', 1, 'garip'], ['Sürekli akort yapan', '🔧', -3, 'garip'],
+      ['Sahnede uyuyan', '😴', -5, 'garip'], ['Mikrofonu bırakmayan dayı', '🎤', -4, 'vokal'], ['Tef çalan teyze', '🪇', 4, 'ritim'], ['Kaval çalan çoban', '🐑', 5, 'melodi']
+    ],
+    rules: [
+      { t: 'need', tag: 'vokal', pts: -10, msg: 'Vokal yok, enstrümantal konser oldu, seyirci uyudu.' },
+      { t: 'need', tag: 'ritim', pts: -6, msg: 'Ritim yok, herkes başka tempoda çalıyor.' },
+      { t: 'max', tag: 'vokal', k: 1, pts: -4, msg: 'İki vokal mikrofon kavgasına tutuştu.' },
+      { t: 'many', tag: 'melodi', k: 2, pts: 3, msg: 'Zengin melodiler.' },
+      { t: 'combo', items: ['Rock vokal', 'Elektro gitarist'], pts: 5, msg: 'Rock\'n roll! Sahne yıkıldı.' },
+      { t: 'combo', items: ['Davulcu', 'Bas gitarist'], pts: 4, msg: 'Sağlam ritim bölümü.' },
+      { t: 'combo', items: ['Arabesk vokal', 'Kanun çalan'], pts: 4, msg: 'Arabesk gecesi, gözler doldu.' },
+      { t: 'combo', items: ['Arabesk vokal', 'Kemancı'], pts: 3, msg: 'Keman ve arabesk, hüzün tavan.' },
+      { t: 'combo', items: ['Bağlama ustası', 'Darbuka ustası'], pts: 4, msg: 'Türkü bar havası.' },
+      { t: 'combo', items: ['Rap yapan', 'Beatbox yapan'], pts: 4, msg: 'Sokak sesi.' },
+      { t: 'combo', items: ['Rap yapan', 'DJ'], pts: 3, msg: 'DJ ve rap, kulüp gecesi.' },
+      { t: 'combo', items: ['Opera sanatçısı', 'Arabesk vokal'], pts: -3, msg: 'Opera ve arabesk düet... jüri şaşkın.' },
+      { t: 'combo', items: ['Klarnetçi', 'Darbuka ustası'], pts: 3, msg: 'Roman havası, herkes kalktı oynadı.' },
+      { t: 'combo', items: ['Ses mühendisi', 'Işık ustası'], pts: 3, msg: 'Profesyonel prodüksiyon.' }
+    ]
   }
 };
 if (typeof module !== 'undefined') module.exports = TEMALAR;
