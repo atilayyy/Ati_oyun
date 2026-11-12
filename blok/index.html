@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Blok Patlat</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--b1:#ff5a4f;--b2:#ff9f1c;--b3:#ffd23f;--b4:#3ccf6e;--b5:#2ec4f1;--b6:#4f6bff;--b7:#a66bff;--cell:min(calc((100vw - 64px) / 8),48px)}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.game{display:flex;flex-direction:column;align-items:center;gap:12px;user-select:none;-webkit-user-select:none}
+.hud{display:flex;justify-content:space-between;align-items:flex-end;width:calc(var(--cell) * 8 + 16px);max-width:100%;gap:10px}
+.hud .sc{font-family:var(--display);font-weight:800;font-size:2.2rem;line-height:1;font-variant-numeric:tabular-nums}
+.hud .lb{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hud .tm{font-family:var(--display);font-weight:800;font-size:1.4rem;font-variant-numeric:tabular-nums;text-align:right}
+.hud .tm.low{color:var(--bad)}
+.boardwrap{position:relative;padding:8px;border-radius:14px;background:#1a2047;box-shadow:inset 0 0 0 2px #2c3570,0 6px 0 rgba(0,0,0,.35);touch-action:none}
+.board{display:grid;grid-template-columns:repeat(8,var(--cell));grid-template-rows:repeat(8,var(--cell))}
+.c{position:relative;border-radius:4px;margin:1px;background:#232a5c}
+.c.f,.pc{background:var(--col);box-shadow:inset 0 calc(var(--cell) * -.09) 0 rgba(0,0,0,.25),inset 0 calc(var(--cell) * .07) 0 rgba(255,255,255,.35)}
+.c.pv{background:color-mix(in srgb,var(--col) 55%,#232a5c)}
+.c.ln{filter:brightness(1.35)}
+.c.boom{animation:boom .38s ease-out forwards}
+@keyframes boom{0%{transform:scale(1);filter:brightness(2)}100%{transform:scale(.2);opacity:0}}
+.col1{--col:var(--b1)}.col2{--col:var(--b2)}.col3{--col:var(--b3)}.col4{--col:var(--b4)}.col5{--col:var(--b5)}.col6{--col:var(--b6)}.col7{--col:var(--b7)}
+.tray{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:calc(var(--cell) * 8 + 16px);max-width:100%;min-height:calc(var(--cell) * 3.2);touch-action:none}
+.slot{display:grid;place-items:center;border-radius:12px;background:var(--table);min-height:calc(var(--cell) * 3.2);cursor:grab}
+.slot.dead{opacity:.35}
+.slot.empty{cursor:default;background:transparent}
+.piece{display:grid;gap:0}
+.piece .pc{border-radius:3px;margin:1px}
+.ghost{position:fixed;z-index:50;pointer-events:none;display:grid;opacity:.9;filter:drop-shadow(0 8px 10px rgba(0,0,0,.4))}
+.ghost .pc{border-radius:4px;margin:1px}
+.ov{position:absolute;inset:0;display:grid;place-items:center;border-radius:14px;background:rgba(13,17,38,.72);font-family:var(--display);font-weight:800;font-size:3rem;text-align:center;z-index:5}
+.ov small{display:block;font-family:var(--body);font-size:1rem;color:var(--muted);margin-top:6px}
+.pop{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:800;font-size:2rem;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.4);pointer-events:none;z-index:6;animation:pop 1s ease-out forwards;white-space:nowrap}
+.pop.big{font-size:2.6rem;color:var(--accent)}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-110%) scale(1)}}
+.opps{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.op{border-radius:12px;background:var(--table);padding:10px;display:flex;flex-direction:column;gap:6px;align-items:center}
+.op .nm{font-weight:800;font-size:.9rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.op .ps{font-family:var(--display);font-weight:800;font-size:1.4rem}
+.op .st{font-size:.75rem;font-weight:800;color:var(--muted)}
+.op .st.done{color:var(--bad)}
+.mini{display:grid;grid-template-columns:repeat(8,10px);grid-template-rows:repeat(8,10px);gap:1px;padding:3px;background:#1a2047;border-radius:6px}
+.mini i{border-radius:2px;background:#232a5c}
+.mini i.f{background:var(--col)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+tr.win td{color:var(--accent);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Blok Patlat</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="engine.js"></script>
+<script src="logic.js"></script>
+<script>
+const E = BlokEngine, N = E.N;
+const app = document.getElementById('app'), esc = Ati.esc;
+let V, C, built = '', G = null, gameNo = 0, tStart = 0, tEnd = 0, timer = 0, drag = null, reportedOver = false, timeupFor = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') };
+const started = () => performance.now() >= tStart;
+const timeOver = () => V && V.dur && performance.now() >= tEnd;
+const canPlay = () => G && !G.over && started() && !timeOver() && V.phase === 'play';
+
+function report() {
+  if (!G || !C) return;
+  C.act({ type: 'report', game: gameNo, score: G.score, b: G.board.join(''), n: G.moves, combo: G.best, over: G.over });
+}
+
+/* ---- tahta ve parçalar ---- */
+function drawBoard(prev) {
+  const cells = document.querySelectorAll('#board .c');
+  const pv = prev ? new Set(prev.cells) : null, ln = prev ? new Set(prev.line) : null;
+  cells.forEach((el, i) => {
+    const v = G.board[i];
+    el.className = 'c' + (v ? ' f col' + v : '') + (pv && pv.has(i) ? ' pv col' + prev.col : '') + (ln && ln.has(i) ? ' ln' : '');
+  });
+}
+function pieceHtml(s, col, cls = 'piece', size = 'calc(var(--cell) * .55)') {
+  const sh = E.SHAPES[s], R = Math.max(...sh.map(x => x[0])) + 1, Cc = Math.max(...sh.map(x => x[1])) + 1;
+  const set = new Set(sh.map(([r, c]) => r * 10 + c)); let h = '';
+  for (let r = 0; r < R; r++) for (let c = 0; c < Cc; c++) h += set.has(r * 10 + c) ? `<div class="pc col${col}"></div>` : '<div></div>';
+  return `<div class="${cls}" style="grid-template-columns:repeat(${Cc},${size});grid-template-rows:repeat(${R},${size})">${h}</div>`;
+}
+function drawTray() {
+  const tray = document.getElementById('tray'); if (!tray) return;
+  tray.innerHTML = G.tray.map((p, i) => p ? `<div class="slot ${E.anyFit(G, p.s) ? '' : 'dead'}" data-slot="${i}">${pieceHtml(p.s, p.c)}</div>` : '<div class="slot empty"></div>').join('');
+  tray.querySelectorAll('[data-slot]').forEach(el => el.addEventListener('pointerdown', startDrag));
+}
+function popup(text, big) {
+  const w = document.getElementById('bw'); if (!w) return;
+  const d = document.createElement('div'); d.className = 'pop' + (big ? ' big' : ''); d.textContent = text; w.appendChild(d); setTimeout(() => d.remove(), 1000);
+}
+
+/* ---- sürükle bırak ---- */
+function cellPx() { const c = document.querySelector('#board .c'); return c.getBoundingClientRect().width + 2 }
+function startDrag(e) {
+  if (!canPlay()) return;
+  const slot = +e.currentTarget.dataset.slot, p = G.tray[slot]; if (!p) return;
+  e.preventDefault();
+  const cp = cellPx(), sh = E.SHAPES[p.s];
+  const R = Math.max(...sh.map(x => x[0])) + 1, Cc = Math.max(...sh.map(x => x[1])) + 1;
+  const ghost = document.createElement('div');
+  ghost.innerHTML = pieceHtml(p.s, p.c, 'ghost', (cp - 2) + 'px');
+  const gEl = ghost.firstChild; document.body.appendChild(gEl);
+  drag = { slot, p, el: gEl, w: Cc * cp, h: R * cp, cp, touch: e.pointerType !== 'mouse', pos: null, src: e.currentTarget };
+  e.currentTarget.style.opacity = '.25';
+  try { e.currentTarget.setPointerCapture(e.pointerId) } catch (x) {}
+  e.currentTarget.addEventListener('pointermove', moveDrag);
+  e.currentTarget.addEventListener('pointerup', endDrag);
+  e.currentTarget.addEventListener('pointercancel', endDrag);
+  moveDrag(e);
+}
+function moveDrag(e) {
+  if (!drag) return;
+  const left = e.clientX - drag.w / 2, top = drag.touch ? e.clientY - drag.h - drag.cp * 1.2 : e.clientY - drag.h / 2;
+  drag.el.style.left = left + 'px'; drag.el.style.top = top + 'px';
+  const rect = document.getElementById('board').getBoundingClientRect();
+  const r = Math.round((top - rect.top) / drag.cp), c = Math.round((left - rect.left) / drag.cp);
+  if (E.fits(G, drag.p.s, r, c)) {
+    if (!drag.pos || drag.pos[0] !== r || drag.pos[1] !== c) {
+      drag.pos = [r, c];
+      const w = E.wouldClear(G, drag.p.s, r, c), line = [];
+      for (const i of w.rows) for (let j = 0; j < N; j++) line.push(i * N + j);
+      for (const i of w.cols) for (let j = 0; j < N; j++) line.push(j * N + i);
+      drawBoard({ cells: E.SHAPES[drag.p.s].map(([dr, dc]) => (r + dr) * N + c + dc), col: drag.p.c, line });
+    }
+  } else if (drag.pos) { drag.pos = null; drawBoard() }
+}
+function endDrag(e) {
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.el.remove(); d.src.style.opacity = '';
+  d.src.removeEventListener('pointermove', moveDrag); d.src.removeEventListener('pointerup', endDrag); d.src.removeEventListener('pointercancel', endDrag);
+  if (!d.pos || !canPlay()) { drawBoard(); return }
+  const before = G.board.slice(), col = d.p.c;
+  const res = E.place(G, d.slot, d.pos[0], d.pos[1]);
+  if (!res) { drawBoard(); return }
+  afterPlace(res, before, col);
+}
+function afterPlace(res, before, col) {
+  // patlayan hücreleri eski renkleriyle gösterip patlat
+  const cells = document.querySelectorAll('#board .c');
+  drawBoard();
+  if (res.cleared.length) {
+    res.cleared.forEach(i => { cells[i].className = 'c f boom col' + (before[i] || col) });
+    if (res.perfect) popup('Tahta temiz! +300', true);
+    else popup((res.combo > 1 ? 'Kombo x' + res.combo + '  ' : '') + '+' + res.gain, res.combo > 2);
+    setTimeout(drawBoard, 380);
+  }
+  updateHud(); drawTray(); report();
+  if (G.over) showOver('Yer kalmadı!');
+}
+function showOver(t) {
+  const w = document.getElementById('bw'); if (!w || w.querySelector('.ov.end')) return;
+  const d = document.createElement('div'); d.className = 'ov end'; d.innerHTML = `${t}<small>${G.score} puan · diğerleri bekleniyor</small>`; w.appendChild(d);
+}
+function updateHud() {
+  const s = document.getElementById('myscore'); if (s && G) s.textContent = G.score;
+  const cb = document.getElementById('combo'); if (cb && G) cb.textContent = G.combo > 1 ? 'Kombo x' + G.combo : '';
+}
+
+/* ---- zamanlayıcı: geri sayım ve süre ---- */
+function tick() {
+  if (!V || V.phase !== 'play') { timer = 0; return }
+  const now = performance.now(), cd = document.getElementById('cd'), tm = document.getElementById('tm');
+  if (cd) {
+    if (now < tStart) cd.innerHTML = Math.ceil((tStart - now) / 1000) + '<small>Aynı anda başlıyorsunuz</small>';
+    else if (now < tStart + 600) cd.innerHTML = 'Başla!';
+    else cd.remove();
+  }
+  if (tm) {
+    if (V.dur) { const left = tEnd - Math.max(now, tStart); tm.textContent = fmt(left); tm.classList.toggle('low', left < 15000) }
+    else tm.textContent = '';
+  }
+  if (G && !G.over && V.dur && now >= tEnd) { G.over = true; if (drag) { drag.el.remove(); drag.src.style.opacity = ''; drag = null; drawBoard() } report(); showOver('Süre doldu!') }
+  timer = requestAnimationFrame(tick);
+}
+
+function others(v) {
+  const ids = Object.keys(v.res).filter(id => id !== C.me);
+  if (!ids.length) return '';
+  return `<section class="panel"><span class="label">Rakipler</span><div class="opps">${ids.map(id => {
+    const r = v.res[id], b = (r.b || '0'.repeat(64)).split('');
+    return `<div class="op"><span class="nm">${esc(nm(id))}</span><span class="ps">${r.score}</span>
+      <div class="mini">${b.map(x => x !== '0' ? `<i class="f col${x}"></i>` : '<i></i>').join('')}</div>
+      <span class="st ${r.over ? 'done' : ''}">${r.over ? 'bitti' : r.n + ' hamle'}</span></div>`;
+  }).join('')}</div></section>`;
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost;
+  const opts = isHost ? `<div class="row"><span class="label">Süre</span><span class="seg">${Blok.DURS.map(d => `<button data-dur="${d}" class="${v.dur === d ? 'on' : ''}">${d ? d / 60000 + ' dk' : 'Süresiz'}</button>`).join('')}</span></div>` : '';
+  const wire = () => {
+    app.querySelectorAll('[data-dur]').forEach(b => b.onclick = () => ctx.act({ type: 'opts', dur: +b.dataset.dur }));
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+  };
+  if (v.phase === 'lobby') {
+    built = '';
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (1-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `${opts}<button class="btn" id="start">Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>
+      <p class="muted">Alttaki 3 parçayı sürükleyip 8x8 tahtaya bırak. Dolan satır ya da sütun patlar. Art arda patlatırsan kombo artar, puan katlanır. Tahtayı tamamen temizlersen +300. Parça sığmayınca oyunun biter.</p>
+      <p class="muted"><b>Herkese birebir aynı parçalar aynı sırayla gelir</b> ve 3-2-1 ile aynı anda başlarsınız. Rakiplerin puanını ve tahtasını canlı görürsün. Herkesin oyunu bitince (ya da süre dolunca) en yüksek puan kazanır.</p></section>`;
+    Ati.wireShare(app, ctx); wire(); return;
+  }
+  if (v.phase === 'over') {
+    built = ''; if (drag) { drag.el.remove(); drag = null }
+    const rows = Object.keys(v.res).sort((a, b) => v.res[b].score - v.res[a].score);
+    const wn = v.winners.map(nm).map(esc).join(' ve ');
+    app.innerHTML = `<section class="panel"><span class="label">Oyun bitti</span><h2>${wn} kazandı!</h2>
+      <table><thead><tr><th>#</th><th>Oyuncu</th><th class="n">Hamle</th><th class="n">En iyi kombo</th><th class="n">Puan</th></tr></thead><tbody>
+      ${rows.map((id, i) => { const r = v.res[id]; return `<tr class="${v.winners.includes(id) ? 'win' : ''}"><td>${i + 1}</td><td>${esc(nm(id))}${id === me ? ' (sen)' : ''}</td><td class="n">${r.n}</td><td class="n">${r.combo > 1 ? 'x' + r.combo : '-'}</td><td class="n">${r.score}</td></tr>` }).join('')}
+      </tbody></table></section>
+      <section class="panel"><span class="label">Kazanılan oyunlar</span><div class="row">${P.map(p => `<span class="pill">${esc(p.name)}: ${p.score}</span>`).join('')}</div>
+      ${isHost ? `${opts}<button class="btn" id="start">Tekrar oyna</button>` : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    wire(); return;
+  }
+  // play
+  const amIn = !!v.res[me];
+  if (built !== 'g' + v.game) {
+    built = 'g' + v.game; gameNo = v.game; reportedOver = false;
+    tStart = performance.now() + Math.max(0, v.wait); tEnd = tStart + (v.dur || 0);
+    G = amIn ? E.create(v.seed) : null;
+    app.innerHTML = amIn ? `<div class="game">
+        <div class="hud"><div><div class="lb">Puan</div><div class="sc" id="myscore">0</div></div><div class="lb" id="combo" style="color:var(--accent)"></div><div><div class="lb" style="text-align:right">${v.dur ? 'Kalan' : 'Süresiz'}</div><div class="tm" id="tm"></div></div></div>
+        <div class="boardwrap" id="bw"><div class="board" id="board">${'<div class="c"></div>'.repeat(64)}</div><div class="ov" id="cd"></div></div>
+        <div class="tray" id="tray"></div>
+      </div><div id="side"></div>
+      ${isHost ? '<div style="margin-top:12px"><button class="btn ghost small" id="end">Oyunu bitir</button></div>' : ''}`
+      : '<section class="panel"><p class="muted">Oyun sürüyor, izliyorsun.</p></section><div id="side"></div>';
+    if (G) { drawBoard(); drawTray(); updateHud() }
+    const e = app.querySelector('#end'); if (e) e.onclick = () => { e.textContent = 'Emin misin? Tekrar bas'; e.onclick = () => ctx.act({ type: 'end' }) };
+    if (!timer) timer = requestAnimationFrame(tick);
+  }
+  // ev sahibi süre bitince oyunu kapatır (herkes kendi cihazında da durur)
+  if (isHost && v.dur && timeupFor !== 'g' + v.game) { timeupFor = 'g' + v.game; setTimeout(() => C.act({ type: 'timeup' }), Math.max(0, v.left) + 1800) }
+  const side = document.getElementById('side'); if (side) side.innerHTML = others(v);
+}
+Ati.start({ game: 'blok', el: app, logic: Blok, render });
+</script>
+</body>
+</html>
