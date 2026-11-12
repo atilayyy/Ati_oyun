@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mezat</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.hud{display:flex;gap:8px;flex-wrap:wrap}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.themes button{font:inherit;font-weight:800;text-align:left;padding:12px;border-radius:14px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;display:flex;gap:10px;align-items:center}
+.themes button span{font-size:1.6rem}
+.themes button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--table))}
+.hints{margin:0;padding-left:20px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px;border-radius:18px;background:#fbf6ea;color:#1b1f33;text-align:center;position:relative;box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.item .em{font-size:clamp(3rem,14vw,4.5rem);line-height:1}
+.item .nm{font-family:var(--display);font-weight:800;font-size:clamp(1.4rem,6vw,2rem);line-height:1.1}
+.item .tg{font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:#1b1f33;color:#fbf6ea;border-radius:999px;padding:3px 10px}
+.item .soldto{position:absolute;inset:auto 10px 10px auto;transform:rotate(-8deg);background:var(--bad);color:#fff;font-weight:800;border-radius:10px;padding:6px 12px;font-size:1rem;box-shadow:0 3px 0 rgba(0,0,0,.3);animation:stamp .35s ease-out}
+@keyframes stamp{from{transform:rotate(-8deg) scale(2);opacity:0}to{transform:rotate(-8deg) scale(1);opacity:1}}
+.bids{display:flex;gap:8px;flex-wrap:wrap}
+.bid{display:flex;flex-direction:column;align-items:center;min-width:76px;padding:8px 10px;border-radius:12px;border:2px solid var(--edge);background:var(--table)}
+.bid b{font-family:var(--display);font-size:1.3rem}
+.bid small{font-weight:800;color:var(--muted);font-size:.75rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bid.cur{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.bid.top{border-color:var(--good)}
+.bid.top b{color:var(--good)}
+.stepper{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stepper .amt{font-family:var(--display);font-weight:800;font-size:2.2rem;min-width:90px;text-align:center;font-variant-numeric:tabular-nums}
+.stepper .pm{width:52px;height:52px;border-radius:14px;border:1px solid var(--edge);background:var(--table);color:var(--ink);font:800 1.5rem var(--body);cursor:pointer}
+.stepper .pm:disabled{opacity:.35;cursor:default}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{font:inherit;font-weight:800;padding:8px 12px;border-radius:10px;border:1px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer}
+.ppl{display:flex;flex-direction:column;gap:8px}
+.pp{padding:10px 12px;border-radius:12px;background:var(--table);display:flex;flex-direction:column;gap:6px}
+.pp .hd{display:flex;align-items:center;gap:8px;font-weight:800}
+.pp .hd .mo{margin-left:auto;font-family:var(--display);font-variant-numeric:tabular-nums}
+.slots{display:flex;gap:4px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:.82rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--table2);border:1px solid var(--edge)}
+.chip.empty{color:var(--muted);border-style:dashed;background:transparent}
+.chip.new{border-color:var(--accent);animation:pop .4s ease-out}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.upcoming{display:flex;gap:6px;flex-wrap:wrap}
+.res{display:flex;flex-direction:column;gap:10px}
+.rc{border-radius:16px;border:2px solid var(--edge);padding:14px;background:var(--table);display:flex;flex-direction:column;gap:8px}
+.rc.win{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.rc .hd{display:flex;align-items:baseline;gap:10px}
+.rc .hd .tot{margin-left:auto;font-family:var(--display);font-weight:800;font-size:1.8rem}
+.ln{display:flex;justify-content:space-between;gap:10px;font-size:.92rem}
+.ln .p{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ln .p.pos{color:var(--good)} .ln .p.neg{color:var(--bad)}
+.ln.rule{font-style:italic}
+.rules{font-size:.95rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:70ch}
+.rules b{color:var(--ink)}
+.log{display:flex;flex-direction:column;gap:2px;font-size:.88rem;color:var(--muted);max-height:150px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Mezat</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="temalar.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+let V, C, amt = 1, amtKey = '', nextFor = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const RULES = `<div class="rules">
+  <p>Herkesin <b>${Mezat.BUDGET} TL</b> bütçesi var ve herkes <b>tam ${Mezat.SLOTS} ürün</b> alacak.</p>
+  <p>Ürünler tek tek gelir. Eli dolmamış herkes <b>sırayla teklif verir, teklif zorunlu</b> (en az 1 TL). Önceki teklifleri görürsün. En yüksek teklifi veren alır ve parayı öder. Eşitlikte önce teklif veren kazanır. İlk teklif sırası her üründe kayar.</p>
+  <p>Kalan ürünler için 1'er TL ayırman gerektiği için verebileceğin en yüksek teklifi oyun kendisi sınırlar. Eli dolan, sonraki ürünlerin teklifine katılmaz.</p>
+  <p><b>Sonunda jüri karar verir:</b> her ürünün gizli bir puanı var. Birbirine yakışan ikililer bonus, eksikler ve saçmalıklar ceza getirir. Eşitlikte cebinde çok para kalan kazanır.</p>
+</div>`;
+const chip = (i, cls = '') => { const it = TEMALAR[V.theme].items[i]; return `<span class="chip ${cls}">${it[1]} ${esc(it[0])}</span>` };
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, mine = P.find(p => p.id === me), isHost = ctx.isHost, th = TEMALAR[v.theme];
+  const lobbyBits = () => {
+    const mx = Mezat.maxPlayers(v.theme), bots = P.filter(p => p.bot).length;
+    return `${isHost ? `<div><span class="label">Tema</span><div class="themes" style="margin-top:6px">${Object.entries(TEMALAR).map(([k, t]) => `<button data-th="${k}" class="${k === v.theme ? 'on' : ''}"><span>${t.emoji}</span>${esc(t.name)}</button>`).join('')}</div></div>
+      <div class="row"><button class="btn ghost small" id="addbot" ${P.length >= mx ? 'disabled' : ''}>+ Bilgisayar ekle</button>${bots ? '<button class="btn ghost small" id="rmbot">− Bilgisayar çıkar</button>' : ''}<span class="muted">En fazla ${mx} kişi.</span></div>`
+      : `<p><b>Tema: ${th.emoji} ${esc(th.name)}</b></p>`}
+      <p>${esc(th.desc)}</p><span class="label">Jürinin ipuçları</span><ul class="hints">${th.hints.map(h => `<li>${esc(h)}</li>`).join('')}</ul>`;
+  };
+  const wireLobby = () => {
+    const on = (s, a) => { const b = app.querySelector(s); if (b) b.onclick = () => ctx.act(a) };
+    on('#addbot', { type: 'addbot' }); on('#rmbot', { type: 'rmbot' }); on('#start', { type: 'start' });
+    app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => ctx.act({ type: 'theme', theme: b.dataset.th }));
+  };
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${lobbyBits()}
+      ${isHost ? `<button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Mezatı başlat</button>${P.length < 2 ? '<p class="muted">En az 2 kişi gerekiyor, bilgisayar da ekleyebilirsin.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>`;
+    Ati.wireShare(app, ctx); wireLobby(); return;
+  }
+  if (!mine) { app.innerHTML = '<section class="panel"><p class="muted">Mezat sürüyor, izliyorsun.</p></section>'; return }
+
+  if (v.phase === 'over') {
+    const rows = P.slice().sort((a, b) => (v.result[b.id].total - v.result[a.id].total) || (v.money[b.id] - v.money[a.id]));
+    const sign = n => n > 0 ? 'pos' : n < 0 ? 'neg' : '';
+    const fmt = n => (n > 0 ? '+' : '') + n;
+    const cards = rows.map((p, r) => {
+      const R = v.result[p.id];
+      return `<div class="rc ${v.winners.includes(p.id) ? 'win' : ''}"><div class="hd"><strong>${r + 1}. ${esc(p.name)}${p.id === me ? ' (sen)' : ''}</strong><span class="muted">${v.money[p.id]} TL kaldı</span><span class="tot">${R.total}</span></div>
+        ${v.owned[p.id].map(i => { const it = th.items[i]; return `<div class="ln"><span>${it[1]} ${esc(it[0])}</span><span class="p ${sign(it[2])}">${fmt(it[2])}</span></div>` }).join('')}
+        ${R.lines.map(l => `<div class="ln rule"><span>${esc(l[0])}</span><span class="p ${sign(l[1])}">${fmt(l[1])}</span></div>`).join('')}</div>`;
+    }).join('');
+    const wn = v.winners.map(nm).map(esc).join(' ve ');
+    app.innerHTML = `<section class="panel"><span class="label">Jürinin kararı · ${th.emoji} ${esc(th.name)}</span><h2>${wn} kazandı!</h2><div class="res">${cards}</div></section>
+      ${isHost ? `<section class="panel">${lobbyBits()}<button class="btn" id="start">Yeni mezat</button></section>` : '<section class="panel"><p class="muted">Ev sahibi yeni mezat başlatabilir.</p></section>'}`;
+    wireLobby(); return;
+  }
+
+  // ev sahibi satıştan sonra bir sonraki ürüne geçer
+  if (isHost && v.phase === 'sold' && nextFor !== v.pos + ':' + v.deck.length) { nextFor = v.pos + ':' + v.deck.length; const pos = v.pos; setTimeout(() => C.act({ type: 'next', pos }), Mezat.SHOW) }
+
+  const item = th.items[v.deck[v.pos]];
+  const cur = v.phase === 'bid' ? v.order[v.bi] : null, myTurn = cur === me;
+  const mx = Mezat.maxBid(v, me), need = Mezat.SLOTS - v.owned[me].length;
+  const k = v.pos + ':' + v.bi; if (k !== amtKey) { amtKey = k; const hi = v.bids.reduce((a, b) => Math.max(a, b.amt), 0); amt = Math.max(1, Math.min(mx, hi + (v.bids.length ? 1 : 0) || 1)) }
+  const top = v.bids.reduce((a, b) => b.amt > (a ? a.amt : 0) ? b : a, null);
+  const bids = (v.order || []).map((id, i) => {
+    const b = v.bids[i], won = v.phase === 'sold' && v.sold && v.sold.id === id;
+    return `<div class="bid ${i === v.bi && v.phase === 'bid' ? 'cur' : ''} ${won || (v.phase === 'bid' && top && b && b === top) ? 'top' : ''}"><b>${b ? b.amt + ' TL' : i === v.bi && v.phase === 'bid' ? '…' : '—'}</b><small>${id === me ? 'Sen' : esc(nm(id))}</small></div>`;
+  }).join('');
+
+  let ctrl;
+  if (v.phase === 'sold') {
+    const s = v.sold;
+    ctrl = `<p style="margin:0"><strong>${s.id === me ? 'Senin oldu!' : esc(nm(s.id)) + ' aldı.'}</strong> ${s.alone ? 'Eli dolmayan tek kişi kaldığı için 1 TL\'ye gitti.' : s.amt + ' TL ödedi.'}</p>`;
+  } else if (myTurn) {
+    ctrl = `<div class="stepper"><button class="pm" id="minus" ${amt <= 1 ? 'disabled' : ''}>−</button><span class="amt">${amt} TL</span><button class="pm" id="plus" ${amt >= mx ? 'disabled' : ''}>+</button>
+        <button class="btn" id="bid">Teklif ver</button></div>
+      <div class="quick">${[...new Set([1, 2, 3, 5, mx])].filter(n => n <= mx).map(n => `<button data-a="${n}">${n === mx ? 'Hepsi: ' + n : n} TL</button>`).join('')}</div>
+      <p class="muted" style="margin:0">Cebinde ${v.money[me]} TL var, ${need} ürün daha alman lazım. En fazla ${mx} TL verebilirsin.${top ? ` Şu an en yüksek: ${top.amt} TL (${esc(top.id === me ? 'sen' : nm(top.id))}). Eşitlikte önce veren kazanır.` : ' İlk teklif senden.'}</p>`;
+  } else if (need === 0) ctrl = '<p class="muted" style="margin:0">5 ürünün tamam, diğerlerini izliyorsun.</p>';
+  else ctrl = `<p style="margin:0"><strong>Sıra ${esc(ek(nm(cur), 'de'))}.</strong> <span class="muted">Teklifini bekliyoruz...</span></p>`;
+
+  const ppl = P.map(p => {
+    const own = v.owned[p.id];
+    const slots = own.map((i, j) => chip(i, v.phase === 'sold' && v.sold.id === p.id && j === own.length - 1 ? 'new' : '')).join('') + '<span class="chip empty">boş</span>'.repeat(Mezat.SLOTS - own.length);
+    return `<div class="pp"><div class="hd">${esc(p.name)}${p.id === me ? ' (sen)' : ''}${p.online === false ? ' <span class="muted">bağlantı yok</span>' : ''}<span class="mo">${v.money[p.id]} TL</span></div><div class="slots">${slots}</div></div>`;
+  }).join('');
+  const rest = v.deck.slice(v.pos + 1);
+
+  app.innerHTML = `<div class="hud"><span class="pill">${th.emoji} ${esc(th.name)}</span><span class="pill">Ürün ${v.pos + 1}/${v.deck.length}</span><span class="pill">Cebinde ${v.money[me]} TL</span>${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>
+    <section class="panel">
+      <div class="item"><span class="em">${item[1]}</span><span class="nm">${esc(item[0])}</span><span class="tg">${esc(th.tags[item[3]])}</span>
+        ${v.phase === 'sold' ? `<span class="soldto">${esc(v.sold.id === me ? 'Sen' : nm(v.sold.id))} · ${v.sold.amt} TL</span>` : ''}</div>
+      <div class="bids">${bids}</div>
+      ${ctrl}
+      ${isHost && v.phase === 'bid' && !myTurn && v.players.some(p => p.id === cur && p.online === false) ? '<button class="btn ghost small" id="skip">Bağlantısı kopan için 1 TL ver</button>' : ''}
+    </section>
+    <section class="panel"><span class="label">Kadrolar</span><div class="ppl">${ppl}</div></section>
+    ${rest.length ? `<section class="panel"><span class="label">Sıradaki ürünler (${rest.length})</span><div class="upcoming">${rest.map(i => chip(i)).join('')}</div></section>` : ''}
+    <details class="panel"><summary>Kurallar ve jüri ipuçları</summary>${RULES}<ul class="hints">${th.hints.map(h => `<li>${esc(h)}</li>`).join('')}</ul></details>`;
+
+  const on = (s, f) => { const b = app.querySelector(s); if (b) b.onclick = f };
+  on('#minus', () => { amt = Math.max(1, amt - 1); render(V, C) });
+  on('#plus', () => { amt = Math.min(mx, amt + 1); render(V, C) });
+  on('#bid', () => ctx.act({ type: 'bid', amt }));
+  on('#skip', () => ctx.act({ type: 'skip' }));
+  app.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { amt = +b.dataset.a; render(V, C) });
+}
+Ati.start({ game: 'mezat', el: app, logic: Mezat, render });
+</script>
+</body>
+</html>
