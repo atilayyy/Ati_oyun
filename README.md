@@ -2,6 +2,7 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Yedi Tepe**: 2-4 kişi. Catan temel kurallarıyla İstanbul temalı yerleşim oyunu (kurulum, zar, 7 ve Zabıta, oyuncu/liman ticareti, 25 fırsat kartı, En Uzun Yol, En Büyük Ordu, 10 puan).
 - **Blok Patlat**: 1-8 kişi. 8x8 blok bulmaca, herkese aynı tohumla birebir aynı parçalar gelir, 3-2-1 ile aynı anda başlanır, rakiplerin tahtası canlı görünür. Süresiz ya da 2/3/5 dakika.
 - **Mezat**: 2-6 kişi (bilgisayar eklenebilir). 20 TL bütçeyle sırayla teklif verip 5 ürünlük kadro kur; jüri gizli puanlar ve ikili bonuslarıyla kazananı seçer. Temalar: hamburger, pizza, Türk kahvaltısı, sokak lezzetleri, süper kahraman, süper güçler, rüya futbol takımı, zombi çantası, rüya tatil, hayalindeki ev, ev arkadaşı, müzik grubu. Sıradaki ürünler gizlidir.
 - **Bayrak & Başkent**: 2-8 kişi. Bayraktan ülkeyi, ülkeden başkenti bul; şıklar aynı bölgeden. Veri: mledoze/countries (ODbL), bayraklar: lipis/flag-icons (MIT).
@@ -48,4 +49,5 @@ Cihazlar birbirine doğrudan bağlanır (WebRTC). Eşleşme için PeerJS'in ücr
 - Kelime listeleri: [mertemin/turkish-word-list](https://github.com/mertemin/turkish-word-list) (Vikisözlük) ve [hermitdave/FrequencyWords](https://github.com/hermitdave/FrequencyWords) (OpenSubtitles sıklık verisi).
 - Bağlantı: [PeerJS](https://peerjs.com).
 - Flip 7, The Op Games'in oyunudur. Ati7 kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.
+- Catan, Klaus Teuber'in tasarladığı, CATAN GmbH'nin oyunudur. Yedi Tepe kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.
 - 6 nimmt!, Wolfgang Kramer'in tasarladığı, Amigo Spiele'nin oyunudur. Kemer kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.

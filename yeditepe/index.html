@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Yedi Tepe</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.wrap{max-width:1180px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media (min-width:980px){.layout{grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);align-items:start}}
+.boardbox{padding:6px;border-radius:18px;background:radial-gradient(circle at 50% 45%,#2a6fa8,#1a4c7a 70%,#143a5e);box-shadow:inset 0 0 0 2px #2d5f8f}
+svg.map{display:block;width:100%;height:auto;touch-action:manipulation}
+.hex polygon{stroke:#f3e7c7;stroke-width:3}
+.hex text{pointer-events:none;font-family:var(--body)}
+.tok{fill:#fbf6ea;stroke:#1b1f33;stroke-width:1.5}
+.tn{font-family:var(--display)!important;font-weight:800;font-size:19px;text-anchor:middle;dominant-baseline:central;fill:#1b1f33}
+.tn.red{fill:#c53030}
+.pip{fill:#1b1f33}.pip.red{fill:#c53030}
+.hname{font-size:10.5px;font-weight:800;text-anchor:middle;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px}
+.hem{font-size:20px;text-anchor:middle;dominant-baseline:central}
+.robber{font-size:30px;text-anchor:middle;dominant-baseline:central;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
+.road{stroke-linecap:round;stroke-width:9}
+.roadb{stroke:#1b1f33;stroke-linecap:round;stroke-width:13}
+.bld{stroke:#1b1f33;stroke-width:2.5;stroke-linejoin:round}
+.port line{stroke:#d9c9a3;stroke-width:4;stroke-linecap:round}
+.port circle{fill:#fbf6ea;stroke:#1b1f33;stroke-width:1.5}
+.port text{font-size:11px;font-weight:800;text-anchor:middle;dominant-baseline:central;fill:#1b1f33}
+.tgt-v{fill:rgba(255,255,255,.85);stroke:#ffd23f;stroke-width:3;cursor:pointer;animation:pulse 1.2s ease-in-out infinite}
+.tgt-e{stroke:rgba(255,210,63,.9);stroke-width:11;stroke-linecap:round;stroke-dasharray:4 6;cursor:pointer;animation:pulse 1.2s ease-in-out infinite}
+.tgt-e-hit{stroke:transparent;stroke-width:26;cursor:pointer}
+.tgt-v-hit{fill:transparent;cursor:pointer}
+.tgt-v{pointer-events:none}
+.tgt-h{fill:rgba(255,210,63,.22);stroke:#ffd23f;stroke-width:4;cursor:pointer}
+.tgt-h:hover{fill:rgba(255,210,63,.4)}
+@keyframes pulse{50%{opacity:.45}}
+.hexhit{fill:transparent;cursor:pointer}
+.status{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.status .who{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.05rem}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid #1b1f33;flex:none}
+.dice{display:flex;gap:6px;margin-left:auto}
+.die{width:38px;height:38px;border-radius:9px;background:#fbf6ea;color:#1b1f33;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.3rem;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.die.seven{background:#ffc2c2}
+.hint{font-weight:700;color:var(--accent)}
+.hand{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rc{border-radius:12px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.rc .e{font-size:1.4rem;line-height:1}
+.rc .n{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1}
+.rc .l{font-size:.68rem;font-weight:800;opacity:.9}
+.rc.zero{opacity:.4}
+.r-kereste{background:#2f7d4a}.r-tugla{background:#b5563a}.r-kumas{background:#6f9b3a}.r-bugday{background:#c99a1f}.r-mermer{background:#6b7180}
+.acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.ab{font:inherit;text-align:left;padding:9px 10px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.ab b{font-size:.95rem}
+.ab small{font-size:.75rem;color:var(--muted)}
+.ab:disabled{opacity:.4;cursor:default}
+.ab.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,var(--table))}
+.ab.main{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
+.ab.main small{color:var(--accentink);opacity:.8}
+.devs{display:flex;flex-direction:column;gap:6px}
+.dv{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--table)}
+.dv .t{flex:1;display:flex;flex-direction:column}
+.dv .t small{color:var(--muted)}
+.box{border:2px solid var(--accent);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.st{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border-radius:10px;background:var(--table)}
+.st .e{font-size:1.2rem}
+.st .v{font-family:var(--display);font-weight:800;font-size:1.2rem}
+.st .pm{display:flex;gap:4px}
+.st button{width:28px;height:28px;border-radius:8px;border:1px solid var(--edge);background:var(--table2);color:var(--ink);font:800 1rem var(--body);cursor:pointer}
+.st button:disabled{opacity:.3}
+.rpick{display:flex;gap:6px;flex-wrap:wrap}
+.rpick button{font:inherit;font-weight:800;padding:8px 10px;border-radius:10px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer}
+.rpick button.on{border-color:var(--accent)}
+.rpick button:disabled{opacity:.35}
+.ppl{display:flex;flex-direction:column;gap:6px}
+.pp{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--table);border:2px solid transparent}
+.pp.turn{border-color:var(--accent)}
+.pp .vp{font-family:var(--display);font-weight:800;font-size:1.5rem}
+.pp .meta{grid-column:2/4;display:flex;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);font-weight:700}
+.badge{font-size:.72rem;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--accent);color:var(--accentink)}
+.log{display:flex;flex-direction:column;gap:3px;font-size:.86rem;color:var(--muted);max-height:220px;overflow:auto}
+.cost{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem}
+.info{font-size:.9rem}
+.stoast{font-weight:800;color:var(--accent);margin:0}
+details.panel summary{cursor:pointer;font-weight:800}
+.rules{font-size:.92rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.rules b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Yedi Tepe</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="board.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, L = YediTepe;
+const { RES, RN, RE, HEX, VERT, EDGE, COST, TERRAIN, DEV } = YT;
+let V, C, mode = null, tradeOpen = false, tg = {}, tw = {}, bankGive = null, bankGet = null, disc = {}, pickR = [], info = null, uiKey = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const col = id => V.colors[id];
+const costTxt = c => Object.entries(c).map(([r, n]) => `${n}${RE[r]}`).join(' ');
+const zero = () => ({ kereste: 0, tugla: 0, kumas: 0, bugday: 0, mermer: 0 });
+
+const RULES = `<div class="rules">
+<p><b>Amaç:</b> ilk 10 puana ulaşmak. Ev 1, konak 2, En Uzun Yol 2, En Büyük Ordu 2, Zafer Puanı kartı 1 puan.</p>
+<p><b>Kurulum:</b> sırayla 1 ev + 1 yol, sonra ters sırayla 1 ev + 1 yol daha. İkinci evin değdiği yerlerden birer kaynak alırsın. Evler arasında en az 2 yol mesafe olmalı.</p>
+<p><b>Sıran gelince:</b> zar at. Zardaki sayının yazdığı yerlere değen herkes kaynak alır (ev 1, konak 2). Sonra ticaret yap, inşa et, turu bitir.</p>
+<p><b>7 gelirse:</b> elinde 7'den fazla kart olan yarısını atar. Zar atan Zabıta'yı başka bir yere taşır, o yer üretmez. Oraya değen birinden rastgele 1 kart çalar.</p>
+<p><b>Ticaret:</b> diğer oyunculara teklif verebilirsin, ya da bankayla 4'e 1. Limana ev kurarsan 3'e 1 ya da o kaynakta 2'ye 1.</p>
+<p><b>Fırsat kartları:</b> Yeniçeri (Zabıta'yı taşı, kart çal), Yol Yapımı (2 bedava yol), Bereket (bankadan 2 kaynak), Tekel (herkesten bir kaynağın tamamı), Zafer Puanı. Turda 1 kart oynanır, aldığın turda oynayamazsın. 3+ Yeniçeri oynayan En Büyük Ordu'yu alır.</p>
+<p><b>En Uzun Yol:</b> 5+ kesintisiz yol. Rakibin evi yolunu böler.</p></div>`;
+
+/* ---- harita çizimi ---- */
+function boardSvg(v, me) {
+  const myTurn = v.order[v.turn] === me;
+  let tV = [], tE = [], tH = false;
+  if (v.phase === 'setup' && myTurn) {
+    if (v.setupNeed === 'ev') tV = VERT.map((_, i) => i).filter(i => L.distanceOK(v, i));
+    else tE = VERT[v.setupV].edges.filter(e => v.eb[e] == null);
+  } else if (v.phase === 'play' && myTurn) {
+    if (v.sub === 'roads') tE = EDGE.map((_, i) => i).filter(i => L.roadOK(v, me, i));
+    else if (v.sub === 'robber') tH = true;
+    else if (v.sub === 'main' && mode === 'yol') tE = EDGE.map((_, i) => i).filter(i => L.roadOK(v, me, i));
+    else if (v.sub === 'main' && mode === 'ev') tV = VERT.map((_, i) => i).filter(i => L.distanceOK(v, i) && L.vertTouchesRoad(v, me, i));
+    else if (v.sub === 'main' && mode === 'konak') tV = Object.keys(v.vb).filter(k => v.vb[k].o === me && !v.vb[k].city).map(Number);
+  }
+  let s = '';
+  // limanlar
+  for (const p of v.ports) {
+    const [a, b] = EDGE[p.e].v, A = VERT[a], B = VERT[b], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, d = Math.hypot(mx, my), ox = mx + mx / d * 34, oy = my + my / d * 34;
+    s += `<g class="port"><line x1="${A.x}" y1="${A.y}" x2="${ox}" y2="${oy}"/><line x1="${B.x}" y1="${B.y}" x2="${ox}" y2="${oy}"/><circle cx="${ox}" cy="${oy}" r="17"/>
+      <text x="${ox}" y="${oy - (p.t === '3' ? 0 : 5)}">${p.t === '3' ? '3:1' : '2:1'}</text>${p.t !== '3' ? `<text x="${ox}" y="${oy + 7}" style="font-size:12px">${RE[p.t]}</text>` : ''}<title>${esc(p.name)}: ${p.t === '3' ? 'her kaynakta 3:1' : RN[p.t] + ' 2:1'}</title></g>`;
+  }
+  // altıgenler
+  v.hexes.forEach((h, i) => {
+    const H = HEX[i], pts = H.verts.map(k => VERT[k].x + ',' + VERT[k].y).join(' '), T = TERRAIN[h.t];
+    const red = h.n === 6 || h.n === 8, pips = h.n ? 6 - Math.abs(7 - h.n) : 0;
+    s += `<g class="hex"><polygon points="${pts}" fill="${T.fill}"/>
+      <text class="hem" x="${H.x}" y="${H.y - 30}">${h.t === 'col' ? '⛲' : RE[h.t]}</text>
+      ${h.n ? `<circle class="tok" cx="${H.x}" cy="${H.y}" r="17"/><text class="tn ${red ? 'red' : ''}" x="${H.x}" y="${H.y - 2}">${h.n}</text>
+        ${Array.from({ length: pips }, (_, k) => `<circle class="pip ${red ? 'red' : ''}" cx="${H.x + (k - (pips - 1) / 2) * 4.2}" cy="${H.y + 10}" r="1.5"/>`).join('')}` : ''}
+      <text class="hname" x="${H.x}" y="${H.y + 33}">${esc(v.names[i])}</text></g>`;
+    if (!tH) s += `<polygon class="hexhit" data-info="${i}" points="${pts}"/>`;
+  });
+  // yollar
+  for (const e in v.eb) { const [a, b] = EDGE[e].v; s += `<line class="roadb" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/><line class="road" stroke="${col(v.eb[e])}" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/>` }
+  // zabıta
+  const R = HEX[v.robber]; s += `<text class="robber" x="${R.x + 24}" y="${R.y - 6}">🚨</text>`;
+  // yapılar
+  for (const k in v.vb) {
+    const b = v.vb[k], P = VERT[k], c = col(b.o);
+    s += b.city ? `<path class="bld" fill="${c}" d="M${P.x - 13} ${P.y + 10}v-14l6-6 6 6v-4h14v18z"/>` : `<path class="bld" fill="${c}" d="M${P.x - 9} ${P.y + 8}v-10l9-8 9 8v10z"/>`;
+  }
+  // hedefler
+  if (tH) v.hexes.forEach((h, i) => { if (i !== v.robber) s += `<polygon class="tgt-h" data-h="${i}" points="${HEX[i].verts.map(k => VERT[k].x + ',' + VERT[k].y).join(' ')}"/>` });
+  for (const e of tE) { const [a, b] = EDGE[e].v; s += `<line class="tgt-e" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/><line class="tgt-e-hit" data-e="${e}" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/>` }
+  for (const k of tV) s += `<circle class="tgt-v" cx="${VERT[k].x}" cy="${VERT[k].y}" r="10"/><circle class="tgt-v-hit" data-v="${k}" cx="${VERT[k].x}" cy="${VERT[k].y}" r="22"/>`;
+  return `<svg class="map" viewBox="-305 -290 610 580" aria-label="Harita">${s}</svg>`;
+}
+
+/* ---- paneller ---- */
+function handHtml(h) { return `<div class="hand">${RES.map(r => `<div class="rc r-${r} ${h[r] ? '' : 'zero'}"><span class="e">${RE[r]}</span><span class="n">${h[r]}</span><span class="l">${RN[r]}</span></div>`).join('')}</div>` }
+function stepper(obj, max, key) {
+  return `<div class="steps">${RES.map(r => `<div class="st"><span class="e">${RE[r]}</span><span class="v">${obj[r] || 0}</span><div class="pm"><button data-s="${key}:${r}:-1" ${!(obj[r] > 0) ? 'disabled' : ''}>−</button><button data-s="${key}:${r}:1" ${(obj[r] || 0) >= max(r) ? 'disabled' : ''}>+</button></div></div>`).join('')}</div>`;
+}
+function playersHtml(v, me) {
+  return `<div class="ppl">${v.order.map((id, i) => `<div class="pp ${v.order[v.turn] === id && v.phase !== 'over' ? 'turn' : ''}"><span class="dot" style="background:${col(id)}"></span>
+    <span><b>${esc(nm(id))}</b>${id === me ? ' (sen)' : ''}${(v.players.find(p => p.id === id) || {}).online === false ? ' <span class="muted">bağlantı yok</span>' : ''}</span><span class="vp">${v.vp[id]}</span>
+    <div class="meta"><span>🃏 ${v.cards[id]} kart</span><span>📜 ${v.devCount[id]} fırsat</span><span>⚔️ ${v.knights[id]}</span><span>🛣️ ${v.roadLen[id] || 0}</span>
+    ${v.longest === id ? '<span class="badge">En Uzun Yol</span>' : ''}${v.army === id ? '<span class="badge">En Büyük Ordu</span>' : ''}</div></div>`).join('')}</div>`;
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost;
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (2-4 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `<button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button><p class="muted">Resmî kurallar 3-4 kişilik. 2 kişiyle de aynı kurallarla oynanabilir.</p>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>İstanbul'u kur!</h2>${RULES}</section>`;
+    Ati.wireShare(app, ctx);
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  const inGame = v.order.includes(me), turnId = v.order[v.turn], myTurn = turnId === me && v.phase !== 'over';
+  const key = v.phase + '|' + v.turnNo + '|' + v.sub + '|' + (v.trade ? 1 : 0);
+  if (key !== uiKey) { if (!(v.sub === 'main' && myTurn)) mode = null; uiKey = key; pickR = []; if (v.sub !== 'discard') disc = {} }
+  const h = inGame ? v.hands[me] : null;
+
+  // durum satırı ve ipucu
+  let hint = '';
+  if (v.phase === 'over') hint = `🏆 ${esc(nm(v.winner))} kazandı!`;
+  else if (v.phase === 'setup') hint = myTurn ? (v.setupNeed === 'ev' ? 'Evini koyacağın köşeye dokun.' : 'Evinin yanına bir yol koy.') : `${esc(nm(turnId))} ${v.setupNeed === 'ev' ? 'evini' : 'yolunu'} koyuyor...`;
+  else if (v.sub === 'roll') hint = myTurn ? 'Zar at! (İstersen önce Yeniçeri oynayabilirsin.)' : `${esc(nm(turnId))} zar atacak...`;
+  else if (v.sub === 'discard') hint = v.discard[me] ? `7 geldi! ${v.discard[me]} kart atman lazım.` : 'Kart atılması bekleniyor...';
+  else if (v.sub === 'robber') hint = myTurn ? 'Zabıtayı taşıyacağın yere dokun.' : `${esc(nm(turnId))} Zabıtayı taşıyor...`;
+  else if (v.sub === 'steal') hint = myTurn ? 'Kimden kart çalacaksın?' : `${esc(nm(turnId))} kimden çalacağını seçiyor...`;
+  else if (v.sub === 'roads') hint = myTurn ? `Bedava yol: ${v.free} tane kaldı. Yeri seç.` : `${esc(nm(turnId))} bedava yol yapıyor...`;
+  else if (v.sub === 'main') hint = myTurn ? (mode ? { yol: 'Yolu koyacağın yere dokun.', ev: 'Evi koyacağın köşeye dokun.', konak: 'Konağa çevireceğin evine dokun.' }[mode] : 'Ticaret yap, inşa et ya da turu bitir.') : `${esc(nm(turnId))} oynuyor...`;
+  const dice = v.dice ? `<div class="dice">${v.dice.map(d => `<div class="die ${v.dice[0] + v.dice[1] === 7 ? 'seven' : ''}">${d}</div>`).join('')}</div>` : '';
+  let steal = '';
+  if (v.lastSteal && inGame) steal = v.lastSteal.by === me ? `<p class="stoast">${esc(nm(v.lastSteal.from))} oyuncusundan ${RE[v.lastSteal.r]} ${RN[v.lastSteal.r]} çaldın.</p>` : `<p class="stoast">${esc(nm(v.lastSteal.by))} senden ${RE[v.lastSteal.r]} ${RN[v.lastSteal.r]} çaldı.</p>`;
+
+  // aksiyon kutusu
+  let box = '';
+  if (v.phase === 'over') {
+    box = `<div class="box"><h2 style="margin:0">🏆 ${esc(nm(v.winner))} kazandı!</h2>
+      ${v.order.map(id => `<div>${esc(nm(id))}: <b>${v.vp[id]} puan</b>${v.dev[id] && v.dev[id].some(c => c.k === 'puan') ? ` · ${v.dev[id].filter(c => c.k === 'puan').map(c => '🏛️ ' + esc(c.n || 'Zafer')).join(', ')}` : ''}</div>`).join('')}
+      ${isHost ? '<button class="btn" id="again">Yeni oyun (yeni harita)</button>' : ''}</div>`;
+  } else if (v.sub === 'discard' && v.discard[me]) {
+    const n = RES.reduce((a, r) => a + (disc[r] || 0), 0);
+    box = `<div class="box"><b>7 geldi! ${v.discard[me]} kart seç ve at.</b>${stepper(disc, r => h[r], 'd')}<button class="btn" id="disc" ${n === v.discard[me] ? '' : 'disabled'}>At (${n}/${v.discard[me]})</button></div>`;
+  } else if (myTurn && v.sub === 'steal') {
+    box = `<div class="box"><b>Kimden kart çalacaksın?</b><div class="row">${v.stealC.map(id => `<button class="btn" data-steal="${esc(id)}">${esc(nm(id))} (${v.cards[id]} kart)</button>`).join('')}</div></div>`;
+  } else if (myTurn && v.sub === 'roads') {
+    box = `<div class="box"><b>Bedava yol: ${v.free} tane.</b><span class="muted">Haritada parlayan yerlere dokun.</span><button class="btn ghost small" id="endfree">Yeter, devam</button></div>`;
+  } else if (myTurn && (v.sub === 'roll' || v.sub === 'main')) {
+    const can = (c) => L.canPay(h, c);
+    const playable = v.dev[me].filter(c => c.k !== 'puan' && c.t < v.turnNo && !v.devPlayed);
+    let acts = '';
+    if (v.sub === 'roll') acts = `<button class="ab main" id="roll"><b>🎲 Zar at</b><small>Sıra sende</small></button>`;
+    else acts = `
+      <button class="ab ${mode === 'yol' ? 'on' : ''}" data-mode="yol" ${can(COST.yol) && L.countB(v, me, 'yol') < L.LIMIT.yol ? '' : 'disabled'}><b>🛣️ Yol</b><small>${costTxt(COST.yol)}</small></button>
+      <button class="ab ${mode === 'ev' ? 'on' : ''}" data-mode="ev" ${can(COST.ev) && L.countB(v, me, 'ev') < L.LIMIT.ev ? '' : 'disabled'}><b>🏠 Ev</b><small>${costTxt(COST.ev)}</small></button>
+      <button class="ab ${mode === 'konak' ? 'on' : ''}" data-mode="konak" ${can(COST.konak) && L.countB(v, me, 'konak') < L.LIMIT.konak ? '' : 'disabled'}><b>🏰 Konak</b><small>${costTxt(COST.konak)}</small></button>
+      <button class="ab" id="buydev" ${can(COST.kart) && v.deckCount ? '' : 'disabled'}><b>📜 Fırsat kartı</b><small>${costTxt(COST.kart)} · ${v.deckCount} kaldı</small></button>
+      <button class="ab ${tradeOpen ? 'on' : ''}" id="trade"><b>🤝 Ticaret</b><small>Oyuncu / banka</small></button>
+      <button class="ab main" id="end"><b>Turu bitir</b><small>Sıra sonrakine</small></button>`;
+    box = `<div class="acts">${acts}</div>`;
+    // fırsat kartı oynama
+    const pick = pickR.length;
+    if (playable.length) box += `<div><span class="label">Oynanabilir fırsat kartları</span><div class="rpick" style="margin-top:6px">${[...new Set(playable.map(c => c.k))].map(k => `<button data-play="${k}">${DEV[k].em} ${DEV[k].name}</button>`).join('')}</div></div>`;
+    if (mode === 'bereket') box += `<div class="box"><b>Bereket: bankadan 2 kaynak seç (${pick}/2)</b><div class="rpick">${RES.map(r => `<button data-pr="${r}" ${v.bank[r] ? '' : 'disabled'}>${RE[r]} ${RN[r]}</button>`).join('')}</div><div class="muted">${pickR.map(r => RE[r]).join(' ')}</div>
+      <div class="row"><button class="btn" id="okber" ${pick === 2 ? '' : 'disabled'}>Al</button><button class="btn ghost small" id="cx">Vazgeç</button></div></div>`;
+    if (mode === 'tekel') box += `<div class="box"><b>Tekel: herkesten toplayacağın kaynağı seç</b><div class="rpick">${RES.map(r => `<button data-tek="${r}">${RE[r]} ${RN[r]}</button>`).join('')}</div><button class="btn ghost small" id="cx">Vazgeç</button></div>`;
+    // ticaret
+    if (v.sub === 'main' && (tradeOpen || v.trade)) {
+      if (v.trade) {
+        const T = v.trade, yes = Object.keys(T.resp).filter(id => T.resp[id] === 'yes');
+        box += `<div class="box"><b>Teklifin: ${costTxt(T.give)} ver ↔ ${costTxt(T.get)} al</b>
+          <div>${v.order.filter(id => id !== me).map(id => `<div>${esc(nm(id))}: ${T.resp[id] === 'yes' ? '✅ kabul' : T.resp[id] === 'no' ? '❌ red' : '… düşünüyor'}</div>`).join('')}</div>
+          <div class="row">${yes.map(id => `<button class="btn" data-conf="${esc(id)}">${esc(nm(id))} ile takas et</button>`).join('')}<button class="btn ghost small" id="cancelT">Teklifi geri çek</button></div></div>`;
+      } else {
+        const ng = RES.reduce((a, r) => a + (tg[r] || 0), 0), nw = RES.reduce((a, r) => a + (tw[r] || 0), 0);
+        const rate = v.rates;
+        box += `<div class="box"><b>Oyunculara teklif</b><span class="label">Veriyorum</span>${stepper(tg, r => h[r], 'g')}<span class="label">İstiyorum</span>${stepper(tw, () => 19, 'w')}
+          <button class="btn" id="offer" ${ng && nw ? '' : 'disabled'}>Teklif et</button>
+          <hr style="border:0;border-top:1px solid var(--edge);width:100%">
+          <b>Bankayla takas (limanların sayılır)</b>
+          <span class="label">Ver</span><div class="rpick">${RES.map(r => `<button data-bg="${r}" class="${bankGive === r ? 'on' : ''}" ${h[r] >= rate[r] ? '' : 'disabled'}>${rate[r]} ${RE[r]}</button>`).join('')}</div>
+          <span class="label">Al</span><div class="rpick">${RES.map(r => `<button data-bw="${r}" class="${bankGet === r ? 'on' : ''}" ${v.bank[r] && r !== bankGive ? '' : 'disabled'}>1 ${RE[r]}</button>`).join('')}</div>
+          <button class="btn" id="bank" ${bankGive && bankGet && bankGive !== bankGet && h[bankGive] >= rate[bankGive] ? '' : 'disabled'}>Takas et</button></div>`;
+      }
+    }
+  } else if (inGame && v.trade && v.sub === 'main' && v.trade.from !== me) {
+    const T = v.trade, r = T.resp[me];
+    box = `<div class="box"><b>${esc(nm(T.from))} takas teklif ediyor:</b><span>Sana ${costTxt(T.give)} veriyor, karşılığında ${costTxt(T.get)} istiyor.</span>
+      ${r ? `<span class="muted">${r === 'yes' ? 'Kabul ettin, onun seçmesi bekleniyor.' : 'Reddettin.'}</span>` : `<div class="row"><button class="btn" id="tyes" ${L.canPay(h, T.get) ? '' : 'disabled'}>Kabul</button><button class="btn ghost" id="tno">Reddet</button></div>`}</div>`;
+  }
+
+  // fırsat kartlarım
+  const myDev = inGame && v.dev[me] && v.dev[me].length ? `<section class="panel"><span class="label">Fırsat kartların</span><div class="devs">${v.dev[me].map(c => `<div class="dv"><span style="font-size:1.4rem">${DEV[c.k].em}</span><div class="t"><b>${c.k === 'puan' ? esc(c.n || 'Zafer Puanı') + ' (+1 puan)' : DEV[c.k].name}</b><small>${DEV[c.k].desc}${c.t >= v.turnNo && c.k !== 'puan' ? ' · bu tur aldın, sonraki turda oynanır' : ''}</small></div></div>`).join('')}</div></section>` : '';
+  const infoHtml = info != null ? (() => { const hx = v.hexes[info]; return `<p class="info"><b>${esc(v.names[info])}</b>: ${hx.t === 'col' ? 'üretim yok' : RE[hx.t] + ' ' + RN[hx.t] + ', zar ' + hx.n}${info === v.robber ? ' · 🚨 Zabıta burada' : ''}</p>` })() : '';
+
+  app.innerHTML = `<div class="layout"><div>
+      <section class="panel"><div class="status"><span class="who"><span class="dot" style="background:${col(turnId)}"></span>${v.phase === 'over' ? 'Oyun bitti' : esc(nm(turnId)) + (myTurn ? ' (sen)' : '')}</span>${dice}</div><p class="hint" style="margin:0">${hint}</p>${steal}</section>
+      <div class="boardbox">${boardSvg(v, me)}</div>${infoHtml}
+    </div><div style="display:flex;flex-direction:column;gap:14px">
+      ${box ? `<section class="panel">${box}</section>` : ''}
+      ${inGame ? `<section class="panel"><span class="label">Elin · ${v.vp[me]} puan</span>${handHtml(h)}</section>` : ''}
+      ${myDev}
+      <section class="panel"><span class="label">Oyuncular · puan</span>${playersHtml(v, me)}</section>
+      <details class="panel"><summary>Maliyetler ve kurallar</summary><div class="cost" style="margin-top:8px"><span>🛣️ Yol</span><span>${costTxt(COST.yol)}</span><span>🏠 Ev (1 puan)</span><span>${costTxt(COST.ev)}</span><span>🏰 Konak (2 puan)</span><span>${costTxt(COST.konak)}</span><span>📜 Fırsat kartı</span><span>${costTxt(COST.kart)}</span></div>${RULES}</details>
+      <section class="panel"><span class="label">Olanlar</span><div class="log">${v.log.slice().reverse().map(l => `<span>${esc(l)}</span>`).join('')}</div></section>
+    </div></div>`;
+  wire(v, me);
+}
+
+function wire(v, me) {
+  const ctx = C, A = a => ctx.act(a), on = (s, f) => { const b = app.querySelector(s); if (b) b.onclick = f };
+  app.querySelectorAll('[data-v]').forEach(el => el.onclick = () => {
+    const k = +el.dataset.v;
+    if (v.phase === 'setup') A({ type: 'place', v: k }); else { A({ type: 'build', k: mode, v: k }); mode = null }
+  });
+  app.querySelectorAll('[data-e]').forEach(el => el.onclick = () => {
+    const e = +el.dataset.e;
+    if (v.phase === 'setup' || v.sub === 'roads') A({ type: 'road', e }); else { A({ type: 'build', k: 'yol', e }); mode = null }
+  });
+  app.querySelectorAll('[data-h]').forEach(el => el.onclick = () => A({ type: 'robber', h: +el.dataset.h }));
+  app.querySelectorAll('[data-info]').forEach(el => el.onclick = () => { info = info === +el.dataset.info ? null : +el.dataset.info; render(V, C) });
+  app.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = mode === b.dataset.mode ? null : b.dataset.mode; tradeOpen = false; render(V, C) });
+  app.querySelectorAll('[data-steal]').forEach(b => b.onclick = () => A({ type: 'steal', id: b.dataset.steal }));
+  app.querySelectorAll('[data-s]').forEach(b => b.onclick = () => {
+    const [k, r, d] = b.dataset.s.split(':'), o = k === 'd' ? disc : k === 'g' ? tg : tw;
+    o[r] = Math.max(0, (o[r] || 0) + +d); if (k === 'g' && o[r]) tw[r] = 0; if (k === 'w' && o[r]) tg[r] = 0; render(V, C);
+  });
+  app.querySelectorAll('[data-play]').forEach(b => b.onclick = () => {
+    const k = b.dataset.play;
+    if (k === 'bereket' || k === 'tekel') { mode = k; pickR = []; render(V, C) } else A({ type: 'play', k });
+  });
+  app.querySelectorAll('[data-pr]').forEach(b => b.onclick = () => { if (pickR.length < 2) pickR.push(b.dataset.pr); else pickR = [b.dataset.pr]; render(V, C) });
+  app.querySelectorAll('[data-tek]').forEach(b => b.onclick = () => { A({ type: 'play', k: 'tekel', r: b.dataset.tek }); mode = null });
+  on('#okber', () => { A({ type: 'play', k: 'bereket', r1: pickR[0], r2: pickR[1] }); mode = null; pickR = [] });
+  on('#cx', () => { mode = null; pickR = []; render(V, C) });
+  app.querySelectorAll('[data-bg]').forEach(b => b.onclick = () => { bankGive = b.dataset.bg; if (bankGet === bankGive) bankGet = null; render(V, C) });
+  app.querySelectorAll('[data-bw]').forEach(b => b.onclick = () => { bankGet = b.dataset.bw; render(V, C) });
+  app.querySelectorAll('[data-conf]').forEach(b => b.onclick = () => A({ type: 'confirm', id: b.dataset.conf }));
+  on('#roll', () => A({ type: 'roll' }));
+  on('#end', () => { tradeOpen = false; mode = null; A({ type: 'end' }) });
+  on('#buydev', () => A({ type: 'build', k: 'kart' }));
+  on('#trade', () => { tradeOpen = !tradeOpen; mode = null; render(V, C) });
+  on('#offer', () => { A({ type: 'offer', give: tg, get: tw }); tg = {}; tw = {} });
+  on('#cancelT', () => A({ type: 'cancelTrade' }));
+  on('#bank', () => { A({ type: 'bank', give: bankGive, get: bankGet }); bankGive = bankGet = null });
+  on('#disc', () => { A({ type: 'discard', cards: Object.assign(zero(), disc) }); disc = {} });
+  on('#endfree', () => A({ type: 'endfree' }));
+  on('#tyes', () => A({ type: 'respond', ok: true }));
+  on('#tno', () => A({ type: 'respond', ok: false }));
+  on('#again', () => A({ type: 'start' }));
+}
+Ati.start({ game: 'yeditepe', el: app, logic: YediTepe, render });
+</script>
+</body>
+</html>
