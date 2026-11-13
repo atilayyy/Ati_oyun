@@ -5,9 +5,9 @@ const YT = (() => {
   const RE = { kereste: '🪵', tugla: '🧱', kumas: '🧶', bugday: '🌾', mermer: '🪨' };
   // arazi → kaynak ve İstanbul semtleri
   const TERRAIN = {
-    kereste: { name: 'Koru', places: ['Belgrad Ormanı', 'Emirgan Korusu', 'Validebağ', 'Yıldız Parkı'], fill: '#2f7d4a' },
+    kereste: { name: 'Koru', places: ['Belgrad Ormanı', 'Emirgan Korusu', 'Validebağ', 'Yıldız Parkı'], fill: '#3f8f52' },
     tugla: { name: 'Tuğlahane', places: ['Kağıthane', 'Eyüp', 'Zeytinburnu'], fill: '#b5563a' },
-    kumas: { name: 'Çarşı', places: ['Kapalıçarşı', 'Mahmutpaşa', 'Nişantaşı', 'Bağdat Caddesi'], fill: '#8fbf4a' },
+    kumas: { name: 'Çarşı', places: ['Kapalıçarşı', 'Mahmutpaşa', 'Nişantaşı', 'Bağdat Caddesi'], fill: '#8e3b74' },
     bugday: { name: 'Tarla', places: ['Silivri', 'Çatalca', 'Şile', 'Mısır Çarşısı'], fill: '#e3b53b' },
     mermer: { name: 'Tepe', places: ['Çamlıca Tepesi', 'Aydos Tepesi', 'Marmara Adası'], fill: '#8a8f9e' },
     col: { name: 'Meydan', places: ['Taksim Meydanı'], fill: '#d9c9a3' }

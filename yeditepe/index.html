@@ -10,23 +10,40 @@
 .wrap{max-width:1180px}
 .layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 @media (min-width:980px){.layout{grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);align-items:start}}
-.boardbox{padding:6px;border-radius:18px;background:radial-gradient(circle at 50% 45%,#2a6fa8,#1a4c7a 70%,#143a5e);box-shadow:inset 0 0 0 2px #2d5f8f}
+.boardbox{border-radius:20px;overflow:hidden;background:#0f3a63;box-shadow:0 0 0 3px #b8902e,0 0 0 6px #1a2047,0 10px 30px rgba(0,0,0,.45)}
+svg.sky{display:block;width:100%;height:auto}
 svg.map{display:block;width:100%;height:auto;touch-action:manipulation}
-.hex polygon{stroke:#f3e7c7;stroke-width:3}
 .hex text{pointer-events:none;font-family:var(--body)}
-.tok{fill:#fbf6ea;stroke:#1b1f33;stroke-width:1.5}
 .tn{font-family:var(--display)!important;font-weight:800;font-size:19px;text-anchor:middle;dominant-baseline:central;fill:#1b1f33}
-.tn.red{fill:#c53030}
-.pip{fill:#1b1f33}.pip.red{fill:#c53030}
-.hname{font-size:10.5px;font-weight:800;text-anchor:middle;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px}
-.hem{font-size:20px;text-anchor:middle;dominant-baseline:central}
-.robber{font-size:30px;text-anchor:middle;dominant-baseline:central;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
-.road{stroke-linecap:round;stroke-width:9}
-.roadb{stroke:#1b1f33;stroke-linecap:round;stroke-width:13}
-.bld{stroke:#1b1f33;stroke-width:2.5;stroke-linejoin:round}
-.port line{stroke:#d9c9a3;stroke-width:4;stroke-linecap:round}
-.port circle{fill:#fbf6ea;stroke:#1b1f33;stroke-width:1.5}
-.port text{font-size:11px;font-weight:800;text-anchor:middle;dominant-baseline:central;fill:#1b1f33}
+.tn.red{fill:#b42318}
+.pip{fill:#1b1f33}.pip.red{fill:#b42318}
+.hname{font-size:10px;font-weight:800;text-anchor:middle;fill:#fff;paint-order:stroke;stroke:rgba(10,14,35,.75);stroke-width:3.2px;letter-spacing:.02em}
+.hem{font-size:11px;text-anchor:middle;dominant-baseline:central}
+.robber{pointer-events:none}
+.robber text{font-size:17px;text-anchor:middle;dominant-baseline:central}
+.rring{fill:none;stroke:#ff5a4f;stroke-width:3;animation:rring 1.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes rring{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+.road{stroke-linecap:round;stroke-width:8}
+.roadb{stroke:#1b1f33;stroke-linecap:round;stroke-width:12}
+.roadc{stroke:rgba(255,255,255,.4);stroke-width:1.6;stroke-dasharray:2.5 3.5;stroke-linecap:round}
+.port line{stroke:#6b4423;stroke-width:6;stroke-linecap:round}
+.port line.plank{stroke:#b8834f;stroke-width:3;stroke-dasharray:3 2}
+.port circle{fill:#1a2047;stroke:#e9c46a;stroke-width:2}
+.port circle.pin{fill:none;stroke:#e9c46a;stroke-width:.8;opacity:.6}
+.port text{font-size:10.5px;font-weight:800;text-anchor:middle;dominant-baseline:central;fill:#ffe8a3}
+.wavesg{animation:waves 14s linear infinite}
+@keyframes waves{to{transform:translateX(60px)}}
+.fer1,.fer2{animation-name:sail;animation-timing-function:linear;animation-iteration-count:infinite}
+.fer2{animation-name:sail2}
+@keyframes sail{from{transform:translateX(-360px)}to{transform:translateX(360px)}}
+@keyframes sail2{from{transform:translateX(360px)}to{transform:translateX(-360px)}}
+.gull{animation:gull 3s ease-in-out infinite}.gull.g2{animation-delay:-1.4s}
+@keyframes gull{50%{transform:translateY(-4px)}}
+.mill{animation:mill 12s linear infinite}
+@keyframes mill{to{transform:rotate(360deg)}}
+.jet{animation:jet 1.8s ease-in-out infinite}
+@keyframes jet{50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.wavesg,.fer1,.fer2,.gull,.mill,.jet,.rring{animation:none}}
 .tgt-v{fill:rgba(255,255,255,.85);stroke:#ffd23f;stroke-width:3;cursor:pointer;animation:pulse 1.2s ease-in-out infinite}
 .tgt-e{stroke:rgba(255,210,63,.9);stroke-width:11;stroke-linecap:round;stroke-dasharray:4 6;cursor:pointer;animation:pulse 1.2s ease-in-out infinite}
 .tgt-e-hit{stroke:transparent;stroke-width:26;cursor:pointer}
@@ -40,16 +57,20 @@ svg.map{display:block;width:100%;height:auto;touch-action:manipulation}
 .status .who{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.05rem}
 .dot{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid #1b1f33;flex:none}
 .dice{display:flex;gap:6px;margin-left:auto}
-.die{width:38px;height:38px;border-radius:9px;background:#fbf6ea;color:#1b1f33;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.3rem;box-shadow:0 3px 0 rgba(0,0,0,.35)}
-.die.seven{background:#ffc2c2}
+.die{width:42px;height:42px;border-radius:10px;background:linear-gradient(145deg,#fffaf0,#e8dcc0);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:6px;box-shadow:0 4px 0 #b8902e,0 6px 10px rgba(0,0,0,.4);}
+.die.anim{animation:roll .5s ease-out}
+.die i{width:7px;height:7px;border-radius:50%;background:#1b1f33;place-self:center}
+.die.seven{background:linear-gradient(145deg,#ffe0e0,#f2b8b8)}
+.die.seven i{background:#b42318}
+@keyframes roll{0%{transform:rotate(-200deg) scale(.6)}100%{transform:none}}
 .hint{font-weight:700;color:var(--accent)}
 .hand{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.rc{border-radius:12px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.rc{border-radius:12px;padding:9px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;color:#fff;box-shadow:0 0 0 1.5px rgba(233,196,106,.7) inset,0 4px 0 rgba(0,0,0,.35);background-image:linear-gradient(160deg,rgba(255,255,255,.28),rgba(255,255,255,0) 45%,rgba(0,0,0,.18));text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .rc .e{font-size:1.4rem;line-height:1}
 .rc .n{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1}
 .rc .l{font-size:.68rem;font-weight:800;opacity:.9}
 .rc.zero{opacity:.4}
-.r-kereste{background:#2f7d4a}.r-tugla{background:#b5563a}.r-kumas{background:#6f9b3a}.r-bugday{background:#c99a1f}.r-mermer{background:#6b7180}
+.r-kereste{background-color:#2f7d4a}.r-tugla{background-color:#b5563a}.r-kumas{background-color:#8e3b74}.r-bugday{background-color:#c99a1f}.r-mermer{background-color:#6b7180}
 .acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 .ab{font:inherit;text-align:left;padding:9px 10px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:2px}
 .ab b{font-size:.95rem}
@@ -118,6 +139,87 @@ const RULES = `<div class="rules">
 <p><b>En Uzun Yol:</b> 5+ kesintisiz yol. Rakibin evi yolunu böler.</p></div>`;
 
 /* ---- harita çizimi ---- */
+// her altıgen için sabit rastgelelik: süsler oyun boyunca yerinde durur
+const hrand = (i, k) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) };
+const SLOTS = [[-34, -12], [-34, 10], [34, -12], [34, 10], [-19, -31], [19, -31], [-21, 21], [21, 21]];
+const darker = (hex, f) => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})` };
+function art(t, x, y, i) {
+  let o = '';
+  const at = (k) => [x + SLOTS[k][0] + (hrand(i, k) - .5) * 5, y + SLOTS[k][1] + (hrand(i, k + 9) - .5) * 4];
+  if (t === 'kereste') {
+    for (let k = 0; k < 8; k++) {
+      const [a, b] = at(k), cyp = hrand(i, k + 20) > .45;
+      o += cyp
+        ? `<rect x="${a - 1}" y="${b + 7}" width="2" height="4" fill="#4a2e1a"/><ellipse cx="${a}" cy="${b - 2}" rx="5.2" ry="12" fill="#163f26"/><ellipse cx="${a - 1.5}" cy="${b - 4}" rx="2" ry="8" fill="#2d6e43" opacity=".8"/>`
+        : `<rect x="${a - 1.2}" y="${b + 3}" width="2.4" height="6" fill="#4a2e1a"/><circle cx="${a}" cy="${b - 1}" r="8.5" fill="#1d5a33"/><circle cx="${a - 2.5}" cy="${b - 3.5}" r="4" fill="#3c8a55"/>`;
+    }
+  } else if (t === 'tugla') {
+    o += `<rect x="${x - 60}" y="${y - 60}" width="120" height="120" fill="url(#bricks)" opacity=".55"/>`;
+    const [a, b] = at(2);
+    o += `<rect x="${a - 5}" y="${b - 18}" width="10" height="26" fill="#6b2a17" stroke="#3a160b" stroke-width="1"/><rect x="${a - 7}" y="${b - 20}" width="14" height="4" fill="#3a160b"/>
+      <circle cx="${a + 3}" cy="${b - 27}" r="5" fill="#d8d2c8" opacity=".7"/><circle cx="${a + 8}" cy="${b - 35}" r="6.5" fill="#d8d2c8" opacity=".5"/><circle cx="${a + 14}" cy="${b - 44}" r="8" fill="#d8d2c8" opacity=".3"/>`;
+    for (const k of [1, 6]) { const [c, d] = at(k); o += `<g fill="#c9683f" stroke="#5b2312" stroke-width=".8"><rect x="${c - 9}" y="${d}" width="8" height="4"/><rect x="${c - 1}" y="${d}" width="8" height="4"/><rect x="${c - 5}" y="${d - 4}" width="8" height="4"/></g>` }
+  } else if (t === 'kumas') {
+    for (const k of [0, 2, 4, 5, 6, 7]) {
+      const [a, b] = at(k);
+      o += `<rect x="${a - 9}" y="${b - 1}" width="18" height="9" fill="#f1dcae" stroke="#5a2147" stroke-width=".8"/><path d="M${a - 8} ${b - 1}a8 8 0 0 1 16 0z" fill="#e9b949" stroke="#7a5410" stroke-width=".8"/><rect x="${a - .6}" y="${b - 12}" width="1.2" height="4" fill="#7a5410"/>
+        <path d="M${a - 6} ${b + 8}v-4a2 2 0 0 1 4 0v4M${a + 2} ${b + 8}v-4a2 2 0 0 1 4 0v4" fill="#5a2147"/>`;
+    }
+    const [a, b] = at(1); o += `<path d="M${a - 11} ${b - 4}h22l-3 7h-16z" fill="url(#awn)"/>`;
+    const [c, d] = at(3); o += `<rect x="${c - 8}" y="${d - 6}" width="16" height="11" rx="1" fill="#b23a48"/><rect x="${c - 6}" y="${d - 4}" width="12" height="7" fill="none" stroke="#f1dcae" stroke-width="1"/><circle cx="${c}" cy="${d - .5}" r="1.6" fill="#e9b949"/>`;
+  } else if (t === 'bugday') {
+    o += `<rect x="${x - 60}" y="${y - 60}" width="120" height="120" fill="url(#rows)" opacity=".6"/>`;
+    for (const k of [0, 1, 3, 4, 6, 7]) {
+      const [a, b] = at(k);
+      o += `<g stroke="#8a5a0b" stroke-width="1.2" stroke-linecap="round"><path d="M${a} ${b + 9}V${b - 6}M${a - 4} ${b + 9}l2-14M${a + 4} ${b + 9}l-2-14"/></g><g fill="#f7d66b">${[-6, -2, 2].map(dy => `<ellipse cx="${a}" cy="${b + dy}" rx="1.8" ry="2.6"/><ellipse cx="${a - 3}" cy="${b + dy + 1}" rx="1.6" ry="2.4"/><ellipse cx="${a + 3}" cy="${b + dy + 1}" rx="1.6" ry="2.4"/>`).join('')}</g>`;
+    }
+    const [a, b] = at(2);
+    o += `<path d="M${a - 5} ${b + 10}l2-16h6l2 16z" fill="#f4ead2" stroke="#6b4a1a" stroke-width="1"/><path d="M${a - 6} ${b - 6}l6-6 6 6z" fill="#9b3b2b"/>
+      <g stroke="#6b4a1a" stroke-width="2" stroke-linecap="round" class="mill" style="transform-origin:${a}px ${b - 4}px;animation-delay:-${(performance.now() / 1000 % 12).toFixed(2)}s"><path d="M${a} ${b - 4}l-11 -9M${a} ${b - 4}l11 9M${a} ${b - 4}l9 -11M${a} ${b - 4}l-9 11"/></g>`;
+  } else if (t === 'mermer') {
+    const peak = (a, b, w, hgt) => `<path d="M${a - w} ${b + hgt * .45}L${a} ${b - hgt * .55}L${a + w} ${b + hgt * .45}z" fill="#5d6577" stroke="#3a4050" stroke-width="1"/><path d="M${a} ${b - hgt * .55}L${a + w} ${b + hgt * .45}H${a + w * .2}z" fill="#4b5263"/><path d="M${a - w * .33} ${b - hgt * .22}L${a} ${b - hgt * .55}L${a + w * .33} ${b - hgt * .22}l-${w * .16} ${hgt * .06}l-${w * .17} -${hgt * .07}l-${w * .17} ${hgt * .08}z" fill="#f4f1ea"/>`;
+    { const [a, b] = at(0); o += peak(a + 4, b, 16, 30) }
+    { const [a, b] = at(3); o += peak(a - 4, b - 4, 14, 26) }
+    { const [a, b] = at(5); o += peak(a, b + 4, 11, 20) }
+    for (const k of [6, 7]) { const [a, b] = at(k); o += `<rect x="${a - 7}" y="${b - 4}" width="14" height="9" fill="#ece7dc" stroke="#9aa0ad" stroke-width=".8"/><path d="M${a - 6} ${b - 1}q4 3 7 -1t5 2" stroke="#9aa0ad" stroke-width=".7" fill="none"/>` }
+  } else {
+    o += `<rect x="${x - 60}" y="${y - 60}" width="120" height="120" fill="url(#cobble)" opacity=".7"/>
+      <ellipse cx="${x}" cy="${y + 8}" rx="24" ry="9" fill="#5b8fb0" stroke="#e7dcc0" stroke-width="3"/><ellipse cx="${x}" cy="${y + 6}" rx="17" ry="5" fill="#8ec6e0"/>
+      <rect x="${x - 3}" y="${y - 16}" width="6" height="20" fill="#e7dcc0" stroke="#8a7a58" stroke-width=".8"/><ellipse cx="${x}" cy="${y - 17}" rx="8" ry="3" fill="#e7dcc0" stroke="#8a7a58" stroke-width=".8"/>
+      <path class="jet" d="M${x} ${y - 19}q-7 -10 -12 4M${x} ${y - 19}q7 -10 12 4" stroke="#bfe6f5" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    for (const k of [4, 5]) { const [a, b] = at(k); o += `<g fill="#1f6b3a"><circle cx="${a}" cy="${b}" r="6"/></g><rect x="${a - 1}" y="${b + 5}" width="2" height="4" fill="#4a2e1a"/>` }
+  }
+  return o;
+}
+function house(x, y, c) {
+  return `<g class="bld"><ellipse cx="${x}" cy="${y + 9}" rx="11" ry="3" fill="rgba(0,0,0,.35)"/>
+    <rect x="${x - 9}" y="${y - 3}" width="18" height="12" fill="${c}" stroke="#1b1f33" stroke-width="1.6"/>
+    <path d="M${x - 12} ${y - 2}L${x} ${y - 14}L${x + 12} ${y - 2}z" fill="${darker(c.length === 7 ? c : '#888888', .62)}" stroke="#1b1f33" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M${x - 8} ${y - 4}L${x} ${y - 12}" stroke="rgba(255,255,255,.45)" stroke-width="1.2"/>
+    <rect x="${x - 2.5}" y="${y + 2}" width="5" height="7" rx="2.5" fill="#1b1f33"/><rect x="${x + 4}" y="${y}" width="3" height="3" fill="#ffe8a3"/></g>`;
+}
+function konak(x, y, c) {
+  const d = darker(c, .62);
+  return `<g class="bld"><ellipse cx="${x}" cy="${y + 11}" rx="18" ry="3.5" fill="rgba(0,0,0,.35)"/>
+    <rect x="${x - 17}" y="${y - 12}" width="5" height="22" fill="${c}" stroke="#1b1f33" stroke-width="1.4"/><path d="M${x - 18} ${y - 12}l3.5 -9 3.5 9z" fill="${d}" stroke="#1b1f33" stroke-width="1.2"/>
+    <rect x="${x + 12}" y="${y - 12}" width="5" height="22" fill="${c}" stroke="#1b1f33" stroke-width="1.4"/><path d="M${x + 11} ${y - 12}l3.5 -9 3.5 9z" fill="${d}" stroke="#1b1f33" stroke-width="1.2"/>
+    <rect x="${x - 13}" y="${y - 3}" width="26" height="13" fill="${c}" stroke="#1b1f33" stroke-width="1.6"/>
+    <path d="M${x - 10} ${y - 3}a10 10 0 0 1 20 0z" fill="${d}" stroke="#1b1f33" stroke-width="1.6"/><path d="M${x - 6} ${y - 6}a6 6 0 0 1 5 -4" stroke="rgba(255,255,255,.5)" stroke-width="1.3" fill="none"/>
+    <rect x="${x - .8}" y="${y - 17}" width="1.6" height="5" fill="#e9c46a"/><circle cx="${x}" cy="${y - 18}" r="1.6" fill="#e9c46a"/>
+    <path d="M${x - 9} ${y + 10}v-5a2 2 0 0 1 4 0v5M${x - 2} ${y + 10}v-6a2 2 0 0 1 4 0v6M${x + 5} ${y + 10}v-5a2 2 0 0 1 4 0v5" fill="#1b1f33"/>
+    <rect x="${x - 13}" y="${y - 3}" width="26" height="2" fill="#e9c46a" opacity=".85"/></g>`;
+}
+function star8(x, y, r) {
+  const pts = []; for (let i = 0; i < 16; i++) { const a = Math.PI / 8 * i, rr = i % 2 ? r * .45 : r; pts.push((x + rr * Math.cos(a)).toFixed(1) + ',' + (y + rr * Math.sin(a)).toFixed(1)) }
+  return `<polygon points="${pts.join(' ')}" fill="#e9c46a" stroke="#7a5410" stroke-width="1"/><circle cx="${x}" cy="${y}" r="${r * .22}" fill="#1a4c7a"/>`;
+}
+function ferry(cls, y, dur, flip, color) {
+  const delay = (performance.now() / 1000 % dur).toFixed(2);
+  return `<g class="${cls}" style="animation-duration:${dur}s;animation-delay:-${delay}s"><g transform="translate(0 ${y})${flip ? ' scale(-1 1)' : ''}">
+    <path d="M-20 0h40l-6 8h-30z" fill="#1b1f33"/><rect x="-15" y="-7" width="28" height="7" fill="#f4f1ea" stroke="#1b1f33" stroke-width=".8"/><rect x="-10" y="-12" width="16" height="5" fill="#f4f1ea" stroke="#1b1f33" stroke-width=".8"/>
+    <rect x="1" y="-19" width="5" height="7" fill="${color}" stroke="#1b1f33" stroke-width=".8"/><g fill="#1a4c7a">${[-12, -7, -2, 3, 8].map(xx => `<rect x="${xx}" y="-5" width="3" height="2.5"/>`).join('')}</g>
+    <path d="M-26 9q6 -3 12 0t12 0t12 0t12 0t12 0" stroke="rgba(255,255,255,.5)" stroke-width="1.2" fill="none"/></g></g>`;
+}
 function boardSvg(v, me) {
   const myTurn = v.order[v.turn] === me;
   let tV = [], tE = [], tH = false;
@@ -131,40 +233,87 @@ function boardSvg(v, me) {
     else if (v.sub === 'main' && mode === 'ev') tV = VERT.map((_, i) => i).filter(i => L.distanceOK(v, i) && L.vertTouchesRoad(v, me, i));
     else if (v.sub === 'main' && mode === 'konak') tV = Object.keys(v.vb).filter(k => v.vb[k].o === me && !v.vb[k].city).map(Number);
   }
-  let s = '';
+  const poly = (i, f = 1) => HEX[i].verts.map(k => (HEX[i].x + (VERT[k].x - HEX[i].x) * f).toFixed(1) + ',' + (HEX[i].y + (VERT[k].y - HEX[i].y) * f).toFixed(1)).join(' ');
+  const wave = (performance.now() / 1000 % 14).toFixed(2);
+  let s = `<defs>
+    <radialGradient id="sea" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#2f86bf"/><stop offset=".6" stop-color="#1c5e92"/><stop offset="1" stop-color="#0f3a63"/></radialGradient>
+    <pattern id="waves" width="60" height="26" patternUnits="userSpaceOnUse"><path d="M0 13q7.5 -7 15 0t15 0M30 13q7.5 -7 15 0t15 0" stroke="rgba(255,255,255,.13)" stroke-width="1.6" fill="none"/><path d="M15 26q7.5 -7 15 0t15 0" stroke="rgba(255,255,255,.08)" stroke-width="1.4" fill="none"/></pattern>
+    <pattern id="bricks" width="16" height="8" patternUnits="userSpaceOnUse"><rect width="16" height="8" fill="#a54a2e"/><path d="M0 0H16M0 4H16M4 0V4M12 4V8" stroke="#7a3119" stroke-width="1"/></pattern>
+    <pattern id="rows" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(-25)"><rect width="12" height="12" fill="none"/><path d="M0 6H12" stroke="#b9861c" stroke-width="2.2"/></pattern>
+    <pattern id="cobble" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3.6" fill="#cbb98c"/><circle cx="0" cy="0" r="3.6" fill="#cbb98c"/><circle cx="10" cy="10" r="3.6" fill="#cbb98c"/></pattern>
+    <pattern id="awn" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="3" height="6" fill="#b23a48"/><rect x="3" width="3" height="6" fill="#f1dcae"/></pattern>
+    <radialGradient id="tokg" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#e8dcc0"/></radialGradient>
+    <radialGradient id="hexshade" cx="50%" cy="40%" r="65%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000" flood-opacity=".45"/></filter>
+    ${v.hexes.map((_, i) => `<clipPath id="hc${i}"><polygon points="${poly(i)}"/></clipPath>`).join('')}
+  </defs>
+  <rect x="-340" y="-300" width="680" height="600" fill="url(#sea)"/>
+  <g class="wavesg" style="animation-delay:-${wave}s"><rect x="-400" y="-300" width="800" height="600" fill="url(#waves)"/></g>
+  ${ferry('fer1', -268, 70, false, '#c53030')}${ferry('fer2', 272, 85, true, '#e9c46a')}
+  <g stroke="#f4f1ea" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".8"><path class="gull" d="M-250 -170q5 -5 10 0q5 -5 10 0"/><path class="gull g2" d="M235 150q4 -4 8 0q4 -4 8 0"/><path class="gull" d="M250 -120q4 -4 8 0q4 -4 8 0"/></g>
+  ${[[-308, -272], [308, -272], [-308, 272], [308, 272]].map(([a, b]) => star8(a, b, 14)).join('')}
+  <rect x="-326" y="-288" width="652" height="576" rx="14" fill="none" stroke="#e9c46a" stroke-width="2.5" opacity=".75"/><rect x="-320" y="-282" width="640" height="564" rx="10" fill="none" stroke="#e9c46a" stroke-width="1" opacity=".5"/>
+  <g opacity=".5">${v.hexes.map((_, i) => `<polygon points="${poly(i, 1.24)}" fill="#7fc6d8"/>`).join('')}</g>
+  <g>${v.hexes.map((_, i) => `<polygon points="${poly(i, 1.12)}" fill="#e6cf98"/>`).join('')}</g>`;
   // limanlar
   for (const p of v.ports) {
-    const [a, b] = EDGE[p.e].v, A = VERT[a], B = VERT[b], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, d = Math.hypot(mx, my), ox = mx + mx / d * 34, oy = my + my / d * 34;
-    s += `<g class="port"><line x1="${A.x}" y1="${A.y}" x2="${ox}" y2="${oy}"/><line x1="${B.x}" y1="${B.y}" x2="${ox}" y2="${oy}"/><circle cx="${ox}" cy="${oy}" r="17"/>
-      <text x="${ox}" y="${oy - (p.t === '3' ? 0 : 5)}">${p.t === '3' ? '3:1' : '2:1'}</text>${p.t !== '3' ? `<text x="${ox}" y="${oy + 7}" style="font-size:12px">${RE[p.t]}</text>` : ''}<title>${esc(p.name)}: ${p.t === '3' ? 'her kaynakta 3:1' : RN[p.t] + ' 2:1'}</title></g>`;
+    const [a, b] = EDGE[p.e].v, A = VERT[a], B = VERT[b], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, d = Math.hypot(mx, my), ox = mx + mx / d * 36, oy = my + my / d * 36;
+    s += `<g class="port"><line x1="${A.x}" y1="${A.y}" x2="${ox}" y2="${oy}"/><line x1="${B.x}" y1="${B.y}" x2="${ox}" y2="${oy}"/><line class="plank" x1="${A.x}" y1="${A.y}" x2="${ox}" y2="${oy}"/><line class="plank" x1="${B.x}" y1="${B.y}" x2="${ox}" y2="${oy}"/>
+      <circle cx="${ox}" cy="${oy}" r="18" filter="url(#sh)"/><circle cx="${ox}" cy="${oy}" r="14.5" class="pin"/>
+      <text x="${ox}" y="${oy - (p.t === '3' ? 0 : 5)}">${p.t === '3' ? '3:1' : '2:1'}</text>${p.t !== '3' ? `<text x="${ox}" y="${oy + 7}" style="font-size:11px">${RE[p.t]}</text>` : ''}<title>${esc(p.name)}: ${p.t === '3' ? 'her kaynakta 3:1' : RN[p.t] + ' 2:1'}</title></g>`;
   }
   // altıgenler
   v.hexes.forEach((h, i) => {
-    const H = HEX[i], pts = H.verts.map(k => VERT[k].x + ',' + VERT[k].y).join(' '), T = TERRAIN[h.t];
+    const H = HEX[i], T = TERRAIN[h.t];
     const red = h.n === 6 || h.n === 8, pips = h.n ? 6 - Math.abs(7 - h.n) : 0;
-    s += `<g class="hex"><polygon points="${pts}" fill="${T.fill}"/>
-      <text class="hem" x="${H.x}" y="${H.y - 30}">${h.t === 'col' ? '⛲' : RE[h.t]}</text>
-      ${h.n ? `<circle class="tok" cx="${H.x}" cy="${H.y}" r="17"/><text class="tn ${red ? 'red' : ''}" x="${H.x}" y="${H.y - 2}">${h.n}</text>
+    s += `<g class="hex" filter="url(#sh)"><polygon points="${poly(i)}" fill="${T.fill}"/>
+      <g clip-path="url(#hc${i})">${art(h.t, H.x, H.y, i)}<polygon points="${poly(i)}" fill="url(#hexshade)"/></g>
+      <polygon points="${poly(i, .965)}" fill="none" stroke="#f3e2b0" stroke-width="2.4"/><polygon points="${poly(i, .9)}" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1"/>
+      ${h.n ? `<g filter="url(#sh)"><circle cx="${H.x}" cy="${H.y}" r="17.5" fill="url(#tokg)" stroke="#b8902e" stroke-width="2.6"/><circle cx="${H.x}" cy="${H.y}" r="14" fill="none" stroke="#d9bd6a" stroke-width=".8"/></g>
+        <text class="tn ${red ? 'red' : ''}" x="${H.x}" y="${H.y - 2}">${h.n}</text>
         ${Array.from({ length: pips }, (_, k) => `<circle class="pip ${red ? 'red' : ''}" cx="${H.x + (k - (pips - 1) / 2) * 4.2}" cy="${H.y + 10}" r="1.5"/>`).join('')}` : ''}
-      <text class="hname" x="${H.x}" y="${H.y + 33}">${esc(v.names[i])}</text></g>`;
-    if (!tH) s += `<polygon class="hexhit" data-info="${i}" points="${pts}"/>`;
+      <g><rect x="${H.x - 9}" y="${H.y - 48}" width="18" height="15" rx="7.5" fill="rgba(15,20,45,.55)"/><text class="hem" x="${H.x}" y="${H.y - 40}">${h.t === 'col' ? '⛲' : RE[h.t]}</text></g>
+      <text class="hname" x="${H.x}" y="${H.y + 37}">${esc(v.names[i])}</text></g>`;
+    if (!tH) s += `<polygon class="hexhit" data-info="${i}" points="${poly(i)}"/>`;
   });
   // yollar
-  for (const e in v.eb) { const [a, b] = EDGE[e].v; s += `<line class="roadb" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/><line class="road" stroke="${col(v.eb[e])}" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/>` }
-  // zabıta
-  const R = HEX[v.robber]; s += `<text class="robber" x="${R.x + 24}" y="${R.y - 6}">🚨</text>`;
-  // yapılar
-  for (const k in v.vb) {
-    const b = v.vb[k], P = VERT[k], c = col(b.o);
-    s += b.city ? `<path class="bld" fill="${c}" d="M${P.x - 13} ${P.y + 10}v-14l6-6 6 6v-4h14v18z"/>` : `<path class="bld" fill="${c}" d="M${P.x - 9} ${P.y + 8}v-10l9-8 9 8v10z"/>`;
+  for (const e in v.eb) {
+    const [a, b] = EDGE[e].v, A = VERT[a], B = VERT[b], c = col(v.eb[e]);
+    const ax = A.x + (B.x - A.x) * .14, ay = A.y + (B.y - A.y) * .14, bx = B.x + (A.x - B.x) * .14, by = B.y + (A.y - B.y) * .14;
+    s += `<g filter="url(#sh)"><line class="roadb" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}"/><line class="road" stroke="${c}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}"/><line class="roadc" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}"/></g>`;
   }
+  // zabıta
+  const R = HEX[v.robber];
+  s += `<g class="robber" transform="translate(${R.x + 31} ${R.y - 19})"><circle r="17" class="rring"/><circle r="14" fill="#1b1f33" stroke="#c53030" stroke-width="2.5"/><text y="1">🚨</text></g>`;
+  // yapılar
+  for (const k in v.vb) { const b = v.vb[k], P = VERT[k], c = col(b.o); s += b.city ? konak(P.x, P.y, c) : house(P.x, P.y, c) }
   // hedefler
-  if (tH) v.hexes.forEach((h, i) => { if (i !== v.robber) s += `<polygon class="tgt-h" data-h="${i}" points="${HEX[i].verts.map(k => VERT[k].x + ',' + VERT[k].y).join(' ')}"/>` });
+  if (tH) v.hexes.forEach((h, i) => { if (i !== v.robber) s += `<polygon class="tgt-h" data-h="${i}" points="${poly(i)}"/>` });
   for (const e of tE) { const [a, b] = EDGE[e].v; s += `<line class="tgt-e" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/><line class="tgt-e-hit" data-e="${e}" x1="${VERT[a].x}" y1="${VERT[a].y}" x2="${VERT[b].x}" y2="${VERT[b].y}"/>` }
   for (const k of tV) s += `<circle class="tgt-v" cx="${VERT[k].x}" cy="${VERT[k].y}" r="10"/><circle class="tgt-v-hit" data-v="${k}" cx="${VERT[k].x}" cy="${VERT[k].y}" r="22"/>`;
-  return `<svg class="map" viewBox="-305 -290 610 580" aria-label="Harita">${s}</svg>`;
+  return `<svg class="map" viewBox="-332 -293 664 586" aria-label="Harita">${s}</svg>`;
 }
+/* gün batımında İstanbul silüeti */
+const SKYLINE = `<svg class="sky" viewBox="0 0 600 96" aria-hidden="true">
+  <defs><linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1f5c"/><stop offset=".55" stop-color="#b8456b"/><stop offset="1" stop-color="#f6a04d"/></linearGradient>
+  <linearGradient id="seag2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a7a"/><stop offset="1" stop-color="#1a2047"/></linearGradient></defs>
+  <rect width="600" height="96" fill="url(#skyg)"/><circle cx="470" cy="74" r="26" fill="#ffd27a" opacity=".9"/>
+  <g fill="#1b1533">
+    <rect x="70" y="34" width="22" height="50"/><path d="M66 34L81 8L96 34z"/><rect x="64" y="40" width="34" height="4"/><rect x="77" y="18" width="8" height="3" fill="#ffd27a" opacity=".6"/>
+    <path d="M20 84v-18h14v-6h10v24zM100 84v-14h16v-8h12v22z"/>
+    <rect x="170" y="70" width="170" height="14"/><path d="M215 70a40 32 0 0 1 80 0z"/><path d="M185 74a18 14 0 0 1 36 0zM289 74a18 14 0 0 1 36 0z"/><rect x="253" y="30" width="4" height="10"/><circle cx="255" cy="30" r="2.5"/>
+    ${[176, 196, 314, 334].map(x => `<rect x="${x}" y="22" width="5" height="62"/><path d="M${x - 1} 22l3.5 -14 3.5 14z"/><rect x="${x - 2}" y="40" width="9" height="2.5"/><rect x="${x - 2}" y="56" width="9" height="2.5"/>`).join('')}
+    <rect x="410" y="32" width="7" height="52"/><rect x="560" y="32" width="7" height="52"/><rect x="380" y="74" width="220" height="4"/>
+  </g>
+  <path d="M413 33Q488 86 563 33M380 40Q396 70 413 74M567 40Q584 70 600 74" stroke="#1b1533" stroke-width="2" fill="none"/>
+  <g stroke="#1b1533" stroke-width="1">${Array.from({ length: 14 }, (_, k) => { const x = 420 + k * 10, t = (x - 413) / 150, y = 33 + 4 * 53 * t * (1 - t) * .95; return `<line x1="${x}" y1="${y.toFixed(1)}" x2="${x}" y2="74"/>` }).join('')}</g>
+  <rect y="84" width="600" height="12" fill="url(#seag2)"/><g stroke="#ffd27a" stroke-width="1.5" opacity=".55"><line x1="450" y1="88" x2="490" y2="88"/><line x1="458" y1="92" x2="482" y2="92"/></g>
+  <g stroke="#1b1533" stroke-width="1.3" fill="none"><path d="M130 30q4 -4 8 0q4 -4 8 0M370 22q3 -3 6 0q3 -3 6 0"/></g>
+</svg>`;
 
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+let lastDK = '';
+const dieHtml = (d, seven, anim) => `<div class="die ${seven ? 'seven' : ''} ${anim ? 'anim' : ''}">${Array.from({ length: 9 }, (_, k) => PIPS[d].includes(k) ? '<i></i>' : '<span></span>').join('')}</div>`;
 /* ---- paneller ---- */
 function handHtml(h) { return `<div class="hand">${RES.map(r => `<div class="rc r-${r} ${h[r] ? '' : 'zero'}"><span class="e">${RE[r]}</span><span class="n">${h[r]}</span><span class="l">${RN[r]}</span></div>`).join('')}</div>` }
 function stepper(obj, max, key) {
@@ -204,7 +353,8 @@ function render(v, ctx) {
   else if (v.sub === 'steal') hint = myTurn ? 'Kimden kart çalacaksın?' : `${esc(nm(turnId))} kimden çalacağını seçiyor...`;
   else if (v.sub === 'roads') hint = myTurn ? `Bedava yol: ${v.free} tane kaldı. Yeri seç.` : `${esc(nm(turnId))} bedava yol yapıyor...`;
   else if (v.sub === 'main') hint = myTurn ? (mode ? { yol: 'Yolu koyacağın yere dokun.', ev: 'Evi koyacağın köşeye dokun.', konak: 'Konağa çevireceğin evine dokun.' }[mode] : 'Ticaret yap, inşa et ya da turu bitir.') : `${esc(nm(turnId))} oynuyor...`;
-  const dice = v.dice ? `<div class="dice">${v.dice.map(d => `<div class="die ${v.dice[0] + v.dice[1] === 7 ? 'seven' : ''}">${d}</div>`).join('')}</div>` : '';
+  const dk = v.dice ? v.turnNo + ':' + v.dice.join('') : '', animD = dk !== lastDK; lastDK = dk;
+  const dice = v.dice ? `<div class="dice">${v.dice.map(d => dieHtml(d, v.dice[0] + v.dice[1] === 7, animD)).join('')}</div>` : '';
   let steal = '';
   if (v.lastSteal && inGame) steal = v.lastSteal.by === me ? `<p class="stoast">${esc(nm(v.lastSteal.from))} oyuncusundan ${RE[v.lastSteal.r]} ${RN[v.lastSteal.r]} çaldın.</p>` : `<p class="stoast">${esc(nm(v.lastSteal.by))} senden ${RE[v.lastSteal.r]} ${RN[v.lastSteal.r]} çaldı.</p>`;
 
@@ -271,7 +421,7 @@ function render(v, ctx) {
 
   app.innerHTML = `<div class="layout"><div>
       <section class="panel"><div class="status"><span class="who"><span class="dot" style="background:${col(turnId)}"></span>${v.phase === 'over' ? 'Oyun bitti' : esc(nm(turnId)) + (myTurn ? ' (sen)' : '')}</span>${dice}</div><p class="hint" style="margin:0">${hint}</p>${steal}</section>
-      <div class="boardbox">${boardSvg(v, me)}</div>${infoHtml}
+      <div class="boardbox">${SKYLINE}${boardSvg(v, me)}</div>${infoHtml}
     </div><div style="display:flex;flex-direction:column;gap:14px">
       ${box ? `<section class="panel">${box}</section>` : ''}
       ${inGame ? `<section class="panel"><span class="label">Elin · ${v.vp[me]} puan</span>${handHtml(h)}</section>` : ''}
