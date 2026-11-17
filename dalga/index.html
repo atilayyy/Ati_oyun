@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dalga Boyu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.stage{display:flex;flex-direction:column;align-items:center;gap:12px}
+.ends{display:flex;justify-content:space-between;width:100%;max-width:520px;gap:10px}
+.end{font-family:var(--display);font-weight:800;font-size:clamp(1rem,4.5vw,1.35rem);padding:8px 14px;border-radius:12px;max-width:48%;line-height:1.15}
+.end.l{background:#4f8cff;color:#fff}
+.end.r{background:#ff6b5a;color:#fff;text-align:right}
+.dial{width:100%;max-width:520px;touch-action:none;user-select:none;-webkit-user-select:none}
+.dial.drag{cursor:grab}
+.clue{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,7vw,2.4rem);text-align:center;line-height:1.1;padding:10px 18px;border-radius:14px;background:#fbf6ea;color:#1b1f33;box-shadow:0 4px 0 rgba(0,0,0,.35);transform:rotate(-1deg)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.pc{font:inherit;cursor:pointer;border-radius:14px;border:2px solid var(--edge);background:var(--table);padding:14px;display:flex;flex-direction:column;gap:8px;color:var(--ink)}
+.pc:hover{border-color:var(--accent)}
+.pc span{font-weight:800;padding:6px 10px;border-radius:10px;color:#fff}
+.pc span:first-child{background:#4f8cff}.pc span:last-child{background:#ff6b5a;text-align:right}
+.entry{display:flex;gap:8px;width:100%;max-width:520px}
+.entry input{flex:1;font-weight:800;font-size:1.1rem}
+.ppl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ppl span{font-weight:800;font-size:.85rem;padding:4px 10px;border-radius:999px;border:2px solid var(--pc,var(--edge))}
+.ppl span.ok{background:color-mix(in srgb,var(--pc) 25%,transparent)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.plus{color:var(--good);font-weight:800}
+.sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.rules{color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.rules b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Dalga Boyu</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+const PCOL = ['#ffd23f', '#5fd38a', '#b49cff', '#ff8a3d', '#4fc3f7', '#ff6b9e', '#f2f3fb', '#a1e66b', '#ffb4a2', '#7ee0d4'];
+let V, C, myV = 50, rkey = '', clueDraft = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const pcol = id => PCOL[Math.max(0, V.players.findIndex(p => p.id === id)) % PCOL.length];
+const CX = 160, CY = 168, R = 148;
+const pt = (v, r = R) => { const a = Math.PI * (1 - v / 100); return [CX + r * Math.cos(a), CY - r * Math.sin(a)] };
+function wedge(a, b, fill) {
+  a = Math.max(0, a); b = Math.min(100, b); if (b <= a) return '';
+  const [x1, y1] = pt(a), [x2, y2] = pt(b);
+  return `<path d="M${CX} ${CY}L${x1.toFixed(1)} ${y1.toFixed(1)}A${R} ${R} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}Z" fill="${fill}"/>`;
+}
+function needle(v, color, label, thick) {
+  const [x, y] = pt(v, R - 6), [lx, ly] = pt(v, R + 12);
+  return `<line x1="${CX}" y1="${CY}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#1b1f33" stroke-width="${thick ? 9 : 6}" stroke-linecap="round"/>
+    <line x1="${CX}" y1="${CY}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="${thick ? 5 : 3}" stroke-linecap="round"/>
+    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${thick ? 7 : 5}" fill="${color}" stroke="#1b1f33" stroke-width="2"/>
+    ${label ? `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="800" fill="${color}" paint-order="stroke" stroke="#141834" stroke-width="3">${esc(label)}</text>` : ''}`;
+}
+// target: hedef bantlarını göster; needles: [{v,color,label}]; mine: sürüklenebilir kendi ibren
+function dialSvg({ target, needles = [], mine }) {
+  let s = `<defs><radialGradient id="face" cx="50%" cy="100%" r="100%"><stop offset="0" stop-color="#2c3570"/><stop offset="1" stop-color="#1a2047"/></radialGradient></defs>
+    <path d="M${CX - R - 10} ${CY}A${R + 10} ${R + 10} 0 0 1 ${CX + R + 10} ${CY}Z" fill="#fbf6ea"/>
+    <path d="M${CX - R} ${CY}A${R} ${R} 0 0 1 ${CX + R} ${CY}Z" fill="url(#face)"/>`;
+  if (target != null) {
+    s += wedge(target - 12.5, target + 12.5, '#ffd23f') + wedge(target - 7.5, target + 7.5, '#ff8a3d') + wedge(target - 2.5, target + 2.5, '#4fc3f7');
+    for (const [v, t] of [[target - 10, '2'], [target - 5, '3'], [target, '4'], [target + 5, '3'], [target + 10, '2']]) {
+      if (v < 1 || v > 99) continue; const [x, y] = pt(v, R - 16);
+      s += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="800" fill="#1b1f33">${t}</text>`;
+    }
+  }
+  for (let k = 0; k <= 20; k++) { const [x1, y1] = pt(k * 5, R), [x2, y2] = pt(k * 5, R - (k % 5 ? 6 : 12)); s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>` }
+  for (const n of needles) s += needle(n.v, n.color, n.label, false);
+  if (mine != null) s += `<g id="mine">${needle(mine, '#ffd23f', '', true)}</g>`;
+  s += `<circle cx="${CX}" cy="${CY}" r="13" fill="#e9c46a" stroke="#1b1f33" stroke-width="3"/><rect x="${CX - R - 12}" y="${CY}" width="${2 * R + 24}" height="10" fill="#1b1f33" rx="3"/>`;
+  return `<svg class="dial ${mine != null ? 'drag' : ''}" id="dial" viewBox="0 0 320 180">${s}</svg>`;
+}
+const ends = c => `<div class="ends"><span class="end l">← ${esc(c[0])}</span><span class="end r">${esc(c[1])} →</span></div>`;
+function scoreTable(v) {
+  const rows = v.players.slice().sort((a, b) => b.score - a.score);
+  return `<table><tbody>${rows.map((p, i) => `<tr><td>${i + 1}. <span class="sw" style="background:${pcol(p.id)}"></span>${esc(p.name)}${p.id === C.me ? ' (sen)' : ''}</td><td class="n">${p.score}${v.phase === 'reveal' && v.gain[p.id] ? ` <span class="plus">+${v.gain[p.id]}</span>` : ''}</td></tr>`).join('')}</tbody></table>`;
+}
+const RULES = `<div class="rules">
+  <p>Her tur bir kişi <b>anlatıcı</b> olur. Ona iki uçlu bir kart gelir (ör. <b>Soğuk ↔ Sıcak</b>) ve kadranda sadece onun gördüğü gizli bir hedef vardır.</p>
+  <p>Anlatıcı, hedefin yerini anlatan <b>tek bir ipucu</b> yazar. Hedef sıcak tarafa yakınsa "çay" gibi, ortadaysa "ılık süt" gibi.</p>
+  <p>Diğerleri kendi telefonunda ibreyi sürükleyip tahminini gönderir. Hedefin tam ortası <b>4</b>, yanı <b>3</b>, biraz uzağı <b>2</b> puan. Anlatıcı, tahmincilerin ortalama puanını alır, yani iyi ipucu herkesi kazandırır.</p></div>`;
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost, inGame = v.order && v.order.includes(me);
+  if (v.phase === 'lobby' || v.phase === 'over') {
+    const laps = isHost ? `<div class="row"><span class="label">Herkes kaç kez anlatsın?</span><span class="seg">${[1, 2, 3].map(n => `<button data-laps="${n}" class="${v.laps === n ? 'on' : ''}">${n}</button>`).join('')}</span></div>` : '';
+    app.innerHTML = v.phase === 'lobby'
+      ? `<section class="panel">${Ati.shareHtml(ctx)}<div><span class="label">Oyuncular (2-10 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+         ${isHost ? `${laps}<button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}</section>
+         <section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>`
+      : `<section class="panel"><span class="label">Oyun bitti</span><h2>${(() => { const t = P.slice().sort((a, b) => b.score - a.score); return t[1] && t[0].score === t[1].score ? 'Berabere!' : esc(t[0].name) + ' kazandı!' })()}</h2>${scoreTable(v)}
+         ${isHost ? `${laps}<button class="btn" id="start">Yeni oyun</button>` : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    Ati.wireShare(app, ctx);
+    app.querySelectorAll('[data-laps]').forEach(b => b.onclick = () => ctx.act({ type: 'laps', n: +b.dataset.laps }));
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  const k = v.ri + ':' + v.psy; if (k !== rkey) { rkey = k; myV = 50; clueDraft = '' }
+  const psy = v.psy === me, pn = esc(nm(v.psy));
+  const head = `<div class="row"><span class="pill">Tur ${v.round}/${v.rounds}</span><span class="pill">Anlatıcı: ${pn}${psy ? ' (sen)' : ''}</span>${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>`;
+  let body = '';
+  if (v.phase === 'pick') {
+    body = psy ? `<h2 style="margin:0">Bir kart seç</h2><div class="cards">${v.optsText.map((c, i) => `<button class="pc" data-pick="${v.opts[i]}"><span>← ${esc(c[0])}</span><span>${esc(c[1])} →</span></button>`).join('')}</div>`
+      : `<p class="muted">${pn} kartını seçiyor...</p>${dialSvg({})}`;
+  } else if (v.phase === 'clue') {
+    body = psy ? `${ends(v.cardText)}${dialSvg({ target: v.target })}<p style="margin:0;text-align:center"><b>Hedef burada.</b> Diğerlerine yerini anlatan tek bir ipucu yaz.</p>
+        <div class="entry"><input id="clue" maxlength="40" autocomplete="off" placeholder="ipucun..." value="${esc(clueDraft)}"><button class="btn" id="send">Gönder</button></div>`
+      : `${ends(v.cardText)}<p class="muted">${pn} ipucu düşünüyor...</p>${dialSvg({})}`;
+  } else if (v.phase === 'guess') {
+    const gs = P.filter(p => p.id !== v.psy && v.order.includes(p.id));
+    const status = `<div class="ppl">${gs.map(p => `<span class="${p.id in v.guesses ? 'ok' : ''}" style="--pc:${pcol(p.id)}">${esc(p.name)} ${p.id in v.guesses ? '✓' : '…'}</span>`).join('')}</div>`;
+    if (psy) body = `<div class="clue">${esc(v.clue)}</div>${ends(v.cardText)}${dialSvg({ target: v.target })}<p class="muted" style="margin:0">Tahminler bekleniyor...</p>${status}`;
+    else if (me in v.guesses) body = `<div class="clue">${esc(v.clue)}</div>${ends(v.cardText)}${dialSvg({ mine: v.guesses[me] })}<p style="margin:0"><b>Tahminin gönderildi.</b></p><button class="btn ghost small" id="ungu">Değiştir</button>${status}`;
+    else body = `<div class="clue">${esc(v.clue)}</div>${ends(v.cardText)}${dialSvg({ mine: myV })}<p class="muted" style="margin:0">İbreyi sürükle ya da kadranda bir yere dokun.</p><button class="btn" id="go">Tahmini gönder</button>${status}`;
+    if (isHost && Object.keys(v.guesses).length && gs.some(p => !(p.id in v.guesses) && p.online === false)) body += '<button class="btn ghost small" id="force">Bekleme, sonucu göster</button>';
+  } else if (v.phase === 'reveal') {
+    const needles = Object.keys(v.guesses).map(id => ({ v: v.guesses[id], color: pcol(id), label: nm(id) }));
+    body = `<div class="clue">${esc(v.clue)}</div>${ends(v.cardText)}${dialSvg({ target: v.target, needles })}
+      <p style="margin:0;text-align:center">${psy ? `İpucun herkese ortalama <b>${v.gain[me]}</b> puan kazandırdı.` : inGame ? (v.gain[me] ? `<b>+${v.gain[me]} puan!</b>` : 'Bu sefer olmadı.') : ''}</p>
+      ${isHost || psy ? `<button class="btn" id="next">${v.ri + 1 >= v.rounds ? 'Sonuçlar' : 'Sonraki tur'}</button>` : '<p class="muted">Anlatıcı ya da ev sahibi devam ettirecek.</p>'}`;
+  }
+  app.innerHTML = `${head}<section class="panel stage">${body}</section><section class="panel"><span class="label">Puanlar</span>${scoreTable(v)}</section><details class="panel"><summary>Kurallar</summary>${RULES}</details>`;
+
+  const on = (s, f) => { const b = app.querySelector(s); if (b) b.onclick = f };
+  app.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => ctx.act({ type: 'pick', c: +b.dataset.pick }));
+  const ci = app.querySelector('#clue');
+  if (ci) { ci.oninput = () => clueDraft = ci.value; const go = () => { if (ci.value.trim()) ctx.act({ type: 'clue', t: ci.value.trim() }) }; on('#send', go); ci.onkeydown = e => { if (e.key === 'Enter') go() } }
+  on('#go', () => ctx.act({ type: 'guess', v: myV }));
+  on('#ungu', () => { myV = v.guesses[me]; ctx.act({ type: 'unguess' }) });
+  on('#next', () => ctx.act({ type: 'next' }));
+  on('#force', () => ctx.act({ type: 'force' }));
+  // ibreyi sürükleme
+  const dial = app.querySelector('.dial.drag');
+  if (dial && v.phase === 'guess' && !psy && !(me in v.guesses)) {
+    let down = false;
+    function bindDial() {
+      const d = app.querySelector('.dial.drag'); if (!d) return;
+      d.onpointerdown = e => { down = true; try { d.setPointerCapture(e.pointerId) } catch (x) {} setFrom(e) };
+      d.onpointermove = e => { if (down) setFrom(e) };
+      d.onpointerup = d.onpointercancel = () => { down = false };
+    }
+    function setFrom(e) {
+      const d = app.querySelector('.dial.drag'), r = d.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 320, y = (e.clientY - r.top) / r.height * 180;
+      let a = Math.atan2(CY - y, x - CX) * 180 / Math.PI; if (a < 0) a = x < CX ? 180 : 0;
+      myV = Math.max(0, Math.min(100, (180 - a) / 1.8));
+      // sadece ibreyi güncelle, pointer capture kaybolmasın
+      const g = d.querySelector('#mine'); if (g) g.innerHTML = needle(myV, '#ffd23f', '', true);
+    }
+    bindDial();
+  }
+}
+Ati.start({ game: 'dalga', el: app, logic: Dalga, render });
+</script>
+</body>
+</html>

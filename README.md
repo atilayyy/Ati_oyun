@@ -2,6 +2,7 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Dalga Boyu**: 2-10 kişi. Wavelength'ten esinlenen ipucu oyunu: anlatıcı iki uçlu kartta gizli hedefi tek kelimeyle anlatır, herkes kadranda tahmin eder. 80 kart.
 - **Yedi Tepe**: 2-4 kişi. Catan temel kurallarıyla İstanbul temalı yerleşim oyunu (kurulum, zar, 7 ve Zabıta, oyuncu/liman ticareti, 25 fırsat kartı, En Uzun Yol, En Büyük Ordu, 10 puan).
 - **Blok Patlat**: 1-8 kişi. 8x8 blok bulmaca, herkese aynı tohumla birebir aynı parçalar gelir, 3-2-1 ile aynı anda başlanır, rakiplerin tahtası canlı görünür. Süresiz ya da 2/3/5 dakika.
 - **Mezat**: 2-6 kişi (bilgisayar eklenebilir). 20 TL bütçeyle sırayla teklif verip 5 ürünlük kadro kur; jüri gizli puanlar ve ikili bonuslarıyla kazananı seçer. Temalar: hamburger, pizza, Türk kahvaltısı, sokak lezzetleri, süper kahraman, süper güçler, rüya futbol takımı, zombi çantası, rüya tatil, hayalindeki ev, ev arkadaşı, müzik grubu. Sıradaki ürünler gizlidir.
