@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Harf Avı</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.layout{display:grid;gap:14px}
+@media (min-width:860px){.layout{grid-template-columns:minmax(0,1fr) 320px;align-items:start}}
+.play{display:flex;flex-direction:column;align-items:center;gap:12px;user-select:none;-webkit-user-select:none}
+.hud{display:flex;justify-content:space-between;align-items:flex-end;width:min(100%,420px)}
+.hud .big{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1;font-variant-numeric:tabular-nums}
+.hud .lb{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hud .low{color:var(--bad)}
+.cur{min-height:52px;font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.06em;text-align:center}
+.cur.ok{color:var(--good)}.cur.bad{color:var(--bad)}.cur.dup{color:var(--accent)}
+.gridwrap{position:relative;width:min(100%,420px);aspect-ratio:1;touch-action:none}
+@supports not (aspect-ratio:1){.gridwrap{height:min(92vw,420px)}}
+.grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px;padding:8px;border-radius:18px;background:#1a2047;box-shadow:inset 0 0 0 2px #2c3570,0 6px 0 rgba(0,0,0,.35)}
+.cell{border-radius:14px;background:linear-gradient(160deg,#fffaf0,#e8dcc0);color:#1b1f33;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:clamp(1.8rem,9vw,2.8rem);box-shadow:0 4px 0 #b8902e;transition:transform .08s;position:relative}
+.cell.on{background:linear-gradient(160deg,#ffe58a,#ffc93d);transform:scale(.94)}
+.cell.last{box-shadow:0 0 0 3px #fff,0 4px 0 #b8902e}
+.ov{position:absolute;inset:0;display:grid;place-items:center;border-radius:18px;background:rgba(13,17,38,.82);font-family:var(--display);font-weight:800;font-size:3rem;text-align:center;z-index:5}
+.ov small{display:block;font-family:var(--body);font-size:1rem;color:var(--muted)}
+svg.lines{position:absolute;inset:0;pointer-events:none;z-index:2}
+.btns{display:flex;gap:8px}
+.words{display:flex;flex-wrap:wrap;gap:6px}
+.w{font-weight:800;font-size:.88rem;padding:3px 10px;border-radius:999px;background:var(--table);border:1px solid var(--edge)}
+.w b{color:var(--good);margin-left:4px}
+.w.shared{text-decoration:line-through;opacity:.5}
+.w.long{border-color:var(--accent)}
+.ppl{display:flex;flex-direction:column;gap:6px}
+.pp{display:flex;justify-content:space-between;padding:8px 10px;border-radius:10px;background:var(--table);font-weight:700}
+.rc{border-radius:14px;border:2px solid var(--edge);padding:12px;display:flex;flex-direction:column;gap:8px}
+.rc.win{border-color:var(--accent)}
+.rc .hd{display:flex;justify-content:space-between;align-items:baseline}
+.rc .hd b{font-family:var(--display);font-size:1.6rem}
+.loading{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Harf Avı</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+const UP = w => w.toLocaleUpperCase('tr');
+/* ---- sözlük: TDK kelimeleri + kökü TDK'da olan yaygın ekli halleri (sozluk.json) ---- */
+let DICT = null, SORTED = null, dictP = null;
+// listede argo/küfür de var: bunlar ne kabul edilir ne gösterilir
+const BAD = ['yarra', 'amcı', 'amına', 'amın', 'orosp', 'pezeven', 'siktir', 'sikiş', 'sikti', 'sikim', 'sikik', 'sikey', 'sikec', 'sikme', 'yavşa', 'dalyara', 'kaltak', 'sürtük', 'ibne', 'puşt', 'gavat', 'taşak', 'piç', 'kahpe', 'sevişm', 'zenc'];
+const bad = w => BAD.some(b => w.startsWith(b)) || (w.startsWith('göt') && !w.startsWith('götür')) || w === 'sik' || w === 'amk';
+function loadDict() {
+  if (dictP) return dictP;
+  dictP = fetch('sozluk.json').then(r => r.json())
+    .then(ls => { DICT = new Set(ls.filter(w => !bad(w))); SORTED = ls.filter(w => !bad(w)); if (V) render(V, C) });
+  return dictP;
+}
+loadDict();
+function hasPrefix(p) {
+  let lo = 0, hi = SORTED.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (SORTED[m] < p) lo = m + 1; else hi = m }
+  return lo < SORTED.length && SORTED[lo].startsWith(p);
+}
+function solve(board) {
+  const out = new Set();
+  const dfs = (c, used, w) => {
+    w += board[c]; if (!hasPrefix(w)) return;
+    if (Array.from(w).length >= 3 && DICT.has(w)) out.add(w);
+    if (Array.from(w).length >= 10) return;
+    used |= 1 << c;
+    for (let n = 0; n < 16; n++) if (!(used & (1 << n)) && Harf.adj(c, n)) dfs(n, used, w);
+  };
+  for (let c = 0; c < 16; c++) dfs(c, 0, '');
+  return [...out];
+}
+// Türkçe harf sıklıklarına göre tablo üret, en az 60 kelimelik olanı seç
+const FREQ = { a: 119, e: 89, i: 86, n: 75, r: 69, l: 59, ı: 51, k: 47, d: 47, m: 38, y: 33, u: 32, t: 30, s: 30, b: 28, o: 25, ü: 19, ş: 18, z: 15, g: 13, ç: 12, h: 11, ğ: 9, v: 10, c: 10, ö: 8, p: 8, f: 5 };
+const FK = Object.keys(FREQ), FT = FK.reduce((a, k) => a + FREQ[k], 0);
+const VOW = 'aeıioöuü';
+function randBoard() {
+  for (;;) {
+    const b = Array.from({ length: 16 }, () => { let x = Math.random() * FT; for (const k of FK) { x -= FREQ[k]; if (x < 0) return k } return 'a' });
+    const v = b.filter(c => VOW.includes(c)).length; if (v >= 5 && v <= 8) return b;
+  }
+}
+function makeBoard() { let best = null, bn = -1; for (let t = 0; t < 40; t++) { const b = randBoard(), n = solve(b).length; if (n > bn) { best = b; bn = n } if (n >= 60) break } return best }
+
+/* ---- oyun ekranı ---- */
+let V, C, built = '', path = [], dragging = false, moved = false, flash = null, flashT = 0, tStart = 0, tEnd = 0, raf = 0, timeupFor = '', mine = [], solved = null, solvedFor = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') };
+const live = () => V && V.phase === 'play' && performance.now() >= tStart && performance.now() < tEnd && V.found && V.found[C.me];
+
+function word() { return path.map(c => V.board[c]).join('') }
+function drawPath() {
+  document.querySelectorAll('.cell').forEach((el, i) => { el.classList.toggle('on', path.includes(i)); el.classList.toggle('last', path[path.length - 1] === i) });
+  const cur = document.getElementById('cur');
+  if (cur) { if (path.length) { cur.className = 'cur'; cur.textContent = UP(word()) } else if (flash && performance.now() < flashT) { cur.className = 'cur ' + flash.c; cur.textContent = flash.t } else { cur.className = 'cur'; cur.textContent = '' } }
+  const svg = document.getElementById('lines'), g = document.getElementById('grid');
+  if (svg && g) {
+    const r = g.getBoundingClientRect(), pts = path.map(c => { const el = g.children[c].getBoundingClientRect(); return [(el.left + el.width / 2 - r.left), (el.top + el.height / 2 - r.top)] });
+    svg.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`);
+    svg.innerHTML = pts.length > 1 ? `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="rgba(255,140,40,.75)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>` : '';
+  }
+}
+function cellAt(x, y) {
+  const g = document.getElementById('grid'); if (!g) return -1;
+  for (let i = 0; i < 16; i++) {
+    const r = g.children[i].getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    if (Math.hypot(x - cx, y - cy) < r.width * .42) return i;
+  }
+  return -1;
+}
+function extend(c) {
+  if (c < 0) return;
+  if (path.length >= 2 && path[path.length - 2] === c) { path.pop(); drawPath(); return }
+  if (path.includes(c)) return;
+  if (!path.length || Harf.adj(path[path.length - 1], c)) { path.push(c); drawPath() }
+}
+function submit() {
+  const w = word(), p = path.slice(); path = [];
+  if (Array.from(w).length < 3) { drawPath(); return }
+  if (mine.includes(w)) flash = { t: UP(w) + ' zaten var', c: 'dup' };
+  else if (!DICT || !DICT.has(w)) flash = { t: UP(w) + ' yok', c: 'bad' };
+  else { mine.push(w); flash = { t: UP(w) + ' +' + Harf.pts(Array.from(w).length), c: 'ok' }; C.act({ type: 'word', w, path: p, game: V.game }); drawMine() }
+  flashT = performance.now() + 1200; drawPath(); setTimeout(drawPath, 1250);
+}
+function drawMine() {
+  const el = document.getElementById('mine'); if (!el) return;
+  const pts = mine.reduce((a, w) => a + Harf.pts(Array.from(w).length), 0);
+  el.innerHTML = `<span class="label">Bulduğun kelimeler · ${mine.length} · ${pts} puan</span><div class="words" style="margin-top:6px">${mine.slice().reverse().map(w => `<span class="w">${esc(UP(w))}<b>+${Harf.pts(Array.from(w).length)}</b></span>`).join('') || '<span class="muted">Harfleri parmağınla birleştir.</span>'}</div>`;
+}
+function tick() {
+  if (!V || V.phase !== 'play') { raf = 0; return }
+  const now = performance.now(), ov = document.getElementById('ov'), tm = document.getElementById('tm');
+  if (ov) { if (now < tStart) ov.innerHTML = Math.ceil((tStart - now) / 1000) + '<small>Aynı tablo, aynı anda</small>'; else if (now >= tEnd) ov.innerHTML = 'Süre doldu!<small>Sonuçlar geliyor...</small>'; else ov.style.display = 'none'; if (now >= tEnd) ov.style.display = '' }
+  if (tm) { const l = Math.max(0, tEnd - Math.max(now, tStart)); tm.textContent = fmt(l); tm.classList.toggle('low', l < 15000) }
+  if (now >= tEnd && path.length) { path = []; drawPath() }
+  raf = requestAnimationFrame(tick);
+}
+function bindGrid() {
+  const g = document.getElementById('gridwrap'); if (!g) return;
+  g.onpointerdown = e => {
+    if (!live()) return; e.preventDefault();
+    const c = cellAt(e.clientX, e.clientY); if (c < 0) return;
+    dragging = true; moved = false;
+    try { g.setPointerCapture(e.pointerId) } catch (x) {}
+    if (path.length && path[path.length - 1] === c) { submit(); dragging = false; return } // aynı harfe tekrar dokununca gönder
+    if (path.length && !Harf.adj(path[path.length - 1], c)) path = [];
+    extend(c);
+  };
+  g.onpointermove = e => { if (!dragging || !live()) return; const c = cellAt(e.clientX, e.clientY); if (c >= 0 && c !== path[path.length - 1]) { moved = true; extend(c) } };
+  g.onpointerup = g.onpointercancel = () => { if (dragging && moved) submit(); dragging = false };
+}
+function results(v) {
+  const ids = Object.keys(v.res).sort((a, b) => v.res[b] - v.res[a]);
+  if (DICT && solvedFor !== v.game) { solvedFor = v.game; solved = solve(v.board).sort((a, b) => Array.from(b).length - Array.from(a).length || a.localeCompare(b, 'tr')) }
+  const all = new Set(Object.values(v.found).flat());
+  const missed = solved ? solved.filter(w => !all.has(w)) : [];
+  return `<section class="panel"><span class="label">Süre bitti</span><h2>${v.winners.length > 1 ? 'Berabere!' : esc(nm(v.winners[0])) + ' kazandı!'}</h2>
+    ${ids.map(id => `<div class="rc ${v.winners.includes(id) ? 'win' : ''}"><div class="hd"><span><b>${v.res[id]}</b> puan · ${esc(nm(id))}${id === C.me ? ' (sen)' : ''}</span><span class="muted">${v.found[id].length} kelime</span></div>
+      <div class="words">${v.found[id].slice().sort((a, b) => Array.from(b).length - Array.from(a).length).map(w => `<span class="w ${v.shared.includes(w) ? 'shared' : ''}">${esc(UP(w))}${v.shared.includes(w) ? '' : `<b>+${Harf.pts(Array.from(w).length)}</b>`}</span>`).join('') || '<span class="muted">Kelime yok</span>'}</div></div>`).join('')}
+    ${v.shared.length ? '<p class="muted">Üstü çizili kelimeleri birden fazla kişi buldu, kimseye puan getirmedi.</p>' : ''}</section>
+    <section class="panel"><span class="label">Kimsenin bulamadığı kelimeler${solved ? ` · tabloda toplam ${solved.length} kelime vardı` : ''}</span>
+      <div class="words" style="margin-top:6px">${missed.slice(0, 40).map(w => `<span class="w ${Array.from(w).length >= 6 ? 'long' : ''}">${esc(UP(w))}</span>`).join('') || (solved ? 'Hepsini buldunuz!' : '<span class="loading">Hesaplanıyor...</span>')}</div></section>`;
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost;
+  const opts = isHost ? `<div class="row"><span class="label">Süre</span><span class="seg">${Harf.DURS.map(d => `<button data-dur="${d}" class="${v.dur === d ? 'on' : ''}">${d / 60000} dk</button>`).join('')}</span></div>` : '';
+  const wire = () => {
+    app.querySelectorAll('[data-dur]').forEach(b => b.onclick = () => ctx.act({ type: 'opts', dur: +b.dataset.dur }));
+    const s = app.querySelector('#start'); if (s) s.onclick = async () => { s.disabled = true; s.textContent = 'Tablo hazırlanıyor...'; await loadDict(); ctx.act({ type: 'start', board: makeBoard() }) };
+  };
+  if (v.phase === 'lobby') {
+    built = '';
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (1-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `${opts}<button class="btn" id="start" ${DICT ? '' : 'disabled'}>${DICT ? 'Başlat' : 'Sözlük yükleniyor...'}</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}</section>
+      <section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Herkese aynı 4x4 harf tablosu gelir, aynı anda başlarsınız. Yan yana ya da çapraz komşu harfleri parmağınla birleştirip en az 3 harfli Türkçe kelimeler bul. Bir harfi aynı kelimede bir kez kullanabilirsin.</p>
+      <p class="muted"><b>Puan:</b> 3-4 harf 1, 5 harf 2, 6 harf 3, 7 harf 5, 8+ harf 11. <b>Rakibin de bulduğu kelime iki tarafa da puan getirmez</b>, yani herkesin bulacağı kolay kelimeler yetmez, uzun ve sıra dışı kelimeleri avla!</p>
+      <p class="muted">Sürüklemek yerine harflere tek tek dokunabilirsin, son harfe tekrar dokununca kelime gönderilir.</p></section>`;
+    Ati.wireShare(app, ctx); wire(); return;
+  }
+  if (v.phase === 'over') {
+    built = ''; path = [];
+    app.innerHTML = results(v) + `<section class="panel"><span class="label">Kazanılan oyunlar</span><div class="row">${P.map(p => `<span class="pill">${esc(p.name)}: ${p.score}</span>`).join('')}</div>
+      ${isHost ? `${opts}<button class="btn" id="start">Yeni tablo</button>` : '<p class="muted">Ev sahibi yeni tablo başlatabilir.</p>'}</section>`;
+    wire(); return;
+  }
+  const amIn = !!(v.found && v.found[me]);
+  if (built !== 'g' + v.game) {
+    built = 'g' + v.game; mine = amIn ? v.found[me].slice() : []; path = [];
+    tStart = performance.now() + Math.max(0, v.wait); tEnd = performance.now() + v.left;
+    app.innerHTML = `<div class="layout"><section class="panel play">
+        <div class="hud"><div><div class="lb">Puanın</div><div class="big" id="myp">0</div></div><div style="text-align:right"><div class="lb">Kalan</div><div class="big" id="tm"></div></div></div>
+        <div class="cur" id="cur"></div>
+        <div class="gridwrap" id="gridwrap"><div class="grid" id="grid">${v.board.map(c => `<div class="cell">${esc(UP(c))}</div>`).join('')}</div><svg class="lines" id="lines"></svg><div class="ov" id="ov"></div></div>
+        <div class="btns"><button class="btn ghost small" id="clr">Temizle</button><button class="btn small" id="send">Gönder</button></div>
+      </section><div style="display:flex;flex-direction:column;gap:14px"><section class="panel" id="mine"></section><section class="panel" id="side"></section>
+      ${isHost ? '<button class="btn ghost small" id="end">Oyunu bitir</button>' : ''}</div></div>`;
+    bindGrid(); drawMine();
+    document.getElementById('clr').onclick = () => { path = []; drawPath() };
+    document.getElementById('send').onclick = () => { if (live()) submit() };
+    const e = document.getElementById('end'); if (e) e.onclick = () => { e.textContent = 'Emin misin? Tekrar bas'; e.onclick = () => ctx.act({ type: 'end' }) };
+    if (!raf) raf = requestAnimationFrame(tick);
+    if (!amIn) document.getElementById('mine').innerHTML = '<p class="muted">Bu tur izliyorsun.</p>';
+  }
+  if (isHost && timeupFor !== 'g' + v.game) { timeupFor = 'g' + v.game; setTimeout(() => C.act({ type: 'timeup' }), Math.max(0, v.left) + 1800) }
+  const myp = document.getElementById('myp'); if (myp) myp.textContent = mine.reduce((a, w) => a + Harf.pts(Array.from(w).length), 0);
+  const side = document.getElementById('side');
+  if (side) side.innerHTML = `<span class="label">Rakipler</span><div class="ppl" style="margin-top:6px">${P.filter(p => p.id !== me && v.counts && p.id in v.counts).map(p => `<div class="pp"><span>${esc(p.name)}</span><span>${v.counts[p.id]} kelime</span></div>`).join('') || '<span class="muted">Tek başına oynuyorsun.</span>'}</div>`;
+}
+Ati.start({ game: 'harf', el: app, logic: Harf, render });
+</script>
+</body>
+</html>

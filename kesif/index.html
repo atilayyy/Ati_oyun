@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Keşif Seferi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--ca:#f2b632;--cb:#dfe6ee;--cc:#3b82f6;--cd:#2f9e55;--ce:#e5484d;--cw:min(64px,calc((100vw - 76px) / 5))}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.table{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:18px;background:radial-gradient(circle at 50% 50%,#2e5a3e,#1d3a28 75%);box-shadow:inset 0 0 0 3px #b8902e,0 8px 24px rgba(0,0,0,.4)}
+.row5{display:grid;grid-template-columns:repeat(5,var(--cw));gap:8px;justify-content:center}
+.colw{display:flex;flex-direction:column;align-items:center;min-height:calc(var(--cw) * 1.5);border-radius:10px;padding:3px 0;position:relative}
+.colw.opp{flex-direction:column-reverse}
+.colw.tgt{outline:3px dashed #ffd23f;outline-offset:2px;cursor:pointer;background:rgba(255,210,63,.12)}
+.colw .sc{font-family:var(--display);font-weight:800;font-size:.85rem;color:#fff;background:rgba(0,0,0,.35);border-radius:999px;padding:1px 8px;margin:2px 0}
+.colw .sc.neg{color:#ffb4a8}.colw .sc.pos{color:#a6f0c0}
+.stack{display:flex;flex-direction:column;align-items:center}
+.opp .stack{flex-direction:column-reverse}
+.stack .k{margin-top:calc(var(--cw) * -1.1)}
+.stack .k:first-child{margin-top:0}
+.opp .stack .k{margin-top:0;margin-bottom:calc(var(--cw) * -1.1)}
+.opp .stack .k:first-child{margin-bottom:0}
+.k{width:var(--cw);height:calc(var(--cw) * 1.4);border-radius:8px;background:var(--kc);color:#fff;position:relative;box-shadow:0 2px 0 rgba(0,0,0,.4),inset 0 0 0 2px rgba(255,255,255,.35);flex:none;
+  display:flex;flex-direction:column;justify-content:space-between;padding:3px 5px;font-family:var(--display);font-weight:800;background-image:linear-gradient(160deg,rgba(255,255,255,.25),rgba(255,255,255,0) 50%,rgba(0,0,0,.18))}
+.k.light{color:#1b1f33}
+.k .t{font-size:calc(var(--cw) * .3);line-height:1}
+.k .m{font-size:calc(var(--cw) * .5);line-height:1;align-self:center}
+.k .b{font-size:calc(var(--cw) * .3);line-height:1;align-self:flex-end;transform:rotate(180deg)}
+.k.w .m{font-size:calc(var(--cw) * .42)}
+.k.sel{transform:translateY(-10px);box-shadow:0 0 0 3px #ffd23f,0 6px 10px rgba(0,0,0,.4)}
+.k.new{animation:pop .35s ease-out}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+.k.ka{--kc:var(--ca)}.k.kb{--kc:var(--cb)}.k.kc{--kc:var(--cc)}.k.kd{--kc:var(--cd)}.k.ke{--kc:var(--ce)}
+.mid{display:grid;grid-template-columns:repeat(5,var(--cw));gap:8px;justify-content:center;align-items:center;padding:10px 0;border-top:1px dashed rgba(255,255,255,.2);border-bottom:1px dashed rgba(255,255,255,.2)}
+.pile{position:relative;width:var(--cw);height:calc(var(--cw) * 1.4);border-radius:8px;border:2px dashed rgba(255,255,255,.35);display:grid;place-items:center;font-size:calc(var(--cw) * .4)}
+.pile .k{position:absolute;inset:-2px}
+.pile .n{position:absolute;bottom:-9px;right:-6px;background:#1b1f33;color:#fff;font-size:.7rem;font-weight:800;border-radius:999px;padding:1px 6px;z-index:2}
+.pile.tgt{outline:3px dashed #ffd23f;outline-offset:3px;cursor:pointer}
+.pile.no{opacity:.5}
+.deckrow{display:flex;justify-content:center;align-items:center;gap:14px}
+.deck{width:calc(var(--cw) * 1.1);height:calc(var(--cw) * 1.5);border-radius:9px;background:repeating-linear-gradient(45deg,#7a5410,#7a5410 6px,#9a6c18 6px,#9a6c18 12px);border:3px solid #e9c46a;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;box-shadow:0 4px 0 rgba(0,0,0,.4)}
+.deck.tgt{outline:3px dashed #ffd23f;outline-offset:3px;cursor:pointer}
+.who{display:flex;justify-content:space-between;align-items:center;color:#fff;font-weight:800;font-size:.9rem}
+.who b{font-family:var(--display);font-size:1.2rem}
+.hand{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.hand .k{cursor:pointer}
+.hand .k.dim{opacity:.55}
+.msg{font-weight:800;text-align:center;min-height:1.4em}
+.acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.legend{display:flex;gap:8px;flex-wrap:wrap;font-size:.85rem;font-weight:700}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:7px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.log{display:flex;flex-direction:column;gap:3px;font-size:.85rem;color:var(--muted);max-height:140px;overflow:auto}
+.rules{color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.rules b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Keşif Seferi</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, K = Kesif;
+const IC = { a: '🏜️', b: '🏔️', c: '🌊', d: '🌴', e: '🌋' };
+let V, C, sel = null, lastKey = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+function card(c, cls = '', attr = '') {
+  const v = K.val(c), co = K.col(c), lbl = v ? v : '🤝';
+  return `<div class="k k${co} ${co === 'a' || co === 'b' ? 'light' : ''} ${v ? '' : 'w'} ${cls}" ${attr}><span class="t">${lbl}</span><span class="m">${IC[co]}</span><span class="b">${lbl}</span></div>`;
+}
+const RULES = `<div class="rules">
+  <p><b>5 sefer var:</b> ${K.COLS.map(c => IC[c] + ' ' + K.CN[c]).join(', ')}. Her renkte 3 <b>yatırım</b> (🤝) ve 2-10 arası sayı kartları.</p>
+  <p><b>Sıran gelince:</b> elinden bir kartı ya kendi seferine koy ya da o rengin ortadaki yığınına at. Sonra desteden ya da bir yığının üstünden 1 kart çek. Bu tur attığın kartı hemen geri alamazsın.</p>
+  <p><b>Sefere koyma:</b> her renkte kartlar artan sırayla gider (3'ten sonra 5 olur, 2 olmaz). Yatırımlar sadece o renkte sayı koymadan önce oynanabilir.</p>
+  <p><b>Puan:</b> bir sefere başlamak 20 puana mal olur. Sefer puanı = (sayıların toplamı − 20) × (1 + yatırım sayısı). 8 ya da daha fazla kart koyduğun sefere +20 bonus. Hiç başlamadığın sefer 0.</p>
+  <p>Deste bitince el biter. ${'3 el oynanır, toplam puanı yüksek olan kazanır.'}</p></div>`;
+
+function expCol(list, opp, tgt, c) {
+  const sc = K.expScore(list);
+  return `<div class="colw ${opp ? 'opp' : ''} ${tgt ? 'tgt' : ''}" ${tgt ? `data-exp="${c}"` : ''}>
+    <div class="stack">${list.map((x, i) => card(x, V.last && V.last.card === x && V.last.to === 'exp' && i === list.length - 1 ? 'new' : '')).join('')}</div>
+    ${list.length ? `<span class="sc ${sc < 0 ? 'neg' : 'pos'}">${sc > 0 ? '+' : ''}${sc}</span>` : `<span style="font-size:1.2rem;opacity:.35;margin:6px">${IC[c]}</span>`}</div>`;
+}
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost, inGame = P.some(p => p.id === me);
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}
+      <div><span class="label">Oyuncular (tam 2 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `<div class="row"><span class="label">El sayısı</span><span class="seg">${[1, 3].map(n => `<button data-r="${n}" class="${v.rounds === n ? 'on' : ''}">${n} el</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length === 2 ? '' : 'disabled'}>Başlat</button>${P.length < 2 ? '<p class="muted">Rakibinin katılması bekleniyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>`;
+    Ati.wireShare(app, ctx); wire(v); return;
+  }
+  const opp = P.find(p => p.id !== me) || P[1], self = inGame ? me : P[0].id;
+  const key = v.round + ':' + v.turn + ':' + v.step; if (key !== lastKey) { lastKey = key; sel = null }
+  const myTurn = v.phase === 'play' && v.turn === me, H = v.hands && v.hands[self] ? v.hands[self] : [];
+  const playing = v.phase === 'play';
+  // hedefler
+  const selC = sel ? K.col(sel) : null;
+  const expT = c => myTurn && v.step === 'play' && sel && selC === c && K.canPlay(v.exp[me][c], sel);
+  const discT = c => myTurn && v.step === 'play' && sel && selC === c;
+  const drawT = c => myTurn && v.step === 'draw' && v.disc[c].length && c !== v.lastDisc;
+
+  let msg = '';
+  if (v.phase === 'play') {
+    if (!myTurn) msg = `${esc(nm(v.turn))} oynuyor...`;
+    else if (v.step === 'play') msg = sel ? (K.canPlay(v.exp[me][selC], sel) ? 'Seferine koy ya da ortadaki yığına at.' : 'Bu kart seferine gidemez (sıra küçük). Sadece atabilirsin.') : 'Elinden bir kart seç.';
+    else msg = 'Desteden ya da bir yığının üstünden kart çek.';
+  }
+  const oppExp = v.exp[opp.id], myExp = v.exp[self];
+  const mid = `<div class="mid">${K.COLS.map(c => { const d = v.disc[c], top = d[d.length - 1];
+      return `<div class="pile ${discT(c) || drawT(c) ? 'tgt' : ''} ${myTurn && v.step === 'draw' && c === v.lastDisc ? 'no' : ''}" ${discT(c) ? `data-disc="${c}"` : drawT(c) ? `data-draw="${c}"` : ''}>${top ? card(top) + `<span class="n">${d.length}</span>` : `<span style="opacity:.4">${IC[c]}</span>`}</div>` }).join('')}</div>`;
+  const table = `<div class="table">
+      <div class="who"><span>${esc(opp.name)} · elinde ${v.handCount ? v.handCount[opp.id] : 0} kart</span><b>${K.total(oppExp)}</b></div>
+      <div class="row5">${K.COLS.map(c => expCol(oppExp[c], true, false, c)).join('')}</div>
+      ${mid}
+      <div class="deckrow"><div class="deck ${myTurn && v.step === 'draw' ? 'tgt' : ''}" ${myTurn && v.step === 'draw' ? 'data-draw="deck"' : ''}>${v.deckCount}</div><span style="color:#fff;font-weight:700;font-size:.85rem">destede ${v.deckCount} kart kaldı</span></div>
+      <div class="row5">${K.COLS.map(c => expCol(myExp[c], false, expT(c), c)).join('')}</div>
+      <div class="who"><span>${inGame ? 'Senin seferlerin' : esc(nm(self))}</span><b>${K.total(myExp)}</b></div>
+    </div>`;
+  let bottom = '';
+  if (playing && inGame) {
+    bottom = `<section class="panel"><p class="msg" style="margin:0 0 8px">${msg}</p><div class="hand">${H.map(c => card(c, (sel === c ? 'sel ' : '') + (myTurn && v.step === 'play' && sel && sel !== c ? 'dim' : ''), myTurn && v.step === 'play' ? `data-c="${c}"` : '')).join('')}</div>
+      ${myTurn && v.step === 'play' && sel ? `<div class="acts" style="margin-top:10px">${K.canPlay(v.exp[me][selC], sel) ? `<button class="btn" data-exp="${selC}">Sefere koy</button>` : ''}<button class="btn ghost" data-disc="${selC}">Yığına at</button></div>` : ''}</section>`;
+  } else if (v.phase === 'roundEnd' || v.phase === 'over') {
+    const title = v.phase === 'over' ? (v.winners.length > 1 ? 'Berabere!' : esc(nm(v.winners[0])) + ' kazandı!') : `${v.round}. el bitti`;
+    bottom = `<section class="panel"><h2>${title}</h2><table><thead><tr><th>El</th>${P.map(p => `<th class="n">${esc(p.name)}</th>`).join('')}</tr></thead><tbody>
+      ${v.history.map((h, i) => `<tr><td>${i + 1}. el</td>${P.map(p => `<td class="n">${h[p.id]}</td>`).join('')}</tr>`).join('')}
+      <tr><td><b>Toplam</b></td>${P.map(p => `<td class="n"><b>${p.score}</b></td>`).join('')}</tr></tbody></table>
+      ${isHost ? (v.phase === 'over' ? `<div class="row" style="margin-top:10px"><span class="seg">${[1, 3].map(n => `<button data-r="${n}" class="${v.rounds === n ? 'on' : ''}">${n} el</button>`).join('')}</span><button class="btn" id="start">Yeni oyun</button></div>` : '<button class="btn" id="next" style="margin-top:10px">Sonraki el</button>') : '<p class="muted">Ev sahibi devam ettirecek.</p>'}</section>`;
+  }
+  app.innerHTML = `<div class="row" style="margin-bottom:10px"><span class="pill">${v.round}/${v.rounds}. el</span>${P.map(p => `<span class="pill">${esc(p.name)}: ${p.score}</span>`).join('')}${isHost ? `<span class="pill">Kod: ${esc(ctx.code)}</span>` : ''}</div>
+    ${table}${bottom}
+    <section class="panel"><span class="label">Olanlar</span><div class="log">${v.log.slice().reverse().map(l => `<span>${esc(l)}</span>`).join('')}</div></section>
+    <details class="panel"><summary>Kurallar</summary>${RULES}</details>`;
+  wire(v);
+}
+function wire(v) {
+  const ctx = C, on = (s, f) => { const b = app.querySelector(s); if (b) b.onclick = f };
+  app.querySelectorAll('[data-r]').forEach(b => b.onclick = () => ctx.act({ type: 'rounds', n: +b.dataset.r }));
+  on('#start', () => ctx.act({ type: 'start' })); on('#next', () => ctx.act({ type: 'next' }));
+  app.querySelectorAll('[data-c]').forEach(el => el.onclick = () => { sel = sel === el.dataset.c ? null : el.dataset.c; render(V, C) });
+  app.querySelectorAll('[data-exp]').forEach(el => el.onclick = () => { if (sel) ctx.act({ type: 'play', card: sel, to: 'exp' }) });
+  app.querySelectorAll('[data-disc]').forEach(el => el.onclick = () => { if (sel) ctx.act({ type: 'play', card: sel, to: 'disc' }) });
+  app.querySelectorAll('[data-draw]').forEach(el => el.onclick = () => ctx.act({ type: 'draw', from: el.dataset.draw }));
+}
+Ati.start({ game: 'kesif', el: app, logic: Kesif, render });
+</script>
+</body>
+</html>

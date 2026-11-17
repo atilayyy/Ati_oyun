@@ -2,6 +2,8 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Keşif Seferi**: 2 kişi. Lost Cities kurallarıyla kart oyunu: 5 sefer, yatırım kartları, artan sıra, 3 el.
+- **Harf Avı**: 1-8 kişi. Boggle tarzı: aynı 4x4 harf tablosunda aynı anda kelime avı, ortak bulunan kelime puan getirmez. Sözlük: TDK kelime listesi (mertemin/turkish-word-list) + kökü TDK'da olan yaygın ekli halleri.
 - **Dalga Boyu**: 2-10 kişi. Wavelength'ten esinlenen ipucu oyunu: anlatıcı iki uçlu kartta gizli hedefi tek kelimeyle anlatır, herkes kadranda tahmin eder. 80 kart.
 - **Yedi Tepe**: 2-4 kişi. Catan temel kurallarıyla İstanbul temalı yerleşim oyunu (kurulum, zar, 7 ve Zabıta, oyuncu/liman ticareti, 25 fırsat kartı, En Uzun Yol, En Büyük Ordu, 10 puan).
 - **Blok Patlat**: 1-8 kişi. 8x8 blok bulmaca, herkese aynı tohumla birebir aynı parçalar gelir, 3-2-1 ile aynı anda başlanır, rakiplerin tahtası canlı görünür. Süresiz ya da 2/3/5 dakika.
@@ -50,5 +52,6 @@ Cihazlar birbirine doğrudan bağlanır (WebRTC). Eşleşme için PeerJS'in ücr
 - Kelime listeleri: [mertemin/turkish-word-list](https://github.com/mertemin/turkish-word-list) (Vikisözlük) ve [hermitdave/FrequencyWords](https://github.com/hermitdave/FrequencyWords) (OpenSubtitles sıklık verisi).
 - Bağlantı: [PeerJS](https://peerjs.com).
 - Flip 7, The Op Games'in oyunudur. Ati7 kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.
+- Lost Cities, Reiner Knizia'nın tasarladığı bir oyundur; Boggle, Hasbro'nun markasıdır. Keşif Seferi ve Harf Avı kişisel kullanım için yapılmış, kurallarından esinlenen uyarlamalardır.
 - Catan, Klaus Teuber'in tasarladığı, CATAN GmbH'nin oyunudur. Yedi Tepe kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.
 - 6 nimmt!, Wolfgang Kramer'in tasarladığı, Amigo Spiele'nin oyunudur. Kemer kişisel kullanım için yapılmış, kurallarından esinlenen bir hayran uyarlamasıdır.
