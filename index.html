@@ -23,6 +23,22 @@
 .boom{width:22px;height:22px;border-radius:50%;background:#ff5a4f;box-shadow:0 0 14px #ff5a4f;margin-left:-60px}
 .meta{display:flex;gap:8px;flex-wrap:wrap}
 footer{color:var(--muted);font-size:.85rem;padding-top:12px}
+.search{position:sticky;top:0;z-index:20;padding:10px 0 12px;margin-bottom:4px;background:linear-gradient(var(--table) 80%,rgba(20,26,51,0))}
+.sbox{display:flex;align-items:center;gap:10px;border:2px solid var(--edge);border-radius:16px;background:var(--table2);padding:4px 6px 4px 14px;transition:border-color .15s}
+.sbox:focus-within{border-color:var(--accent)}
+.sbox svg{flex:none;opacity:.7}
+.sbox input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:700 1.05rem var(--body);padding:10px 0;outline:none}
+.sbox input::-webkit-search-cancel-button,.sbox input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+.sbox input{-webkit-appearance:none;appearance:none}
+.sbox input::placeholder{color:var(--muted);font-weight:600}
+.sbox .x{border:0;background:var(--table);color:var(--ink);width:34px;height:34px;border-radius:10px;font:800 1.1rem var(--body);cursor:pointer;display:none}
+.sbox.has .x{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.chips button{font:inherit;font-weight:800;font-size:.82rem;padding:6px 12px;border-radius:999px;border:1px solid var(--edge);background:var(--table);color:var(--muted);cursor:pointer}
+.chips button.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
+.chips .cnt{margin-left:auto;color:var(--muted);font-size:.82rem;font-weight:700}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:30px 10px;border:1px dashed var(--edge);border-radius:20px}
+.game[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -32,6 +48,11 @@ footer{color:var(--muted);font-size:.85rem;padding-top:12px}
     <h1>ATI <b>OYUN</b></h1>
     <p class="muted">Oda aç, 4 haneli kodu arkadaşlarına gönder, oynamaya başla. Kayıt yok, hesap yok.</p>
   </header>
+  <div class="search" role="search">
+    <label class="sbox" id="sbox"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="search" placeholder="Oyun ara: tavla, kelime, kart..." autocomplete="off" enterkeyhint="search" aria-label="Oyun ara"><button class="x" id="qx" type="button" aria-label="Temizle">×</button></label>
+    <div class="chips" id="chips"><button data-f="" class="on">Hepsi</button><button data-f="2">2 kişiyle oynanır</button><button data-f="kalabalik">Kalabalık</button><button data-f="kart">Kart</button><button data-f="kelime">Kelime</button><button data-f="ayni">Aynı anda yarış</button><span class="cnt" id="cnt"></span></div>
+  </div>
   <section class="games">
     <a class="game" href="kesif/">
       <div class="art" aria-hidden="true" style="gap:6px"><span style="display:grid;place-items:center;width:40px;height:56px;border-radius:7px;background:#f2b632;font:800 1.3rem var(--display);color:#1b1f33;transform:rotate(-8deg)">🤝</span><span style="display:grid;place-items:center;width:40px;height:56px;border-radius:7px;background:#3b82f6;font:800 1.3rem var(--display);color:#fff">7</span><span style="display:grid;place-items:center;width:40px;height:56px;border-radius:7px;background:#e5484d;font:800 1.3rem var(--display);color:#fff;transform:rotate(8deg)">10</span></div>
@@ -207,5 +228,46 @@ footer{color:var(--muted);font-size:.85rem;padding-top:12px}
   </section>
   <footer>Kelime listeleri Vikisözlük (mertemin/turkish-word-list) ve OpenSubtitles sıklık verisinden (hermitdave/FrequencyWords) derlenmiştir.</footer>
 </div>
+<script>
+/* Oyun arama: ad, açıklama ve etiketlerde arar; Türkçe harf farkı ve büyük-küçük harf önemsiz */
+(() => {
+  const ALIAS = { kesif: 'lost cities keşif seferi', harf: 'boggle kelime avı harf', dalga: 'wavelength dalga boyu', yeditepe: 'catan istanbul yedi tepe', blok: 'block blast blok patlat tetris', mezat: 'açık artırma mezat ihale', bayrak: 'bayrak başkent ülke coğrafya', kemer: '6 nimmt kemer', casus: 'spyfall casus', kimbu: 'kim bu alın tahmin', yalan: 'iki doğru bir yalan', vampir: 'vampir köylü mafya', blof: 'blöf sözlük', harita: 'harita coğrafya geoguessr', hangisi: 'hangisi daha', sayibul: 'sayı bulmaca mastermind', aynikafa: 'aynı kafa', yaris: 'pati yarışı misket', tahmin: 'tahmin düellosu', karne: 'karne puan ver', bilgi: 'bilgi yarışması quiz', asmaca: 'adam asmaca', refleks: 'kim önce basar refleks', hafiza: 'hafıza kartları memory', ati7: 'ati7 flip 7 acımasız', kelime: 'wordle kelime bulmaca düello', dortbagla: 'dört bağla connect four', amiral: 'amiral battı battleship gemi' };
+  // filtre etiketleri: oyunların hangi gruplara girdiği
+  const TAGS = { kart: ['kesif', 'ati7', 'kemer', 'hafiza', 'mezat'], kelime: ['harf', 'kelime', 'blof', 'asmaca', 'kimbu', 'dalga'], ayni: ['blok', 'harf', 'bayrak', 'bilgi', 'refleks', 'yaris', 'tahmin', 'harita'] };
+  const fold = t => t.toLocaleLowerCase('tr').replace(/[çğıöşüâîû]/g, c => ({ ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' }[c])).replace(/\s+/g, ' ').trim();
+  const games = [...document.querySelectorAll('.games .game')].map(el => {
+    const id = el.getAttribute('href').replace('/', ''), pills = [...el.querySelectorAll('.pill')].map(p => p.textContent).join(' ');
+    const m = pills.match(/(\d+)(?:-(\d+))?\+? kişi/), min = m ? +m[1] : 2, max = m ? (m[2] ? +m[2] : (/\+/.test(pills) ? 99 : +m[1])) : 99;
+    return { el, id, min, max, name: fold(el.querySelector('h2').textContent), text: fold(el.textContent + ' ' + (ALIAS[id] || '')) };
+  });
+  const q = document.getElementById('q'), box = document.getElementById('sbox'), cnt = document.getElementById('cnt'), grid = document.querySelector('.games');
+  const empty = document.createElement('p'); empty.className = 'empty'; empty.hidden = true; grid.appendChild(empty);
+  let filt = '';
+  function run() {
+    const words = fold(q.value).split(' ').filter(Boolean); let n = 0;
+    box.classList.toggle('has', !!q.value);
+    // isimde geçenler önce gelsin
+    const shown = [];
+    for (const g of games) {
+      const okF = !filt || (filt === '2' ? g.min <= 2 && g.max >= 2 : filt === 'kalabalik' ? g.max >= 5 : (TAGS[filt] || []).includes(g.id));
+      const okQ = words.every(w => g.text.includes(w));
+      g.el.hidden = !(okF && okQ); if (!g.el.hidden) { n++; shown.push(g) }
+    }
+    if (words.length) shown.sort((a, b) => (words.every(w => b.name.includes(w)) - words.every(w => a.name.includes(w)))).forEach(g => grid.insertBefore(g.el, empty));
+    else games.forEach(g => grid.insertBefore(g.el, empty));
+    cnt.textContent = n + ' oyun';
+    empty.hidden = n > 0; empty.textContent = `"${q.value}" ile eşleşen oyun yok. Başka bir kelime dene.`;
+    try { sessionStorage.setItem('atiq', JSON.stringify({ q: q.value, f: filt })) } catch (e) {}
+  }
+  q.addEventListener('input', run);
+  q.addEventListener('keydown', e => { if (e.key === 'Enter') { const first = games.find(g => !g.el.hidden && grid.contains(g.el)); const vis = [...grid.querySelectorAll('.game:not([hidden])')]; if (vis.length === 1) location.href = vis[0].href; e.preventDefault(); q.blur() } if (e.key === 'Escape') { q.value = ''; run() } });
+  document.getElementById('qx').onclick = () => { q.value = ''; run(); q.focus() };
+  document.querySelectorAll('#chips [data-f]').forEach(b => b.onclick = () => { filt = b.dataset.f; document.querySelectorAll('#chips [data-f]').forEach(x => x.classList.toggle('on', x === b)); run() });
+  document.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== q) { e.preventDefault(); q.focus() } });
+  // geri dönünce son arama kalsın
+  try { const st = JSON.parse(sessionStorage.getItem('atiq') || 'null'); if (st) { q.value = st.q || ''; filt = st.f || ''; document.querySelectorAll('#chips [data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === filt)) } } catch (e) {}
+  run();
+})();
+</script>
 </body>
 </html>
