@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>2048 Düellosu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--bs:min(calc(100vw - 48px),400px);--gap:calc(var(--bs) * .03);--cell:calc((var(--bs) - var(--gap) * 5) / 4)}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.game{display:flex;flex-direction:column;align-items:center;gap:12px;user-select:none;-webkit-user-select:none}
+.hud{display:flex;justify-content:space-between;align-items:flex-end;width:var(--bs);gap:8px}
+.hud .box{background:var(--table2);border-radius:12px;padding:6px 12px;text-align:center;min-width:70px}
+.hud .lb{font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hud .v{font-family:var(--display);font-weight:800;font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.hud .low{color:var(--bad)}
+.board{position:relative;width:var(--bs);height:var(--bs);border-radius:16px;background:#3a3150;padding:var(--gap);box-sizing:border-box;touch-action:none;box-shadow:0 8px 0 rgba(0,0,0,.35)}
+.bg{position:absolute;inset:var(--gap);display:grid;grid-template-columns:repeat(4,var(--cell));grid-template-rows:repeat(4,var(--cell));gap:var(--gap)}
+.bg i{border-radius:10px;background:rgba(255,255,255,.08)}
+.t{position:absolute;left:0;top:0;width:var(--cell);height:var(--cell);border-radius:10px;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:calc(var(--cell) * .42);transition:transform .11s ease-in-out;will-change:transform}
+.t span{display:block}
+.t.new span{animation:appear .18s ease-out}
+.t.merged span{animation:pop .2s ease-out}
+@keyframes appear{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+.t.d3{font-size:calc(var(--cell) * .34)}.t.d4{font-size:calc(var(--cell) * .27)}.t.d5{font-size:calc(var(--cell) * .22)}
+.v2{background:#f3ecdf;color:#5b4e3c}.v4{background:#efe1c4;color:#5b4e3c}.v8{background:#f6ad6c;color:#fff}.v16{background:#f68f5a;color:#fff}
+.v32{background:#f5715a;color:#fff}.v64{background:#f04e3a;color:#fff}.v128{background:#edcf6f;color:#fff;box-shadow:0 0 14px rgba(237,207,111,.45)}
+.v256{background:#edcb5f;color:#fff;box-shadow:0 0 18px rgba(237,203,95,.55)}.v512{background:#ecc74f;color:#fff;box-shadow:0 0 22px rgba(236,199,79,.65)}
+.v1024{background:#b58cff;color:#fff;box-shadow:0 0 24px rgba(181,140,255,.6)}.v2048{background:#7c4dff;color:#fff;box-shadow:0 0 28px rgba(124,77,255,.75)}.vbig{background:#2b1a5e;color:#ffd23f;box-shadow:0 0 30px rgba(255,210,63,.5)}
+.ov{position:absolute;inset:0;display:grid;place-items:center;border-radius:16px;background:rgba(13,17,38,.78);font-family:var(--display);font-weight:800;font-size:3rem;text-align:center;z-index:5}
+.ov small{display:block;font-family:var(--body);font-size:1rem;color:var(--muted);margin-top:6px}
+.pop{position:absolute;left:50%;top:-6px;transform:translateX(-50%);font-family:var(--display);font-weight:800;color:var(--good);pointer-events:none;animation:up .8s ease-out forwards;z-index:6}
+@keyframes up{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-26px)}}
+.opps{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.op{border-radius:12px;background:var(--table);padding:10px;display:flex;flex-direction:column;gap:6px;align-items:center}
+.op .nm{font-weight:800;font-size:.9rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.op .ps{font-family:var(--display);font-weight:800;font-size:1.4rem}
+.op .st{font-size:.75rem;font-weight:800;color:var(--muted)}
+.op .st.done{color:var(--bad)}
+.mini{display:grid;grid-template-columns:repeat(4,24px);grid-template-rows:repeat(4,24px);gap:2px;padding:3px;background:#3a3150;border-radius:6px}
+.mini i{border-radius:3px;font-style:normal;font-size:8px;font-weight:800;display:grid;place-items:center}
+.mini i:not([class]){background:rgba(255,255,255,.08)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:8px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+tr.win td{color:var(--accent);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>2048 Düellosu</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="engine.js"></script>
+<script src="logic.js"></script>
+<script>
+const E = E2048, app = document.getElementById('app'), esc = Ati.esc;
+let V, C, built = '', G = null, gameNo = 0, tStart = 0, tEnd = 0, raf = 0, timeupFor = '', busy = false;
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') };
+const vcls = v => v <= 2048 ? 'v' + v : 'vbig';
+const dcls = v => { const n = String(v).length; return n >= 3 ? 'd' + n : '' };
+const canPlay = () => G && !G.over && V && V.phase === 'play' && performance.now() >= tStart && !(V.dur && performance.now() >= tEnd);
+const xy = (r, c) => { const b = document.getElementById('board'), cell = b.querySelector('.bg i').getBoundingClientRect().width, gap = (b.clientWidth - cell * 4) / 5; return [gap + c * (cell + gap), gap + r * (cell + gap)] };
+function tileEl(t, cls = '') {
+  const el = document.createElement('div'); el.className = `t ${vcls(t.v)} ${dcls(t.v)} ${cls}`; el.dataset.id = t.id;
+  el.innerHTML = `<span>${t.v}</span>`; const [x, y] = xy(t.r, t.c); el.style.transform = `translate(${x}px,${y}px)`; return el;
+}
+function drawAll() {
+  const b = document.getElementById('board'); if (!b || !G) return;
+  b.querySelectorAll('.t').forEach(e => e.remove());
+  for (const t of G.tiles) b.appendChild(tileEl(t));
+}
+function report() { C.act({ type: 'report', game: gameNo, score: G.score, b: E.grid(G), n: G.moves, max: G.max, over: G.over }) }
+function hud() {
+  const s = document.getElementById('sc'); if (s) s.textContent = G.score;
+  const m = document.getElementById('mx'); if (m) m.textContent = G.max;
+}
+function doMove(dir) {
+  if (!canPlay() || busy) return;
+  const res = E.move(G, dir); if (!res) return;
+  const b = document.getElementById('board');
+  // kayma animasyonu
+  for (const mv of res.moves) { const el = b.querySelector(`.t[data-id="${mv.id}"]`); if (el) { const [x, y] = xy(mv.r, mv.c); el.style.transform = `translate(${x}px,${y}px)` } }
+  busy = true;
+  setTimeout(() => {
+    for (const m of res.merges) { m.from.forEach(id => { const el = b.querySelector(`.t[data-id="${id}"]`); if (el) el.remove() }); b.appendChild(tileEl(m.to, 'merged')) }
+    if (res.spawn) b.appendChild(tileEl(res.spawn, 'new'));
+    busy = false;
+    if (res.gain) { const p = document.createElement('div'); p.className = 'pop'; p.textContent = '+' + res.gain; document.getElementById('scbox').appendChild(p); setTimeout(() => p.remove(), 800) }
+    hud(); report();
+    if (G.over) showOver('Hamle kalmadı!');
+  }, 115);
+}
+function showOver(t) {
+  const b = document.getElementById('board'); if (!b || b.querySelector('.ov.end')) return;
+  b.insertAdjacentHTML('beforeend', `<div class="ov end">${t}<small>${G.score} puan · en büyük taş ${G.max}</small></div>`);
+}
+function tick() {
+  if (!V || V.phase !== 'play') { raf = 0; return }
+  const now = performance.now(), cd = document.getElementById('cd'), tm = document.getElementById('tm');
+  if (cd) { if (now < tStart) cd.innerHTML = Math.ceil((tStart - now) / 1000) + '<small>Aynı taşlar, aynı anda</small>'; else if (now < tStart + 600) cd.innerHTML = 'Başla!'; else cd.remove() }
+  if (tm) { if (V.dur) { const l = tEnd - Math.max(now, tStart); tm.textContent = fmt(l); tm.classList.toggle('low', l < 15000) } else tm.textContent = '∞' }
+  if (G && !G.over && V.dur && now >= tEnd) { G.over = true; report(); showOver('Süre doldu!') }
+  raf = requestAnimationFrame(tick);
+}
+// klavye ve kaydırma
+document.addEventListener('keydown', e => {
+  const k = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D', a: 'L', d: 'R', w: 'U', s: 'D' }[e.key];
+  if (k && document.getElementById('board') && !(e.target && e.target.tagName === 'INPUT')) { e.preventDefault(); doMove(k) }
+});
+function bindSwipe() {
+  const b = document.getElementById('board'); let sx = 0, sy = 0, on = false;
+  b.addEventListener('pointerdown', e => { on = true; sx = e.clientX; sy = e.clientY; try { b.setPointerCapture(e.pointerId) } catch (x) {} });
+  b.addEventListener('pointerup', e => {
+    if (!on) return; on = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    doMove(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U'));
+  });
+  b.addEventListener('pointercancel', () => on = false);
+}
+window.addEventListener('resize', () => { if (G && !busy) drawAll() });
+
+function others(v) {
+  const ids = Object.keys(v.res).filter(id => id !== C.me); if (!ids.length) return '';
+  return `<section class="panel"><span class="label">Rakipler</span><div class="opps">${ids.map(id => {
+    const r = v.res[id], b = r.b && r.b.length === 16 ? r.b : Array(16).fill(0);
+    return `<div class="op"><span class="nm">${esc(nm(id))}</span><span class="ps">${r.score}</span>
+      <div class="mini">${b.map(x => x ? `<i class="${vcls(x)}">${x >= 1000 ? Math.round(x / 1024) + 'K' : x}</i>` : '<i></i>').join('')}</div>
+      <span class="st ${r.over ? 'done' : ''}">${r.over ? 'bitti' : 'en büyük ' + r.max}</span></div>`;
+  }).join('')}</div></section>`;
+}
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost;
+  const opts = isHost ? `<div class="row"><span class="label">Süre</span><span class="seg">${D2048.DURS.map(d => `<button data-dur="${d}" class="${v.dur === d ? 'on' : ''}">${d ? d / 60000 + ' dk' : 'Süresiz'}</button>`).join('')}</span></div>` : '';
+  const wire = () => {
+    app.querySelectorAll('[data-dur]').forEach(b => b.onclick = () => ctx.act({ type: 'opts', dur: +b.dataset.dur }));
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+  };
+  if (v.phase === 'lobby') {
+    built = '';
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}<div><span class="label">Oyuncular (1-8 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `${opts}<button class="btn" id="start">Başlat</button>` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}</section>
+      <section class="panel"><h2>Nasıl oynanır?</h2><p class="muted">Tahtayı kaydır, aynı sayılar birleşip ikiye katlanır. Her hamleden sonra yeni bir 2 ya da 4 gelir. Birleştirdiğin her taşın değeri puanına eklenir.</p>
+      <p class="muted"><b>Herkesin taşları aynı rastgele diziden gelir</b> ve 3-2-1 ile aynı anda başlarsınız. Rakiplerin puanını ve tahtasını canlı görürsün. Herkes bitince (ya da süre dolunca) en yüksek puan kazanır. Bilgisayarda ok tuşlarıyla da oynanır.</p></section>`;
+    Ati.wireShare(app, ctx); wire(); return;
+  }
+  if (v.phase === 'over') {
+    built = '';
+    const rows = Object.keys(v.res).sort((a, b) => v.res[b].score - v.res[a].score);
+    app.innerHTML = `<section class="panel"><span class="label">Oyun bitti</span><h2>${v.winners.map(nm).map(esc).join(' ve ')} kazandı!</h2>
+      <table><thead><tr><th>#</th><th>Oyuncu</th><th class="n">Hamle</th><th class="n">En büyük</th><th class="n">Puan</th></tr></thead><tbody>
+      ${rows.map((id, i) => { const r = v.res[id]; return `<tr class="${v.winners.includes(id) ? 'win' : ''}"><td>${i + 1}</td><td>${esc(nm(id))}${id === me ? ' (sen)' : ''}</td><td class="n">${r.n}</td><td class="n">${r.max}</td><td class="n">${r.score}</td></tr>` }).join('')}
+      </tbody></table></section>
+      <section class="panel"><span class="label">Kazanılan oyunlar</span><div class="row">${P.map(p => `<span class="pill">${esc(p.name)}: ${p.score}</span>`).join('')}</div>
+      ${isHost ? `${opts}<button class="btn" id="start">Tekrar oyna</button>` : '<p class="muted">Ev sahibi yeni oyun başlatabilir.</p>'}</section>`;
+    wire(); return;
+  }
+  const amIn = !!v.res[me];
+  if (built !== 'g' + v.game) {
+    built = 'g' + v.game; gameNo = v.game; busy = false;
+    tStart = performance.now() + Math.max(0, v.wait); tEnd = tStart + (v.dur || 0);
+    G = amIn ? E.create(v.seed) : null;
+    app.innerHTML = amIn ? `<div class="game">
+        <div class="hud"><div class="box" id="scbox" style="position:relative"><div class="lb">Puan</div><div class="v" id="sc">0</div></div><div class="box"><div class="lb">En büyük</div><div class="v" id="mx">2</div></div><div class="box"><div class="lb">${v.dur ? 'Kalan' : 'Süre'}</div><div class="v" id="tm"></div></div></div>
+        <div class="board" id="board"><div class="bg">${'<i></i>'.repeat(16)}</div><div class="ov" id="cd"></div></div>
+      </div><div id="side" style="margin-top:14px"></div>${isHost ? '<div style="margin-top:12px"><button class="btn ghost small" id="end">Oyunu bitir</button></div>' : ''}`
+      : '<section class="panel"><p class="muted">Oyun sürüyor, izliyorsun.</p></section><div id="side"></div>';
+    if (G) { requestAnimationFrame(() => { drawAll(); hud() }); bindSwipe() }
+    const e = app.querySelector('#end'); if (e) e.onclick = () => { e.textContent = 'Emin misin? Tekrar bas'; e.onclick = () => ctx.act({ type: 'end' }) };
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+  if (isHost && v.dur && timeupFor !== 'g' + v.game) { timeupFor = 'g' + v.game; setTimeout(() => C.act({ type: 'timeup' }), Math.max(0, v.left) + 1800) }
+  const side = document.getElementById('side'); if (side) side.innerHTML = others(v);
+}
+Ati.start({ game: 'd2048', el: app, logic: D2048, render });
+</script>
+</body>
+</html>

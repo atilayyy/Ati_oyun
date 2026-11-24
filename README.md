@@ -2,6 +2,7 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **2048 Düellosu**: 1-8 kişi. Herkes aynı tohumla (aynı rastgele taş dizisi) aynı anda oynar, rakip tahtaları canlı görünür, süresiz ya da 2/3/5 dakika.
 - **Tavla**: 2 kişi. Klasik tavla; zorunlu zar kuralları otomatik, kırık pul, toplama, mars 2 sayı, 1/3/5/7 sayılık maç.
 - **Keşif Seferi**: 2 kişi. Lost Cities kurallarıyla kart oyunu: 5 sefer, yatırım kartları, artan sıra, 3 el.
 - **Harf Avı**: 1-8 kişi. Boggle tarzı: aynı 4x4 harf tablosunda aynı anda kelime avı, ortak bulunan kelime puan getirmez. Sözlük: TDK kelime listesi (mertemin/turkish-word-list) + kökü TDK'da olan yaygın ekli halleri.
