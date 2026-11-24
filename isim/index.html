@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>İsim Şehir Hayvan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.cats{display:flex;gap:6px;flex-wrap:wrap}
+.cats button{font:inherit;font-weight:800;font-size:.85rem;padding:7px 12px;border-radius:999px;border:1px solid var(--edge);background:var(--table);color:var(--muted);cursor:pointer}
+.cats button.on{background:var(--accent);color:var(--accentink);border-color:var(--accent)}
+.head{display:flex;align-items:center;gap:14px}
+.letter{width:84px;height:84px;border-radius:20px;background:linear-gradient(145deg,#ffe58a,#ffc83d);color:#221a00;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:3.4rem;box-shadow:0 5px 0 #b8902e;flex:none;animation:drop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes drop{from{transform:translateY(-30px) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
+.tbar{flex:1;display:flex;flex-direction:column;gap:6px}
+.tm{font-family:var(--display);font-weight:800;font-size:1.8rem;font-variant-numeric:tabular-nums}
+.tm.low{color:var(--bad)}
+.bar{height:10px;border-radius:6px;background:var(--edge);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.fields{display:grid;gap:10px}
+.f{display:grid;grid-template-columns:96px 1fr 26px;align-items:center;gap:10px}
+.f label{font-weight:800}
+.f input{font:700 1.1rem var(--body);padding:11px 12px;border-radius:12px;border:2px solid var(--edge);background:var(--table);color:var(--ink);min-width:0}
+.f input:focus{outline:none;border-color:var(--accent)}
+.f .ok{font-size:1.2rem;text-align:center}
+.stopb{font-size:1.2rem;padding:14px;width:100%;background:var(--bad);color:#fff;border-color:var(--bad)}
+.banner{padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--bad) 22%,var(--table));font-weight:800;text-align:center}
+.ov{text-align:center;font-family:var(--display);font-weight:800;font-size:2.6rem;padding:30px 0}
+.ppl{display:flex;gap:8px;flex-wrap:wrap}
+.ppl span{font-weight:800;font-size:.82rem;padding:4px 10px;border-radius:999px;border:1px solid var(--edge)}
+.cat{border-radius:14px;background:var(--table);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.cat h3{margin:0;font-size:1rem}
+.an{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--table2)}
+.an .who{font-size:.75rem;color:var(--muted);font-weight:800;display:block}
+.an .t{font-weight:800;font-size:1.05rem;overflow-wrap:anywhere}
+.an .t.x{text-decoration:line-through;opacity:.55}
+.pt{font-family:var(--display);font-weight:800;min-width:42px;text-align:right}
+.pt.z{color:var(--muted)}
+.pt small{display:block;font-family:var(--body);font-size:.65rem;color:var(--muted);font-weight:700}
+.veto{font:inherit;font-weight:800;font-size:.78rem;padding:6px 9px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+.veto.on{background:var(--bad);color:#fff;border-color:var(--bad)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:7px 6px;border-bottom:1px solid var(--edge);text-align:left}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right}
+.plus{color:var(--good);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>İsim Şehir Hayvan</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc, I = Isim;
+let V, C, draft = {}, rkey = '', tEnd = 0, tStart = 0, tTotal = 0, raf = 0, sendT = 0, closeFor = '', built = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const UP = t => t.toLocaleUpperCase('tr');
+function sendDraft(now) {
+  clearTimeout(sendT);
+  const go = () => { if (V && V.phase === 'write') C.act({ type: 'ans', ri: V.ri, v: draft }) };
+  if (now) go(); else sendT = setTimeout(go, 400);
+}
+function tick() {
+  if (!V || V.phase !== 'write') { raf = 0; return }
+  const now = performance.now(), tm = document.getElementById('tm'), bar = document.getElementById('tb'), ov = document.getElementById('ov');
+  const left = Math.max(0, tEnd - Math.max(now, tStart));
+  if (ov) ov.style.display = now < tStart ? '' : 'none', ov.textContent = Math.ceil((tStart - now) / 1000);
+  const fs = document.getElementById('fs'); if (fs) fs.style.display = now < tStart ? 'none' : '';
+  if (tm) { tm.textContent = Math.ceil(left / 1000) + ' sn'; tm.classList.toggle('low', left < 10000) }
+  if (bar) bar.style.width = Math.min(100, left / tTotal * 100) + '%';
+  if (left <= 0 && now >= tStart) {
+    document.querySelectorAll('.f input').forEach(i => i.disabled = true);
+    if (!tick.sent) { tick.sent = true; sendDraft(true) }
+  }
+  raf = requestAnimationFrame(tick);
+}
+function catSel(v) { return `<div class="cats">${I.CATS.map(c => `<button data-cat="${esc(c)}" class="${v.cats.includes(c) ? 'on' : ''}">${esc(c)}</button>`).join('')}</div>` }
+function optsHtml(v) {
+  return `<div><span class="label">Kategoriler (3-8)</span><div style="margin-top:6px">${catSel(v)}</div></div>
+    <div class="row"><span class="label">Tur</span><span class="seg">${[3, 5, 8].map(n => `<button data-rounds="${n}" class="${v.rounds === n ? 'on' : ''}">${n}</button>`).join('')}</span>
+    <span class="label">Süre</span><span class="seg">${I.DURS.map(d => `<button data-dur="${d}" class="${v.dur === d ? 'on' : ''}">${d / 1000} sn</button>`).join('')}</span></div>`;
+}
+const RULES = `<p class="muted">Her tur bir harf çıkar. Her kategoriye o harfle başlayan bir cevap yaz. Hepsini dolduran <b>Stop!</b> der, diğerlerine 5 saniye kalır.</p>
+  <p class="muted">Sonra cevaplar açılır. Uydurma ya da yanlış bulduğun cevaba <b>itiraz</b> et; diğer oyuncuların çoğu itiraz ederse cevap sayılmaz.</p>
+  <p class="muted"><b>Puan:</b> o kategoride geçerli cevabı olan tek kişiysen 20, cevabın kimseyle aynı değilse 10, başkasıyla aynıysa 5.</p>`;
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost, inGame = P.some(p => p.id === me);
+  if (v.phase === 'lobby' || v.phase === 'over') {
+    built = '';
+    let top = '';
+    if (v.phase === 'over') {
+      const r = P.slice().sort((a, b) => b.score - a.score);
+      top = `<section class="panel"><span class="label">Oyun bitti</span><h2>${v.winners.map(nm).map(esc).join(' ve ')} kazandı!</h2>
+        <table><thead><tr><th>Oyuncu</th>${v.history.map(h => `<th class="n">${esc(h.letter)}</th>`).join('')}<th class="n">Toplam</th></tr></thead><tbody>
+        ${r.map(p => `<tr><td>${esc(p.name)}${p.id === me ? ' (sen)' : ''}</td>${v.history.map(h => `<td class="n">${h.pts[p.id] || 0}</td>`).join('')}<td class="n"><b>${p.score}</b></td></tr>`).join('')}</tbody></table></section>`;
+    }
+    app.innerHTML = `${top}<section class="panel">${v.phase === 'lobby' ? Ati.shareHtml(ctx) : ''}
+      <div><span class="label">Oyuncular (2-10 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `${optsHtml(v)}<button class="btn" id="start" ${P.length < 2 ? 'disabled' : ''}>${v.phase === 'over' ? 'Yeni oyun' : 'Başlat'}</button>` : `<p class="muted">Kategoriler: ${v.cats.map(esc).join(', ')}. Ev sahibinin başlatması bekleniyor...</p>`}
+      </section>${v.phase === 'lobby' ? `<section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>` : ''}`;
+    if (v.phase === 'lobby') Ati.wireShare(app, ctx);
+    const send = o => ctx.act({ type: 'opts', cats: v.cats, rounds: v.rounds, dur: v.dur, ...o });
+    app.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { const c = b.dataset.cat; send({ cats: v.cats.includes(c) ? v.cats.filter(x => x !== c) : v.cats.concat(c) }) });
+    app.querySelectorAll('[data-rounds]').forEach(b => b.onclick = () => send({ rounds: +b.dataset.rounds }));
+    app.querySelectorAll('[data-dur]').forEach(b => b.onclick = () => send({ dur: +b.dataset.dur }));
+    const s = app.querySelector('#start'); if (s) s.onclick = () => ctx.act({ type: 'start' });
+    return;
+  }
+  if (v.phase === 'write') {
+    const k = 'w' + v.ri;
+    tEnd = performance.now() + v.left; tStart = performance.now() + Math.max(0, v.wait);
+    if (isHost && closeFor !== k + ':' + (v.stopBy || '')) { closeFor = k + ':' + (v.stopBy || ''); const ri = v.ri; setTimeout(() => { if (V.phase === 'write' && V.ri === ri) C.act({ type: 'close' }) }, Math.max(0, v.left) + 900) }
+    const filled = `<div class="ppl">${P.map(p => `<span>${esc(p.name)} ${(v.filled[p.id] || 0)}/${v.cats.length}</span>`).join('')}</div>`;
+    const stop = v.stopBy ? `<div class="banner">🛑 ${esc(nm(v.stopBy))} STOP dedi! Son saniyeler!</div>` : '';
+    if (built !== k) {
+      built = k; draft = {}; v.cats.forEach(c => draft[c] = (v.mine && v.mine[c]) || ''); tTotal = v.dur; tick.sent = false;
+      app.innerHTML = `<section class="panel"><div class="head"><div class="letter">${esc(v.letter)}</div><div class="tbar"><span class="label">Tur ${v.ri}/${v.rounds}</span><span class="tm" id="tm"></span><div class="bar"><i id="tb"></i></div></div></div></section>
+        <div id="stopbox"></div>
+        <section class="panel"><div class="ov" id="ov"></div><div id="fs">${inGame ? `<div class="fields">${v.cats.map((c, i) => `<div class="f"><label for="f${i}">${esc(c)}</label><input id="f${i}" data-c="${esc(c)}" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="30" placeholder="${esc(v.letter)}..." value="${esc(draft[c])}"><span class="ok" id="ok${i}"></span></div>`).join('')}</div>
+          <button class="btn stopb" id="stop" style="margin-top:12px">STOP!</button>` : '<p class="muted">İzliyorsun.</p>'}</div></section>
+        <section class="panel"><span class="label">Doldurulanlar</span><div id="fl">${filled}</div></section>`;
+      const check = () => {
+        let all = true;
+        v.cats.forEach((c, i) => { const ok = I.startsOK(draft[c], v.letter), el = document.getElementById('ok' + i); if (el) el.textContent = draft[c].trim() ? (ok ? '✅' : '⚠️') : ''; if (!ok) all = false });
+        const st = document.getElementById('stop'); if (st) { st.disabled = !all; st.style.opacity = all ? 1 : .4 }
+      };
+      app.querySelectorAll('.f input').forEach((inp, i) => {
+        inp.oninput = () => { draft[inp.dataset.c] = inp.value; check(); sendDraft() };
+        inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const n = document.getElementById('f' + (i + 1)); if (n) n.focus(); else inp.blur() } };
+      });
+      check();
+      const st = document.getElementById('stop'); if (st) st.onclick = () => { sendDraft(true); setTimeout(() => ctx.act({ type: 'stop', ri: v.ri }), 60) };
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+    document.getElementById('stopbox').innerHTML = stop;
+    const fl = document.getElementById('fl'); if (fl) fl.innerHTML = filled;
+    if (v.stopBy) { const st = document.getElementById('stop'); if (st) st.style.display = 'none' }
+    return;
+  }
+  // review
+  built = '';
+  const res = v.res;
+  const cards = v.cats.map(c => `<div class="cat"><h3>${esc(c)}</h3>${P.map(p => {
+    const t = ((v.ans[p.id] || {})[c] || '').trim(), w = res.why[p.id][c], key = p.id + '|' + c;
+    const nv = Object.values(v.votes).filter(x => x[key]).length, mineV = v.votes[me] && v.votes[me][key];
+    return `<div class="an"><div><span class="who">${esc(p.name)}${p.id === me ? ' (sen)' : ''}</span><span class="t ${w.p ? '' : 'x'}">${t ? esc(t) : '—'}</span></div>
+      <span class="pt ${w.p ? '' : 'z'}">${w.p ? '+' + w.p : '0'}<small>${esc(w.r)}</small></span>
+      ${t && p.id !== me && inGame && I.startsOK(t, v.letter) ? `<button class="veto ${mineV ? 'on' : ''}" data-veto="${esc(key)}">✗ itiraz${nv ? ' ' + nv : ''}</button>` : `<span style="min-width:10px">${nv ? '✗' + nv : ''}</span>`}</div>`;
+  }).join('')}</div>`).join('');
+  const sum = P.map(p => `<span class="pill">${esc(p.name)}: ${p.score} <span class="plus">+${res.pts[p.id] || 0}</span></span>`).join('');
+  app.innerHTML = `<section class="panel"><div class="head"><div class="letter" style="animation:none">${esc(v.letter)}</div><div><span class="label">Tur ${v.ri}/${v.rounds} · cevaplar</span><p style="margin:4px 0 0">Saçma bulduğun cevaplara itiraz et. Diğerlerinin çoğu itiraz ederse sayılmaz.</p></div></div></section>
+    <section class="panel" style="display:grid;gap:10px">${cards}</section>
+    <section class="panel"><div class="row">${sum}</div>${isHost ? `<button class="btn" id="next" style="margin-top:10px">${v.ri >= v.rounds ? 'Sonuçlar' : 'Puanları onayla, sonraki tur'}</button>` : '<p class="muted">Ev sahibi puanları onaylayınca sonraki tur başlar.</p>'}</section>`;
+  app.querySelectorAll('[data-veto]').forEach(b => b.onclick = () => ctx.act({ type: 'vote', key: b.dataset.veto }));
+  const n = app.querySelector('#next'); if (n) n.onclick = () => ctx.act({ type: 'next' });
+}
+Ati.start({ game: 'isim', el: app, logic: Isim, render });
+</script>
+</body>
+</html>
