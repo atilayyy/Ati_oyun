@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tavla</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;font-size:.9rem;padding:9px 14px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accentink)}
+.bar0{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pl{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:2px solid var(--edge);font-weight:800}
+.pl.turn{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.pl i{width:16px;height:16px;border-radius:50%;border:2px solid #1b1f33}
+.pl b{font-family:var(--display);font-size:1.15rem}
+.pl small{color:var(--muted);font-weight:700}
+svg.board{display:block;width:100%;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+.hit{cursor:pointer}
+.ck{transition:transform .25s}
+.dest{animation:glow 1s ease-in-out infinite}
+@keyframes glow{50%{opacity:.45}}
+.ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+.dice{display:flex;gap:8px}
+.die{width:46px;height:46px;border-radius:10px;background:linear-gradient(145deg,#fffaf0,#e8dcc0);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:7px;box-shadow:0 4px 0 #b8902e,0 6px 10px rgba(0,0,0,.4)}
+.die i{width:8px;height:8px;border-radius:50%;background:#1b1f33;place-self:center}
+.die.used{opacity:.3}
+.die.anim{animation:roll .5s ease-out}
+@keyframes roll{0%{transform:rotate(-220deg) scale(.5)}100%{transform:none}}
+.msg{font-weight:800;text-align:center;min-height:1.4em}
+.log{display:flex;flex-direction:column;gap:3px;font-size:.86rem;color:var(--muted);max-height:150px;overflow:auto}
+.rules{color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.rules b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Tavla</h1></div>
+  <main id="app"></main>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="../assets/ek.js"></script>
+<script src="../assets/net.js"></script>
+<script src="logic.js"></script>
+<script>
+const app = document.getElementById('app'), esc = Ati.esc;
+const COL = ['#f4ead2', '#5a1d14'], RIM = ['#b8a27a', '#2a0b06'];
+let V, C, sel = null, lastDK = '';
+const nm = id => (V.players.find(p => p.id === id) || {}).name || '?';
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+const die = (d, cls) => `<div class="die ${cls}">${Array.from({ length: 9 }, (_, k) => PIPS[d].includes(k) ? '<i></i>' : '<span></span>').join('')}</div>`;
+// geometri (viewBox 0 0 720 520)
+const W = 46, X0 = 22, BARX = 298, BARW = 44, X1 = BARX + BARW, TRAYX = 634, TOP = 22, BOT = 498, PH = 200, R = 20.5;
+const colX = col => (col < 6 ? X0 + col * W : X1 + (col - 6) * W) + W / 2;
+function pos(d) { const bottom = d < 12, col = bottom ? 11 - d : d - 12; return { x: colX(col), bottom } }
+function pipCount(g, c) { let n = g.bar[c] * 25; for (let i = 0; i < 24; i++) { const k = g.board[i] * (c === 0 ? 1 : -1); if (k > 0) n += k * (c === 0 ? i + 1 : 24 - i) } return n }
+
+function boardSvg(v, seatMe) {
+  const g = v.g, flip = seatMe === 1, disp = i => flip ? 23 - i : i;
+  const myTurn = v.phase === 'play' && v.seat[v.cur] === C.me && v.rolled;
+  const L = myTurn ? v.legal : [];
+  const sources = new Set(L.map(m => String(m.from)));
+  const dests = sel != null ? L.filter(m => String(m.from) === String(sel)) : [];
+  const destSet = new Set(dests.map(m => String(m.to)));
+  let s = `<defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a4a24"/><stop offset=".5" stop-color="#5c3417"/><stop offset="1" stop-color="#6e4120"/></linearGradient>
+    <linearGradient id="felt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9d6a8"/><stop offset="1" stop-color="#dcc591"/></linearGradient>
+    <radialGradient id="ck0" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#d9c9a3"/></radialGradient>
+    <radialGradient id="ck1" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#8a3324"/><stop offset="1" stop-color="#3d110a"/></radialGradient>
+    <pattern id="grain" width="40" height="8" patternUnits="userSpaceOnUse"><path d="M0 4q10 -3 20 0t20 0" stroke="rgba(0,0,0,.12)" fill="none"/></pattern>
+  </defs>
+  <rect x="0" y="0" width="720" height="520" rx="18" fill="url(#wood)"/><rect x="0" y="0" width="720" height="520" rx="18" fill="url(#grain)"/>
+  <rect x="${X0}" y="${TOP}" width="${6 * W}" height="${BOT - TOP}" fill="url(#felt)" rx="4"/><rect x="${X1}" y="${TOP}" width="${6 * W}" height="${BOT - TOP}" fill="url(#felt)" rx="4"/>
+  <rect x="${BARX}" y="${TOP - 8}" width="${BARW}" height="${BOT - TOP + 16}" fill="#4a2a12" stroke="#2e1a0b" stroke-width="2"/>
+  <rect x="${TRAYX}" y="${TOP}" width="64" height="${BOT - TOP}" rx="6" fill="#3e2310" stroke="#2e1a0b" stroke-width="2"/>
+  <line x1="${TRAYX}" y1="260" x2="${TRAYX + 64}" y2="260" stroke="#2e1a0b" stroke-width="3"/>`;
+  // üçgenler
+  for (let d = 0; d < 24; d++) {
+    const { x, bottom } = pos(d), y0 = bottom ? BOT : TOP, y1 = bottom ? BOT - PH : TOP + PH;
+    const fill = d % 2 ? '#a33a24' : '#2f2a24';
+    s += `<path d="M${x - W / 2 + 1} ${y0}L${x} ${y1}L${x + W / 2 - 1} ${y0}Z" fill="${fill}" opacity=".92"/>`;
+  }
+  // nokta numaraları (kendi yönümden 1-24)
+  for (let d = 0; d < 24; d++) { const { x, bottom } = pos(d); s += `<text x="${x}" y="${bottom ? 513 : 15}" text-anchor="middle" font-size="10" font-weight="800" fill="rgba(255,240,210,.55)">${d + 1}</text>` }
+  // hedef ışıkları
+  for (const m of dests) {
+    if (m.to === 'off') continue;
+    const { x, bottom } = pos(disp(m.to));
+    s += `<path class="dest" d="M${x - W / 2 + 3} ${bottom ? BOT : TOP}L${x} ${bottom ? BOT - PH : TOP + PH}L${x + W / 2 - 3} ${bottom ? BOT : TOP}Z" fill="#ffd23f" opacity=".75"/>`;
+  }
+  // pullar
+  const checker = (x, y, c, extra = '') => `<g class="ck"><circle cx="${x}" cy="${y + 2.5}" r="${R}" fill="rgba(0,0,0,.35)"/><circle cx="${x}" cy="${y}" r="${R}" fill="url(#ck${c})" stroke="${RIM[c]}" stroke-width="2"/><circle cx="${x}" cy="${y}" r="${R - 6}" fill="none" stroke="${c ? 'rgba(255,255,255,.18)' : 'rgba(120,90,40,.35)'}" stroke-width="1.5"/>${extra}</g>`;
+  for (let i = 0; i < 24; i++) {
+    const n = g.board[i]; if (!n) continue;
+    const c = n > 0 ? 0 : 1, k = Math.abs(n), d = disp(i), { x, bottom } = pos(d);
+    for (let j = 0; j < Math.min(k, 5); j++) {
+      const y = bottom ? BOT - R - 1 - j * (2 * R) : TOP + R + 1 + j * (2 * R);
+      const lab = j === 4 && k > 5 ? `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="15" font-weight="800" fill="${c ? '#fff' : '#1b1f33'}">${k}</text>` : '';
+      s += checker(x, y, c, lab);
+    }
+    if (String(sel) === String(i)) { const y = bottom ? BOT - R - 1 - (Math.min(k, 5) - 1) * 2 * R : TOP + R + 1 + (Math.min(k, 5) - 1) * 2 * R; s += `<circle cx="${x}" cy="${y}" r="${R + 3}" fill="none" stroke="#ffd23f" stroke-width="4"/>` }
+    else if (sources.has(String(i)) && sel == null) { const y = bottom ? BOT - R - 1 - (Math.min(k, 5) - 1) * 2 * R : TOP + R + 1 + (Math.min(k, 5) - 1) * 2 * R; s += `<circle class="dest" cx="${x}" cy="${y}" r="${R + 2}" fill="none" stroke="#ffd23f" stroke-width="2.5"/>` }
+  }
+  // kırık pullar: benimkiler alt yarıda, rakibinkiler üstte
+  const bx = BARX + BARW / 2;
+  for (const c of [0, 1]) {
+    const mineSide = c === seatMe || (seatMe < 0 && c === 0);
+    for (let j = 0; j < g.bar[c]; j++) s += checker(bx, mineSide ? 330 + j * 18 : 190 - j * 18, c);
+    if (g.bar[c] && String(sel) === 'bar' && mineSide) s += `<circle cx="${bx}" cy="330" r="${R + 3}" fill="none" stroke="#ffd23f" stroke-width="4"/>`;
+    else if (g.bar[c] && mineSide && sources.has('bar') && sel == null) s += `<circle class="dest" cx="${bx}" cy="330" r="${R + 2}" fill="none" stroke="#ffd23f" stroke-width="2.5"/>`;
+  }
+  // toplanan pullar
+  for (const c of [0, 1]) {
+    const mineSide = c === seatMe || (seatMe < 0 && c === 0);
+    for (let j = 0; j < g.off[c]; j++) { const y = mineSide ? BOT - 8 - j * 15 : TOP + 4 + j * 15; s += `<rect x="${TRAYX + 8}" y="${y}" width="48" height="11" rx="3" fill="${COL[c]}" stroke="${RIM[c]}" stroke-width="1.5"/>` }
+  }
+  if (destSet.has('off')) s += `<rect class="dest" x="${TRAYX + 2}" y="262" width="60" height="${BOT - 264}" rx="6" fill="#ffd23f" opacity=".45"/>`;
+  // tıklama alanları
+  for (let d = 0; d < 24; d++) { const { x, bottom } = pos(d); const i = flip ? 23 - d : d; s += `<rect class="hit" data-pt="${i}" x="${x - W / 2}" y="${bottom ? 262 : TOP}" width="${W}" height="${bottom ? BOT - 262 : 238}" fill="transparent"/>` }
+  s += `<rect class="hit" data-pt="bar" x="${BARX}" y="${TOP}" width="${BARW}" height="${BOT - TOP}" fill="transparent"/>`;
+  if (destSet.has('off')) s += `<rect class="hit" data-pt="off" x="${TRAYX}" y="${TOP}" width="64" height="${BOT - TOP}" fill="transparent"/>`;
+  return `<svg class="board" viewBox="0 0 720 520" aria-label="Tavla tahtası">${s}</svg>`;
+}
+
+const RULES = `<div class="rules">
+  <p><b>Amaç:</b> 15 pulunu evine getirip hepsini toplamak. Önce toplayan oyunu kazanır. Rakip hiç pul toplayamadıysa <b>mars</b>: 2 puan.</p>
+  <p><b>Hamle:</b> pulunu seç, parlayan yere dokun. Zarlar ayrı ayrı oynanır, çift atarsan 4 hamle yaparsın. Rakibin 2+ pulu olan yere gidemezsin. Tek duran rakip pulunun üstüne gelirsen onu <b>kırarsın</b>; kırık pul önce tahtaya girmek zorunda.</p>
+  <p>İki zar da oynanabiliyorsa ikisini de oynamak zorundasın. Sadece biri oynanabiliyorsa büyüğü oynanır. Oyun bu kuralları senin yerine kontrol eder, sadece geçerli yerler parlar.</p>
+  <p><b>Toplama:</b> bütün pulların evdeyken (sağ alt çeyrek) zardaki sayıya göre pul toplarsın. Daha büyük zarla, ondan yukarıda pulun kalmadıysa en uzaktakini toplayabilirsin.</p></div>`;
+
+function render(v, ctx) {
+  V = v; C = ctx;
+  const me = ctx.me, P = v.players, isHost = ctx.isHost;
+  if (v.phase === 'lobby') {
+    app.innerHTML = `<section class="panel">${Ati.shareHtml(ctx)}<div><span class="label">Oyuncular (2 kişi)</span><div class="row" style="margin-top:6px">${Ati.playersHtml(v, ctx)}</div></div>
+      ${isHost ? `<div class="row"><span class="label">Maç kaç sayı?</span><span class="seg">${[1, 3, 5, 7].map(n => `<button data-t="${n}" class="${v.target === n ? 'on' : ''}">${n}</button>`).join('')}</span></div>
+        <button class="btn" id="start" ${P.length === 2 ? '' : 'disabled'}>Başlat</button>${P.length < 2 ? '<p class="muted">Rakibinin katılması bekleniyor.</p>' : ''}` : '<p class="muted">Ev sahibinin başlatması bekleniyor...</p>'}
+      </section><section class="panel"><h2>Nasıl oynanır?</h2>${RULES}</section>`;
+    Ati.wireShare(app, ctx); wire(v); return;
+  }
+  const seatMe = v.seat.indexOf(me), cur = v.seat[v.cur], myTurn = v.phase === 'play' && cur === me;
+  if (!myTurn || !v.rolled) sel = null;
+  if (sel != null && !(v.legal || []).some(m => String(m.from) === String(sel))) sel = null;
+  const players = v.seat.map((id, c) => `<span class="pl ${v.phase === 'play' && v.cur === c ? 'turn' : ''}"><i style="background:${COL[c]}"></i>${esc(nm(id))}${id === me ? ' (sen)' : ''} <b>${(P.find(p => p.id === id) || {}).score || 0}</b><small>/${v.target} · ${pipCount(v.g, c)} yol</small></span>`).join('');
+  // zarlar
+  let dice = '';
+  if (v.rolled) {
+    const dk = v.gameNo + ':' + v.cur + ':' + v.rolled.join() + ':' + (v.log.length), anim = v.moves.length === 0 && dk !== lastDK; if (v.moves.length === 0) lastDK = dk;
+    const dbl = v.rolled[0] === v.rolled[1], left = v.g.dice.slice();
+    const shown = dbl ? [0, 1, 2, 3].map(k => [v.rolled[0], k >= 4 - left.length]) : v.rolled.map(d => { const i = left.indexOf(d); if (i >= 0) { left.splice(i, 1); return [d, true] } return [d, false] });
+    dice = `<div class="dice">${shown.map(([d, live]) => die(d, (live ? '' : 'used') + (anim ? ' anim' : ''))).join('')}</div>`;
+  }
+  let msg = '', ctrl = '';
+  if (v.phase === 'play') {
+    if (myTurn) {
+      if (!v.rolled) { msg = 'Sıra sende!'; ctrl = '<button class="btn" id="roll">🎲 Zar at</button>' }
+      else {
+        const L = v.legal, done = !v.g.dice.length || !L.length;
+        msg = done ? (v.moves.length ? 'Hamlen bitti.' : 'Oynayacak hamle yok, pulların kapalı.') : sel != null ? 'Parlayan yere dokun.' : (v.g.bar[v.cur] ? 'Önce kırık pulunu tahtaya sok.' : 'Oynatacağın pulu seç.');
+        ctrl = `${v.moves.length ? '<button class="btn ghost" id="undo">↩ Geri al</button>' : ''}${done ? `<button class="btn" id="done">${v.moves.length ? 'Tamam, sıra rakipte' : 'Sırayı geçir'}</button>` : ''}`;
+      }
+    } else msg = v.rolled ? `${esc(nm(cur))} oynuyor...` : `${esc(nm(cur))} zar atacak...`;
+  } else if (v.phase === 'gameEnd') {
+    const w = v.lastWin; msg = `${esc(nm(w.id))} ${w.mars ? '<b>MARS</b> ile ' : ''}kazandı! +${w.pts}`;
+    ctrl = seatMe >= 0 ? '<button class="btn" id="next">Sonraki oyun</button>' : '';
+  } else if (v.phase === 'over') {
+    msg = `🏆 ${esc(nm(v.winner))} maçı kazandı!`;
+    ctrl = isHost ? `<span class="seg">${[1, 3, 5, 7].map(n => `<button data-t="${n}" class="${v.target === n ? 'on' : ''}">${n}</button>`).join('')}</span><button class="btn" id="start">Yeni maç</button>` : '';
+  }
+  app.innerHTML = `<section class="panel"><div class="bar0">${players}</div></section>
+    ${boardSvg(v, seatMe)}
+    <section class="panel" style="display:flex;flex-direction:column;gap:10px;align-items:center">${dice}<p class="msg" style="margin:0">${msg}</p><div class="ctrl">${ctrl}</div></section>
+    <section class="panel"><span class="label">Olanlar</span><div class="log">${v.log.slice().reverse().map(l => `<span>${esc(l)}</span>`).join('')}</div></section>
+    <details class="panel"><summary>Kurallar</summary>${RULES}</details>`;
+  wire(v);
+}
+function wire(v) {
+  const ctx = C, on = (s, f) => { const b = app.querySelector(s); if (b) b.onclick = f };
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => ctx.act({ type: 'target', n: +b.dataset.t }));
+  on('#start', () => ctx.act({ type: 'start' })); on('#next', () => ctx.act({ type: 'next' }));
+  on('#roll', () => ctx.act({ type: 'roll' })); on('#undo', () => { sel = null; ctx.act({ type: 'undo' }) }); on('#done', () => ctx.act({ type: 'done' }));
+  app.querySelectorAll('[data-pt]').forEach(el => el.onclick = () => {
+    if (!(v.phase === 'play' && v.seat[v.cur] === ctx.me && v.rolled)) return;
+    const pt = el.dataset.pt, L = v.legal || [];
+    if (sel != null) {
+      // seçili pul için hedef mi?
+      const ms = L.filter(m => String(m.from) === String(sel) && String(m.to) === pt);
+      if (ms.length) { const m = ms.sort((a, b) => a.d - b.d)[0]; sel = null; ctx.act({ type: 'move', from: m.from, to: m.to, d: m.d }); return }
+    }
+    if (L.some(m => String(m.from) === pt)) sel = String(sel) === pt ? null : (pt === 'bar' ? 'bar' : +pt);
+    else sel = null;
+    render(V, C);
+  });
+}
+Ati.start({ game: 'tavla', el: app, logic: Tavla, render });
+</script>
+</body>
+</html>
