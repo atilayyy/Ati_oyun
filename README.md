@@ -2,6 +2,7 @@
 
 Arkadaşlarla, herkesin kendi cihazından oynadığı küçük oyun platformu.
 
+- **Yılan**: 1 kişi. Nokia 5110 tarzı yılan: LCD ekran, tuş takımı, bonus böcekler, 9 hız, 4 labirent, cihazda saklanan rekorlar.
 - **İsim Şehir Hayvan**: 2-10 kişi. Harf çıkar, herkes aynı anda yazar, STOP ile 5 saniye kalır; itiraz oylaması, 20/10/5 puanlama, 12 kategoriden seçim.
 - **2048 Düellosu**: 1-8 kişi. Herkes aynı tohumla (aynı rastgele taş dizisi) aynı anda oynar, rakip tahtaları canlı görünür, süresiz ya da 2/3/5 dakika.
 - **Tavla**: 2 kişi. Klasik tavla; zorunlu zar kuralları otomatik, kırık pul, toplama, mars 2 sayı, 1/3/5/7 sayılık maç.

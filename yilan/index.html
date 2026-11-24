@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Yılan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Nunito:wght@400;600;800&family=Silkscreen&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+:root{--lcd:#a3bc76;--px:#1f2a14;--body1:#36475a;--body2:#25313f}
+.stage{display:flex;justify-content:center;padding:6px 0 20px;user-select:none;-webkit-user-select:none}
+.phone{width:min(360px,92vw);border-radius:70px 70px 90px 90px / 60px 60px 120px 120px;background:linear-gradient(160deg,var(--body1),var(--body2));padding:28px 22px 34px;box-shadow:inset 0 2px 0 rgba(255,255,255,.18),inset 0 -6px 14px rgba(0,0,0,.4),0 18px 40px rgba(0,0,0,.5);position:relative}
+.speaker{width:60px;height:6px;border-radius:4px;background:#1a222c;margin:0 auto 12px;box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+.brand{text-align:center;font:800 1rem 'Bricolage Grotesque',sans-serif;letter-spacing:.32em;color:#c9d3e0;margin-bottom:10px}
+.bezel{background:#1b2330;border-radius:18px 18px 26px 26px;padding:14px 14px 18px;box-shadow:inset 0 2px 8px rgba(0,0,0,.7)}
+.lcd{position:relative;background:var(--lcd);border-radius:6px;box-shadow:inset 0 0 18px rgba(40,60,10,.45);overflow:hidden;aspect-ratio:84/48;touch-action:none}
+@supports not (aspect-ratio:1){.lcd{height:calc(min(360px,92vw) * .49)}}
+.lcd canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.lcd::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(0,0,0,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.05) 1px,transparent 1px);background-size:calc(100% / 84) calc(100% / 48);mix-blend-mode:multiply}
+.menu{position:absolute;inset:0;display:flex;flex-direction:column;font-family:'Silkscreen',monospace;color:var(--px);font-size:clamp(10px,3.4vw,13px);line-height:1.25;padding:5px 7px;z-index:2;background:var(--lcd)}
+.menu .ttl{text-align:center;border-bottom:2px solid var(--px);padding-bottom:2px;margin-bottom:3px}
+.menu .it{display:flex;justify-content:space-between;padding:0 4px;cursor:pointer}
+.menu .it.on{background:var(--px);color:var(--lcd)}
+.menu .big{text-align:center;font-size:1.25em;margin-top:6px}
+.menu .c{text-align:center}
+.menu[hidden]{display:none}
+.softkey{display:flex;justify-content:center;margin:14px 0 10px}
+.nav{width:120px;height:34px;border-radius:40px/24px;background:linear-gradient(#5a6b80,#3c4a5c);border:0;color:#e5ecf5;font:800 .78rem var(--body);letter-spacing:.08em;box-shadow:0 3px 0 #1a222c;cursor:pointer}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:9px 14px;padding:0 8px}
+.key{height:40px;border:0;border-radius:44% 44% 50% 50%/40% 40% 60% 60%;background:linear-gradient(#e6ebf1,#b9c3cf);color:#1b2330;font:800 1.15rem 'Bricolage Grotesque',sans-serif;box-shadow:0 3px 0 #6d7a89,inset 0 1px 0 #fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;touch-action:manipulation}
+.key small{font-size:.55rem;font-weight:800;color:#55606d;letter-spacing:.05em}
+.key.dir{background:linear-gradient(#fff1b3,#e8c95a);box-shadow:0 3px 0 #9a7b18,inset 0 1px 0 #fff}
+.key:active,.key.press{transform:translateY(2px);box-shadow:0 1px 0 #6d7a89}
+.side{display:flex;flex-direction:column;gap:10px;max-width:420px;margin:0 auto}
+.recs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:.85rem}
+.recs span{background:var(--table);border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700}
+.recs b{font-family:var(--display)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="home" href="../">ATI <b>OYUN</b></a><h1>Yılan</h1></div>
+  <div class="stage">
+    <div class="phone">
+      <div class="speaker"></div>
+      <div class="brand">NOKIA</div>
+      <div class="bezel">
+        <div class="lcd" id="lcd"><canvas id="cv" width="84" height="48"></canvas><div class="menu" id="menu"></div></div>
+      </div>
+      <div class="softkey"><button class="nav" id="nav">MENÜ</button></div>
+      <div class="keys" id="keys">
+        <button class="key" data-k="1">1<small>&nbsp;</small></button><button class="key dir" data-k="2">2<small>▲</small></button><button class="key" data-k="3">3<small>&nbsp;</small></button>
+        <button class="key dir" data-k="4">4<small>◀</small></button><button class="key" data-k="5">5<small>BAŞLA</small></button><button class="key dir" data-k="6">6<small>▶</small></button>
+        <button class="key" data-k="7">7<small>&nbsp;</small></button><button class="key dir" data-k="8">8<small>▼</small></button><button class="key" data-k="9">9<small>&nbsp;</small></button>
+        <button class="key" data-k="*">*<small>SES</small></button><button class="key" data-k="0">0<small>&nbsp;</small></button><button class="key" data-k="#">#<small>DUR</small></button>
+      </div>
+    </div>
+  </div>
+  <section class="panel side"><span class="label">Rekorların (bu telefonda)</span><div class="recs" id="recs"></div>
+    <p class="muted" style="margin:0">2-4-6-8 ile yön ver, 5 ile başla/duraklat. Ekranı kaydırabilir ya da klavyede ok tuşlarını kullanabilirsin. Yem 1 boy uzatır; her 5 yemde bir böcek çıkar, kaybolmadan yakalarsan bonus puan.</p></section>
+</div>
+<script>
+/* Nokia tarzı yılan. Ekran 84x48 piksel; üst 7 piksel skor şeridi, oyun alanı 20x10 hücre (her hücre 4x4 piksel). */
+const cv = document.getElementById('cv'), g = cv.getContext('2d'), menu = document.getElementById('menu');
+const PX = '#1f2a14', LCD = '#a3bc76', COLS = 20, ROWS = 10, OX = 2, OY = 8;
+const SPEED = [0, 330, 270, 220, 180, 150, 125, 105, 88, 72];
+const MAZES = ['Yok', 'Kutu', 'Tünel', 'Koridor'];
+let st = { mode: 'menu', sel: 0, level: 5, maze: 0, sound: true };
+try { const s = JSON.parse(localStorage.getItem('yilan-ayar') || 'null'); if (s) { st.level = s.level || 5; st.maze = s.maze || 0; st.sound = s.sound !== false } } catch (e) {}
+let G = null, timer = 0;
+
+/* ---- 3x5 piksel rakam yazısı ---- */
+const FONT = { '0': '111101101101111', '1': '010110010010111', '2': '111001111100111', '3': '111001111001111', '4': '101101111001001', '5': '111100111001111', '6': '111100111101111', '7': '111001010010010', '8': '111101111101111', '9': '111101111001111' };
+function num(n, x, y, right) {
+  const s = String(n); if (right) x -= s.length * 4 - 1;
+  for (const ch of s) { const f = FONT[ch]; for (let i = 0; i < 15; i++) if (f[i] === '1') g.fillRect(x + (i % 3), y + ((i / 3) | 0), 1, 1); x += 4 }
+}
+/* ---- ses: kısa Nokia bip'i ---- */
+let actx = null;
+function beep(f = 1800, d = 0.04) {
+  if (!st.sound) return;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), v = actx.createGain(); o.type = 'square'; o.frequency.value = f; v.gain.value = 0.04; o.connect(v); v.connect(actx.destination); o.start(); o.stop(actx.currentTime + d) } catch (e) {}
+}
+/* ---- labirentler ---- */
+function walls(m) {
+  const w = new Set(), add = (c, r) => w.add(c + ',' + r);
+  if (m === 1 || m === 2 || m === 3) for (let c = 0; c < COLS; c++) for (const r of [0, ROWS - 1]) add(c, r);
+  if (m === 1 || m === 2 || m === 3) for (let r = 0; r < ROWS; r++) for (const c of [0, COLS - 1]) add(c, r);
+  if (m === 2) { for (const r of [4, 5]) { w.delete('0,' + r); w.delete((COLS - 1) + ',' + r) } for (const c of [9, 10]) { w.delete(c + ',0'); w.delete(c + ',' + (ROWS - 1)) } }
+  if (m === 3) { for (let c = 4; c < 16; c++) { add(c, 3); add(c, 6) } }
+  return w;
+}
+const recKey = () => `yilan-rekor-${st.level}-${st.maze}`;
+function getRec(l = st.level, m = st.maze) { try { return +(localStorage.getItem(`yilan-rekor-${l}-${m}`) || 0) } catch (e) { return 0 } }
+function setRec(n) { try { localStorage.setItem(recKey(), n) } catch (e) {} }
+function saveSet() { try { localStorage.setItem('yilan-ayar', JSON.stringify({ level: st.level, maze: st.maze, sound: st.sound })) } catch (e) {} }
+
+function newGame() {
+  const mid = Math.floor(ROWS / 2);
+  G = { snake: [[7, mid], [6, mid], [5, mid], [4, mid], [3, mid]], dir: [1, 0], q: [], grow: 0, score: 0, eaten: 0, food: null, bug: null, walls: walls(st.maze), over: false, paused: false, blink: 0 };
+  placeFood(); st.mode = 'play'; menu.hidden = true; draw(); loop();
+}
+const occupied = (c, r) => G.walls.has(c + ',' + r) || G.snake.some(s => s[0] === c && s[1] === r) || (G.food && G.food[0] === c && G.food[1] === r) || (G.bug && G.bug.cells.some(b => b[0] === c && b[1] === r));
+function freeCell() { const f = []; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (!occupied(c, r)) f.push([c, r]); return f.length ? f[Math.floor(Math.random() * f.length)] : null }
+function placeFood() { G.food = null; G.food = freeCell() }
+function placeBug() {
+  const opts = []; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) if (!occupied(c, r) && !occupied(c + 1, r)) opts.push([c, r]);
+  if (!opts.length) return; const [c, r] = opts[Math.floor(Math.random() * opts.length)];
+  G.bug = { cells: [[c, r], [c + 1, r]], left: 20, kind: Math.floor(Math.random() * 3) };
+}
+function loop() { clearTimeout(timer); if (st.mode !== 'play' || G.paused || G.over) return; timer = setTimeout(() => { step(); loop() }, SPEED[st.level]) }
+function step() {
+  if (G.q.length) G.dir = G.q.shift();
+  const h = G.snake[0]; let c = h[0] + G.dir[0], r = h[1] + G.dir[1];
+  c = (c + COLS) % COLS; r = (r + ROWS) % ROWS; // duvar yoksa öbür taraftan çıkar
+  const tailMoves = G.grow === 0;
+  const body = tailMoves ? G.snake.slice(0, -1) : G.snake;
+  if (G.walls.has(c + ',' + r) || body.some(s => s[0] === c && s[1] === r)) return die();
+  G.snake.unshift([c, r]);
+  if (G.grow > 0) G.grow--; else G.snake.pop();
+  if (G.food && G.food[0] === c && G.food[1] === r) {
+    G.score += st.level; G.grow += 1; G.eaten++; beep(1700, .035); placeFood();
+    if (G.eaten % 5 === 0 && !G.bug) placeBug();
+  }
+  if (G.bug) {
+    if (G.bug.cells.some(b => b[0] === c && b[1] === r)) { const pts = 5 * st.level + G.bug.left * 2; G.score += pts; beep(2400, .08); G.bug = null; G.pop = { pts, t: 10 } }
+    else if (--G.bug.left <= 0) G.bug = null;
+  }
+  if (G.pop && --G.pop.t <= 0) G.pop = null;
+  draw();
+}
+function die() {
+  G.over = true; beep(400, .25); let n = 0;
+  const bl = setInterval(() => { G.blink = !G.blink; draw(); if (++n >= 8) { clearInterval(bl); G.blink = false; gameOver() } }, 160);
+}
+function gameOver() {
+  const rec = getRec(), isRec = G.score > rec; if (isRec) setRec(G.score);
+  st.mode = 'over'; showRecs();
+  menu.hidden = false;
+  menu.innerHTML = `<div class="ttl">OYUN BİTTİ</div><div class="c">SKOR</div><div class="big">${G.score}</div><div class="c" style="margin-top:4px">${isRec ? 'YENİ REKOR!' : 'REKOR ' + rec}</div><div class="c" style="margin-top:auto">5: TEKRAR</div>`;
+}
+/* ---- çizim ---- */
+function cell(c, r, w = 4, h = 4) { g.fillRect(OX + c * 4, OY + r * 4, w, h) }
+function draw() {
+  g.fillStyle = LCD; g.fillRect(0, 0, 84, 48); g.fillStyle = PX;
+  // skor şeridi
+  num(G ? G.score : 0, 1, 0);
+  if (G && G.bug) num(G.bug.left, 82, 0, true);
+  else if (G && G.pop) num(G.pop.pts, 82, 0, true);
+  g.fillRect(0, 6, 84, 1);
+  if (!G) return;
+  for (const k of G.walls) { const [c, r] = k.split(',').map(Number); cell(c, r) ; g.fillStyle = LCD; g.fillRect(OX + c * 4 + 1, OY + r * 4 + 1, 2, 2); g.fillStyle = PX }
+  if (G.food) { const x = OX + G.food[0] * 4, y = OY + G.food[1] * 4; g.fillRect(x + 1, y, 1, 1); g.fillRect(x, y + 1, 1, 1); g.fillRect(x + 2, y + 1, 1, 1); g.fillRect(x + 1, y + 2, 1, 1) }
+  if (G.bug) {
+    const [c, r] = G.bug.cells[0], x = OX + c * 4, y = OY + r * 4;
+    const SPR = ['01100110' + '11111111' + '01011010' + '10000001', '10011001' + '01111110' + '11011011' + '01000010', '00111100' + '01111110' + '11011011' + '10100101'][G.bug.kind];
+    for (let i = 0; i < 32; i++) if (SPR[i] === '1') g.fillRect(x + (i % 8), y + ((i / 8) | 0), 1, 1);
+  }
+  if (!G.blink) {
+    G.snake.forEach((s, i) => {
+      const x = OX + s[0] * 4, y = OY + s[1] * 4;
+      g.fillRect(x, y, 3, 3);
+      // bir önceki parçaya bağla: Nokia'daki gibi kesintisiz gövde
+      const n = G.snake[i + 1];
+      if (n) { const dx = n[0] - s[0], dy = n[1] - s[1]; if (dx === 1) g.fillRect(x + 3, y, 1, 3); if (dx === -1) g.fillRect(x - 1, y, 1, 3); if (dy === 1) g.fillRect(x, y + 3, 3, 1); if (dy === -1) g.fillRect(x, y - 1, 3, 1) }
+      if (i === 0) { g.fillStyle = LCD; g.fillRect(x + 1 + (G.dir[0] > 0 ? 1 : G.dir[0] < 0 ? -1 : 0) * 0, y + 1, 1, 1); g.fillStyle = PX }
+    });
+  }
+  if (G.paused) { g.fillStyle = LCD; g.fillRect(24, 18, 36, 13); g.fillStyle = PX; g.strokeStyle = PX; g.strokeRect(24.5, 18.5, 35, 12); g.fillRect(36, 21, 3, 7); g.fillRect(43, 21, 3, 7) }
+}
+/* ---- menü ---- */
+const ITEMS = () => [['Yeni oyun', ''], ['Hız', st.level], ['Labirent', MAZES[st.maze]], ['Ses', st.sound ? 'Açık' : 'Kapalı']];
+function showMenu() {
+  st.mode = 'menu'; clearTimeout(timer); menu.hidden = false;
+  menu.innerHTML = `<div class="ttl">YILAN II</div>${ITEMS().map((it, i) => `<div class="it ${st.sel === i ? 'on' : ''}" data-i="${i}"><span>${it[0]}</span><span>${it[1]}</span></div>`).join('')}<div class="c" style="margin-top:auto;font-size:.85em">REKOR ${getRec()}</div>`;
+  menu.querySelectorAll('[data-i]').forEach(el => el.onclick = () => { st.sel = +el.dataset.i; choose(1) });
+}
+function choose(d = 1) {
+  if (st.sel === 0) return newGame();
+  if (st.sel === 1) st.level = (st.level - 1 + d + 9) % 9 + 1;
+  if (st.sel === 2) st.maze = (st.maze + d + MAZES.length) % MAZES.length;
+  if (st.sel === 3) st.sound = !st.sound;
+  saveSet(); showMenu(); showRecs(); beep(1500, .02);
+}
+function showRecs() {
+  document.getElementById('recs').innerHTML = MAZES.map((m, mi) => { let best = 0, lv = 0; for (let l = 1; l <= 9; l++) { const r = getRec(l, mi); if (r > best) { best = r; lv = l } } return `<span>${m}<b>${best ? best + ' (hız ' + lv + ')' : '-'}</b></span>` }).join('');
+}
+/* ---- giriş ---- */
+const DIRS = { 2: [0, -1], 8: [0, 1], 4: [-1, 0], 6: [1, 0] };
+function key(k) {
+  const b = document.querySelector(`.key[data-k="${k}"]`); if (b) { b.classList.add('press'); setTimeout(() => b.classList.remove('press'), 90) }
+  if (st.mode === 'menu') {
+    if (k === '2') { st.sel = (st.sel + 3) % 4; showMenu() } else if (k === '8') { st.sel = (st.sel + 1) % 4; showMenu() }
+    else if (k === '4') { if (st.sel) choose(-1) } else if (k === '6' || k === '5') choose(1);
+    return;
+  }
+  if (st.mode === 'over') { if (k === '5') newGame(); else if (k === 'menu') showMenu(); return }
+  if (st.mode === 'play') {
+    if (k === '*') { st.sound = !st.sound; saveSet(); return }
+    if (k === '5' || k === '#') { if (!G.over) { G.paused = !G.paused; draw(); loop() } return }
+    if (k === 'menu') { G.paused = true; draw(); showMenu(); return }
+    const d = DIRS[k]; if (!d || G.paused || G.over) return;
+    const last = G.q.length ? G.q[G.q.length - 1] : G.dir;
+    if (d[0] === -last[0] && d[1] === -last[1]) return; // geri dönemez
+    if (d[0] === last[0] && d[1] === last[1]) return;
+    if (G.q.length < 3) G.q.push(d);
+  }
+}
+document.getElementById('keys').addEventListener('pointerdown', e => { const b = e.target.closest('.key'); if (b) { e.preventDefault(); key(b.dataset.k) } });
+document.getElementById('nav').onclick = () => key(st.mode === 'menu' ? '5' : 'menu');
+document.addEventListener('keydown', e => {
+  const m = { ArrowUp: '2', ArrowDown: '8', ArrowLeft: '4', ArrowRight: '6', w: '2', s: '8', a: '4', d: '6', Enter: '5', ' ': '5', p: '#', Escape: 'menu', '2': '2', '4': '4', '6': '6', '8': '8', '5': '5' }[e.key];
+  if (m) { e.preventDefault(); key(m) }
+});
+// ekranı kaydırma
+(() => { const l = document.getElementById('lcd'); let sx = 0, sy = 0, on = false;
+  l.addEventListener('pointerdown', e => { on = true; sx = e.clientX; sy = e.clientY });
+  l.addEventListener('pointerup', e => { if (!on) return; on = false; const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) { if (st.mode === 'over') key('5'); return } key(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? '6' : '4') : (dy > 0 ? '8' : '2')) });
+})();
+document.addEventListener('visibilitychange', () => { if (document.hidden && G && st.mode === 'play' && !G.over) { G.paused = true; draw(); clearTimeout(timer) } });
+draw(); showMenu(); showRecs();
+</script>
+</body>
+</html>
